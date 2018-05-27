@@ -1,4 +1,4 @@
-#![feature(nll)]
+#![feature(nll, const_fn)]
 
 #[cfg(unix)]
 extern crate libc;
@@ -38,6 +38,7 @@ macro_rules! proctry {
 
 mod process;
 pub use process::*;
+use std::cmp;
 
 
 lazy_static! {
@@ -56,25 +57,74 @@ lazy_static! {
         unsafe { libc::sysconf(libc::_SC_CLK_TCK) }
 
     };
+
+    pub static ref KERNEL: KernelVersion = {
+        let mut f = File::open("/proc/sys/kernel/osrelease").unwrap_or_else(|_| panic!("Unable to open /proc/sys/kernel/osrelease"));
+        let mut buf = String::new();
+        f.read_to_string(&mut buf).unwrap_or_else(|_| panic!("Unable to read from /proc/sys/kernel/osrelease"));
+
+        KernelVersion::from_str(&buf).unwrap()
+    };
 }
 
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct KernelVersion {
     pub major: u8,
     pub minor: u8,
-    pub patch: Option<u8>,
+    pub patch: u8,
 }
 
 impl KernelVersion {
-    pub fn new(major: u8, minor: u8, patch: u8) -> KernelVersion {
+    pub const fn new(major: u8, minor: u8, patch: u8) -> KernelVersion {
         KernelVersion {
             major,
             minor,
-            patch: Some(patch)
+            patch
         }
         
     }
+    pub fn from_str(s: &str) -> Result<KernelVersion, &'static str> {
+        let mut s = s.split('-');
+        let mut kernel = s.next().unwrap();
+        let mut kernel_split = kernel.split('.');
+
+        let major = kernel_split.next().ok_or("Missing major version component")?;
+        let minor = kernel_split.next().ok_or("Missing minor version component")?;
+        let patch = kernel_split.next().ok_or("Missing patch version component")?;
+
+        let major = major.parse().map_err(|_| "Failed to parse major version")?;
+        let minor = minor.parse().map_err(|_| "Failed to parse minor version")?;
+        let patch = patch.parse().map_err(|_| "Failed to parse patch version")?;
+
+        Ok(KernelVersion{
+            major, minor, patch
+
+        })
+    }
 }
+
+
+impl cmp::Ord for KernelVersion {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+       match self.major.cmp(&other.major) {
+           cmp::Ordering::Equal => match self.minor.cmp(&other.minor) {
+               cmp::Ordering::Equal => { self.patch.cmp(&other.patch)},
+               x => x
+           },
+           x => x,
+       }
+
+    }
+}
+
+impl cmp::PartialOrd for KernelVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+
 
 macro_rules! kernel {
     ($a:tt . $b:tt . $c:tt) => {
@@ -114,5 +164,40 @@ mod tests {
     #[test]
     fn test_kernel_macro() {
         let a = kernel!(3 . 32 . 4);
+    }
+
+    #[test]
+    fn test_kernel_const() {
+        println!("{:?}", *KERNEL);
+    }
+
+    #[test]
+    fn test_kernel_from_str() {
+        let k = KernelVersion::from_str("1.2.3").unwrap();
+        assert_eq!(k.major, 1);
+        assert_eq!(k.minor, 2);
+        assert_eq!(k.patch, 3);
+
+        let k = KernelVersion::from_str("4.9.16-gentoo").unwrap();
+        assert_eq!(k.major, 4);
+        assert_eq!(k.minor, 9);
+        assert_eq!(k.patch, 16);
+    }
+
+    #[test]
+    fn test_kernel_cmp() {
+        let a = KernelVersion::from_str("1.2.3").unwrap();
+        let b = KernelVersion::from_str("1.2.3").unwrap();
+        let c = KernelVersion::from_str("1.2.4").unwrap();
+        let d = KernelVersion::from_str("1.5.4").unwrap();
+        let e = KernelVersion::from_str("2.5.4").unwrap();
+
+        assert_eq!(a, b);
+        assert!(a < c);
+        assert!(a < d);
+        assert!(a < e);
+        assert!(e > d);
+        assert!(e > c);
+        assert!(e > b);
     }
 }

@@ -78,7 +78,7 @@ bitflags! {
 //    }
 //}
 
-impl<'a, 'b, I, U> ProcFrom<I> for U
+impl<'a, I, U> ProcFrom<I> for U
 where
     I: IntoIterator<Item = &'a str>,
     U: FromStr,
@@ -161,6 +161,8 @@ impl FromStr for ProcState {
 //}
 
 /// Status information about the process
+///
+/// Not all fields are available in every kernel.  These fields have `Option<T>` types.
 #[derive(Debug, Clone)]
 pub struct Stat {
     /// The process ID.
@@ -219,21 +221,78 @@ pub struct Stat {
     pub wchan: u64,
     pub nswap: u64,
     pub cnswap: u64,
-    pub exit_signal: i32,
-    pub processor: i32,
-    pub rt_priority: u32,
-    pub policy: u32,
-    pub delayacct_blkio_ticks: u64,
-    pub guest_time: u32,
-    pub cguest_time: u32,
-    pub start_data: usize,
-    pub end_data: usize,
-    pub start_brk: usize,
-    pub arg_start: usize,
-    pub arg_end: usize,
-    pub env_start: usize,
-    pub env_end: usize,
-    pub exit_code: i32,
+    /// Signal to be sent to parent when we die.
+    ///
+    /// (since Linux 2.1.22)
+    pub exit_signal: Option<i32>,
+    /// CPU number last executed on.
+    ///
+    /// (since Linux 2.2.8)
+    pub processor: Option<i32>,
+    /// Real-time scheduling priority
+    ///
+    ///  Real-time scheduling priority, a number in the range 1 to 99 for processes scheduled under a real-time policy, or 0, for non-real-time processes
+    ///
+    /// (since Linux 2.5.19)
+    pub rt_priority: Option<u32>,
+    /// Scheduling policy (see sched_setscheduler(2)).
+    ///
+    /// Decode using the `SCHED_*` constants in `linux/sched.h`.
+    ///
+    /// (since Linux 2.5.19)
+    pub policy: Option<u32>,
+    /// Aggregated block I/O delays, measured in clock ticks (centiseconds).
+    ///
+    /// (since Linux 2.6.18)
+    pub delayacct_blkio_ticks: Option<u64>,
+    /// Guest time of the process (time spent running a virtual CPU for a guest operating system), measured  in  clock  ticks
+    ///
+    /// (divide by `TICKS_PER_SECOND`)
+    ///
+    /// (since Linux 2.6.24)
+    pub guest_time: Option<u32>,
+    /// Guest time of the process's children, measured in clock ticks (divide by `TICKS_PER_SECOND`).
+    ///
+    /// (since Linux 2.6.24)
+    pub cguest_time: Option<u32>,
+    /// Address above which program initialized and uninitialized (BSS) data are placed.
+    ///
+    /// (since Linux 3.3)
+    pub start_data: Option<usize>,
+    /// Address below which program initialized and uninitialized (BSS) data are placed.
+    ///
+    /// (since Linux 3.3)
+    pub end_data: Option<usize>,
+    /// Address above which program heap can be expanded with brk(2).
+    ///
+    /// (since Linux 3.3)
+    pub start_brk: Option<usize>,
+    /// Address above which program command-line arguments (argv) are placed.
+    ///
+    /// (since Linux 3.5)
+    pub arg_start: Option<usize>,
+    /// Address below program command-line arguments (argv) are placed.
+    ///
+    /// (since Linux 3.5)
+    pub arg_end: Option<usize>,
+    /// Address above which program environment is placed.
+    ///
+    /// (since Linux 3.5)
+    pub env_start: Option<usize>,
+    /// Address below which program environment is placed.
+    ///
+    /// (since Linux 3.5)
+    pub env_end: Option<usize>,
+    /// The thread's exit status in the form reported by waitpid(2).
+    ///
+    /// (since Linux 3.5)
+    pub exit_code: Option<i32>,
+}
+
+macro_rules! since_kernel {
+    ($a:tt - $b:tt - $c:tt, $e:expr) => {
+        if *KERNEL >= KernelVersion::new($a, $b, $c) { Some($e) } else { None }
+    };
 }
 
 impl Stat {
@@ -289,21 +348,22 @@ impl Stat {
         let wchan = ProcFrom::from(&mut rest);
         let nswap = ProcFrom::from(&mut rest);
         let cnswap = ProcFrom::from(&mut rest);
-        let exit_signal = ProcFrom::from(&mut rest);
-        let processor = ProcFrom::from(&mut rest);
-        let rt_priority = ProcFrom::from(&mut rest);
-        let policy = ProcFrom::from(&mut rest);
-        let delayacct_blkio_ticks = ProcFrom::from(&mut rest);
-        let guest_time = ProcFrom::from(&mut rest);
-        let cguest_time = ProcFrom::from(&mut rest);
-        let start_data = ProcFrom::from(&mut rest);
-        let end_data = ProcFrom::from(&mut rest);
-        let start_brk = ProcFrom::from(&mut rest);
-        let arg_start = ProcFrom::from(&mut rest);
-        let arg_end = ProcFrom::from(&mut rest);
-        let env_start = ProcFrom::from(&mut rest);
-        let env_end = ProcFrom::from(&mut rest);
-        let exit_code = ProcFrom::from(&mut rest);
+
+        let exit_signal = since_kernel!(2-1-22, ProcFrom::from(&mut rest));
+        let processor = since_kernel!(2-2-8, ProcFrom::from(&mut rest));
+        let rt_priority = since_kernel!(2-5-19, ProcFrom::from(&mut rest));
+        let policy = since_kernel!(2-5-19, ProcFrom::from(&mut rest));
+        let delayacct_blkio_ticks = since_kernel!(2-6-18, ProcFrom::from(&mut rest));
+        let guest_time = since_kernel!(2-6-24, ProcFrom::from(&mut rest));
+        let cguest_time = since_kernel!(2-6-24, ProcFrom::from(&mut rest));
+        let start_data = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
+        let end_data = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
+        let start_brk = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
+        let arg_start = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
+        let arg_end = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
+        let env_start = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
+        let env_end = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
+        let exit_code = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
 
         Some(Stat {
             pid,
