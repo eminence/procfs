@@ -491,6 +491,22 @@ impl Proc {
         ProcResult::Ok(buf.split('\0').filter_map(|s| if s.len() > 0 {Some(s.to_string())} else { None }).collect())
         
     }
+
+    pub fn pid(&self) -> pid_t {
+        self.stat.pid
+    }
+
+    /// Is this process still alive?
+    pub fn is_alive(&self) -> bool {
+        match Proc::new(self.pid()) {
+            ProcResult::Ok(prc) => {
+                // assume that the command line and uid don't change during a processes lifetime
+                // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
+                prc.stat.comm == self.stat.comm && prc.owner == self.owner
+            },
+            _ => false
+        }
+    }
 }
 
 pub fn all_processes() -> Vec<Proc> {
@@ -531,6 +547,12 @@ mod tests {
             println!("{:?}", prc.stat.starttime());
             println!("{:?}", prc.cmdline().unwrap());
         }
+    }
+
+    #[test]
+    fn test_proc_alive() {
+        let myself = Proc::myself().unwrap();
+        assert!(myself.is_alive());
     }
 
     #[test]
