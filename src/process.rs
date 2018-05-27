@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 use std::str::FromStr;
 use std::path::PathBuf;
+use std::os::linux::fs::MetadataExt;
 
 
 bitflags! {
@@ -397,6 +398,8 @@ impl Stat {
 #[derive(Debug, Clone)]
 pub struct Proc {
     pub stat: Stat,
+    /// The user id of the owner of this process
+    pub owner: u32,
     root: PathBuf
 }
 
@@ -406,14 +409,19 @@ impl Proc {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
 
-        ProcResult::Ok(Proc { root, stat })
+        let md = std::fs::metadata(&root).unwrap();
+
+
+
+        ProcResult::Ok(Proc { root, stat, owner: md.st_uid() })
     }
 
     pub fn myself() -> ProcResult<Proc> {
         let root = PathBuf::from("/proc/self");
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
+        let md = std::fs::metadata(&root).unwrap();
 
-        ProcResult::Ok(Proc { root, stat })
+        ProcResult::Ok(Proc { root, stat, owner: md.st_uid() })
     }
 
     pub fn cmdline(&self) -> ProcResult<Vec<String>> {
@@ -446,13 +454,13 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn test_self_stat() {
-        let stat = Stat::from_reader(fs::File::open("/proc/self/stat").unwrap()).unwrap();
-        println!("{:#?}", stat);
-        println!("state: {:?}", stat.state());
-        println!("tty: {:?}", stat.tty_nr());
-        println!("flags: {:?}", stat.flags());
-        println!("starttime: {:#?}", stat.starttime());
+    fn test_self_proc() {
+        let myself = Proc::myself().unwrap();
+        println!("{:#?}", myself);
+        println!("state: {:?}", myself.stat.state());
+        println!("tty: {:?}", myself.stat.tty_nr());
+        println!("flags: {:?}", myself.stat.flags());
+        println!("starttime: {:#?}", myself.stat.starttime());
     }
 
     #[test]
