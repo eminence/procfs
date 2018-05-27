@@ -1,0 +1,13 @@
+[package]
+name = "procfs"
+version = "0.1.0"
+authors = ["Andrew Chin <achin@eminence32.net>"]
+
+[dependencies]
+libc = "0.2"
+bitflags = "1"
+lazy_static = "1"
+chrono = "0.4"
+
+[dev-dependencies]
+clap = "2.31"
