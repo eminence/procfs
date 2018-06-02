@@ -6,7 +6,18 @@ use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 use std::str::FromStr;
 use std::path::PathBuf;
+#[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
+
+// provide a type-compatible st_uid for windows
+#[cfg(windows)]
+trait FakeMedatadataExt {
+    fn st_uid(&self) -> u32;
+}
+#[cfg(windows)]
+impl FakeMedatadataExt for std::fs::Metadata {
+    fn st_uid(&self) -> u32 {panic!()}
+}
 
 
 bitflags! {

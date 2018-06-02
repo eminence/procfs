@@ -10,10 +10,22 @@ extern crate lazy_static;
 extern crate chrono;
 
 #[cfg(unix)]
-use libc::pid_t;
+mod platform_specific_items {
+    pub use libc::pid_t;
+    pub use libc::sysconf;
+    pub use libc::_SC_CLK_TCK;
+}
 
+
+// Even though this lib isn't supported on windows, I want it to at least typecheck
 #[cfg(windows)]
-type pid_t = i32; // just to make things build on windows in my IDE
+mod platform_specific_items {
+    pub type pid_t = i32; // just to make things build on windows in my IDE
+    pub fn sysconf(_: i32) -> i64 { panic!() }
+    pub const _SC_CLK_TCK: i32 = 2;
+}
+
+use platform_specific_items::*;
 
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
@@ -54,8 +66,11 @@ lazy_static! {
     };
 
     pub static ref TICKS_PER_SECOND: i64 = {
-        unsafe { libc::sysconf(libc::_SC_CLK_TCK) }
-
+        if cfg!(unix) {
+        unsafe { sysconf(_SC_CLK_TCK) }
+        } else {
+            panic!("Not supported on non-unix platforms")
+        }
     };
 
     pub static ref KERNEL: KernelVersion = {
