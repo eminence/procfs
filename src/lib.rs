@@ -13,7 +13,7 @@ extern crate chrono;
 mod platform_specific_items {
     pub use libc::pid_t;
     pub use libc::sysconf;
-    pub use libc::_SC_CLK_TCK;
+    pub use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 }
 
 
@@ -23,6 +23,7 @@ mod platform_specific_items {
     pub type pid_t = i32; // just to make things build on windows in my IDE
     pub fn sysconf(_: i32) -> i64 { panic!() }
     pub const _SC_CLK_TCK: i32 = 2;
+    pub const _SC_PAGESIZE: i32 = 30;
 }
 
 use platform_specific_items::*;
@@ -67,7 +68,7 @@ lazy_static! {
 
     pub static ref TICKS_PER_SECOND: i64 = {
         if cfg!(unix) {
-        unsafe { sysconf(_SC_CLK_TCK) }
+            unsafe { sysconf(_SC_CLK_TCK) }
         } else {
             panic!("Not supported on non-unix platforms")
         }
@@ -79,6 +80,14 @@ lazy_static! {
         f.read_to_string(&mut buf).unwrap_or_else(|_| panic!("Unable to read from /proc/sys/kernel/osrelease"));
 
         KernelVersion::from_str(&buf).unwrap()
+    };
+
+    pub static ref PAGESIZE: i64 = {
+        if cfg!(unix) {
+            unsafe { sysconf(_SC_PAGESIZE) }
+        } else {
+            panic!("Not supported on non-unix platforms")
+        }
     };
 }
 

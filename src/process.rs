@@ -463,6 +463,13 @@ impl Stat {
         *BOOTTIME + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64)
 
     }
+
+    /// Gets the Resident Set Size (in bytes)
+    ///
+    /// The `rss` field will return the same value in pages
+    pub fn rss_bytes(&self) -> i64 {
+        self.rss * *PAGESIZE
+    }
 }
 
 /// Represents a process
