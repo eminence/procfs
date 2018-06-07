@@ -104,7 +104,6 @@ impl Meminfo {
 
 
         }
-        println!("{:#?}", map);
 
         // use 'remove' to move the value out of the hashmap
         // if there's anything still left in the map at the end, that 
