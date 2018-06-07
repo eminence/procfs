@@ -51,6 +51,10 @@ macro_rules! proctry {
 
 mod process;
 pub use process::*;
+
+mod meminfo;
+pub use meminfo::*;
+
 use std::cmp;
 
 
@@ -91,6 +95,18 @@ lazy_static! {
     };
 }
 
+fn convert_to_bytes(num: u64, unit: &str) -> u64 {
+    match unit {
+        "B" => num,
+        "KiB" | "kiB" => num * 1024,
+        "kB" | "KB" => num * 1000,
+        "MiB" | "miB" => num * 1024 * 1024,
+        "MB" | "mB" => num * 1000 * 1000,
+        "GiB" | "giB" => num * 1024 * 1024 * 1024,
+        "GB" | "gB" => num * 1000 * 1000 * 1000,
+        unknown => panic!("Unknown unit type {}", unknown)
+    }
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct KernelVersion {
