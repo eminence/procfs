@@ -1,13 +1,12 @@
-
 use super::*;
 
 use std::fs::DirEntry;
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
-use std::str::FromStr;
-use std::path::PathBuf;
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -16,9 +15,10 @@ trait FakeMedatadataExt {
 }
 #[cfg(windows)]
 impl FakeMedatadataExt for std::fs::Metadata {
-    fn st_uid(&self) -> u32 {panic!()}
+    fn st_uid(&self) -> u32 {
+        panic!()
+    }
 }
-
 
 bitflags! {
     pub struct StatFlags: u32 {
@@ -96,7 +96,7 @@ where
 {
     fn from(i: I) -> U {
         let mut iter = i.into_iter();
-        let val = iter.next().unwrap();
+        let val = iter.next().expect("Missing iterator next item");
         match FromStr::from_str(val) {
             Ok(u) => u,
             Err(..) => panic!(format!("Failed to convert")),
@@ -114,29 +114,30 @@ where
 //    u32::from_str_radix(i.next().unwrap(), 10).unwrap()
 //}
 
+/// Represents the state of a process.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ProcState {
-    /// Running
+    /// Running (R)
     Running,
-    /// Sleeping in an interruptible wait
+    /// Sleeping in an interruptible wait (S)
     Sleeping,
-    /// Waiting in uninterruptible disk sleep
+    /// Waiting in uninterruptible disk sleep (D)
     Waiting,
-    /// Zombie
+    /// Zombie (Z)
     Zombie,
-    /// Stopped (on a signal)
+    /// Stopped (on a signal) (T)
     ///
     /// Or before Linux 2.6.33, trace stopped
     Stopped,
-    /// Tracing stop (Linux 2.6.33 onward)
+    /// Tracing stop (t) (Linux 2.6.33 onward)
     Tracing,
-    /// Dead
+    /// Dead (X)
     Dead,
-    /// Wakekill (Linux 2.6.33 to 3.13 only)
+    /// Wakekill (K) (Linux 2.6.33 to 3.13 only)
     Wakekill,
-    /// Waking (Linux 2.6.33 to 3.13 only)
+    /// Waking (W) (Linux 2.6.33 to 3.13 only)
     Waking,
-    /// Parked (Linux 3.9 to 3.13 only)
+    /// Parked (P) (Linux 3.9 to 3.13 only)
     Parked,
 }
 
@@ -161,7 +162,7 @@ impl ProcState {
 impl FromStr for ProcState {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<ProcState, &'static str> {
-        ProcState::from_char(s.chars().next().unwrap()).ok_or("Failed to convert")
+        ProcState::from_char(s.chars().next().expect("empty string")).ok_or("Failed to convert")
     }
 }
 
@@ -171,18 +172,20 @@ impl FromStr for ProcState {
 //    }
 //}
 
-/// Status information about the process
+/// Status information about the process, based on the `/proc/<pid>/stat` file.
 ///
 /// Not all fields are available in every kernel.  These fields have `Option<T>` types.
 #[derive(Debug, Clone)]
 pub struct Stat {
     /// The process ID.
     pub pid: i32,
-    /// The filename of the executable, in parentheses.  This is visible whether or not the executable is swapped out.
+    /// The filename of the executable, in parentheses.
+    ///
+    /// This is visible whether or not the executable is swapped out.
     pub comm: String,
     /// Process State.
     ///
-    /// See [state()] to get the process state as an enum.
+    /// See [state()](#method.state) to get the process state as an enum.
     pub state: char,
     /// The PID of the parent of this process.
     pub ppid: i32,
@@ -194,43 +197,120 @@ pub struct Stat {
     ///
     /// The minor device number is contained in the combination of bits 31 to 20 and  7  to  0;
     /// the major device number is in bits 15 to 8.
+    ///
+    /// See [tty_nr()] to get this value decoded into a (major, minor) tuple
     pub tty_nr: i32,
     /// The ID of the foreground process group of the controlling terminal of the process.
     pub tpgid: i32,
     /// The kernel flags  word of the process.
+    ///
+    /// For bit meanings, see the PF_* defines in  the  Linux  kernel  source  file
+    /// `include/linux/sched.h`.  
+    ///
+    /// See [flags()] to get a `StatField` object.
     pub flags: u32,
+    /// The number of minor faults the process has made which have not required loading a memory
+    /// page from disk.
     pub minflt: u64,
+    /// The number of minor faults that the process's waited-for children have made.
     pub cminflt: u64,
+    /// The number of major faults the process has made which have required loading a memory page
+    /// from disk.
     pub majflt: u64,
+    /// The number of major faults that the process's waited-for children have made.
     pub cmajflt: u64,
+    /// Amount of time that this process has been scheduled in user mode, measured in clock ticks
+    /// (divide by [`TICKS_PER_SECOND`](struct.TICKS_PER_SECOND.html)).
+    ///
+    /// This includes guest time, guest_time (time spent running a virtual CPU, see below), so that
+    /// applications that are not aware of the guest time field  do not lose that time from their
+    /// calculations.
     pub utime: u64,
+    /// Amount of time that this process has been scheduled in kernel mode, measured in clock ticks
+    /// (divide by `TICKS_PER_SECOND`).
     pub stime: u64,
+
+    /// Amount  of  time  that  this  process's  waited-for  children  have  been  scheduled  in
+    /// user  mode,  measured  in clock ticks (divide by `[TICKS_PER_SECOND]`).
+    ///
+    /// This includes guest time, cguest_time (time spent running a virtual CPU, see below).
     pub cutime: i64,
+
+    /// Amount of time that this process's waited-for  children  have  been  scheduled  in  kernel
+    /// mode,  measured  in  clock  ticks  (divide  by `[TICKS_PER_SECOND]`).
     pub cstime: i64,
+    /// For processes running a real-time scheduling policy (policy below; see sched_setscheduler(2)), 
+    /// this is the negated scheduling priority, minus one;
+    /// 
+    /// That is, a number in the range -2 to -100,
+    /// corresponding to real-time priority orities  1  to 99.  For processes running under a non-real-time
+    /// scheduling policy, this is the raw nice value (setpriority(2)) as represented in the kernel.
+    /// The kernel stores nice values as numbers in the range 0 (high) to 39  (low),  corresponding
+    /// to the user-visible nice range of -20 to 19. 
+    /// (This explanation is for Linux 2.6)
+    /// 
+    /// Before Linux 2.6, this was a scaled value based on the scheduler weighting given to this process.
     pub priority: i64,
     /// The nice value (see `setpriority(2)`), a value in the range 19 (low priority) to -20 (high priority).
     pub nice: i64,
+    /// Number  of  threads in this process (since Linux 2.6).  Before kernel 2.6, this field was
+    /// hard coded to 0 as a placeholder for an earlier removed field.
     pub num_threads: i64,
+    /// The time in jiffies before the next SIGALRM is sent to the process due to an interval
+    /// timer.
+    /// 
+    /// Since kernel 2.6.17, this  field is no longer maintained, and is hard coded as 0.
     pub itrealvalue: i64,
     /// The time the process started after system boot.
     ///
     /// In kernels before Linux 2.6, this value was expressed in  jiffies.  Since  Linux 2.6, the
     /// value is expressed in clock ticks (divide by `sysconf(_SC_CLK_TCK)`).
     pub starttime: i64,
+    /// Virtual memory size in bytes.
     pub vsize: u64,
+    /// Resident Set Size: number of pages the process has in real memory.
+    ///
+    /// This is just the pages which count toward text,  data,  or stack space.
+    /// This does not include pages which have not been demand-loaded in, or which are swapped out.
     pub rss: i64,
+    /// Current soft limit in bytes on the rss of the process; see the description of RLIMIT_RSS in
+    /// getrlimit(2).
     pub rsslim: u64,
+    /// The address above which program text can run.
     pub startcode: u64,
+    /// The address below which program text can run.
     pub endcode: u64,
+    /// The address of the start (i.e., bottom) of the stack.
     pub startstack: u64,
+    /// The current value of ESP (stack pointer), as found in the kernel stack page for the
+    /// process.
     pub kstkesp: u64,
+    /// The current EIP (instruction pointer).
     pub kstkeip: u64,
+    /// The  bitmap of pending signals, displayed as a decimal number.  Obsolete, because it does
+    /// not provide information on real-time
+    ///                         signals; use /proc/[pid]/status instead.
     pub signal: u64,
+    /// The bitmap of blocked signals, displayed as a decimal number.  Obsolete, because it does
+    /// not provide information on  real-time
+    ///                         signals; use /proc/[pid]/status instead.
     pub blocked: u64,
+    /// The  bitmap of ignored signals, displayed as a decimal number.  Obsolete, because it does
+    /// not provide information on real-time
+    ///                         signals; use /proc/[pid]/status instead.
     pub sigignore: u64,
+    /// The bitmap of caught signals, displayed as a decimal number.  Obsolete, because it does not
+    /// provide information  on  real-time
+    ///                         signals; use /proc/[pid]/status instead.
     pub sigcatch: u64,
+    /// This  is  the  "channel"  in which the process is waiting.  It is the address of a location
+    /// in the kernel where the process is
+    ///                         sleeping.  The corresponding symbolic name can be found in
+    ///                         /proc/[pid]/wchan.
     pub wchan: u64,
+    /// Number of pages swapped **(not maintained)**.
     pub nswap: u64,
+    /// Cumulative nswap for child processes **(not maintained)**.
     pub cnswap: u64,
     /// Signal to be sent to parent when we die.
     ///
@@ -302,7 +382,11 @@ pub struct Stat {
 
 macro_rules! since_kernel {
     ($a:tt - $b:tt - $c:tt, $e:expr) => {
-        if *KERNEL >= KernelVersion::new($a, $b, $c) { Some($e) } else { None }
+        if *KERNEL >= KernelVersion::new($a, $b, $c) {
+            Some($e)
+        } else {
+            None
+        }
     };
 }
 
@@ -445,7 +529,6 @@ impl Stat {
         let major = (self.tty_nr & 0xfff00) >> 8;
         let minor = (self.tty_nr & 0x000ff) | ((self.tty_nr >> 12) & 0xfff00);
         (major, minor)
-
     }
 
     pub fn flags(&self) -> StatFlags {
@@ -461,7 +544,6 @@ impl Stat {
         let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
 
         *BOOTTIME + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64)
-
     }
 
     /// Gets the Resident Set Size (in bytes)
@@ -472,42 +554,56 @@ impl Stat {
     }
 }
 
-/// Represents a process
+/// Represents a process in `/proc/<pid>`
 #[derive(Debug, Clone)]
 pub struct Proc {
     pub stat: Stat,
     /// The user id of the owner of this process
     pub owner: u32,
-    root: PathBuf
+    root: PathBuf,
 }
-
 
 impl Proc {
     pub fn new(pid: pid_t) -> ProcResult<Proc> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
 
-        let md = std::fs::metadata(&root).unwrap();
+        let md = proctry!(std::fs::metadata(&root));
 
-
-
-        ProcResult::Ok(Proc { root, stat, owner: md.st_uid() })
+        ProcResult::Ok(Proc {
+            root,
+            stat,
+            owner: md.st_uid(),
+        })
     }
 
     pub fn myself() -> ProcResult<Proc> {
         let root = PathBuf::from("/proc/self");
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
-        let md = std::fs::metadata(&root).unwrap();
+        let md = proctry!(std::fs::metadata(&root));
 
-        ProcResult::Ok(Proc { root, stat, owner: md.st_uid() })
+        ProcResult::Ok(Proc {
+            root,
+            stat,
+            owner: md.st_uid(),
+        })
     }
 
     pub fn cmdline(&self) -> ProcResult<Vec<String>> {
         let mut buf = String::new();
         let mut f = proctry!(File::open(self.root.join("cmdline")));
         proctry!(f.read_to_string(&mut buf));
-        ProcResult::Ok(buf.split('\0').filter_map(|s| if s.len() > 0 {Some(s.to_string())} else { None }).collect())
-        
+        ProcResult::Ok(
+            buf.split('\0')
+                .filter_map(|s| {
+                    if s.len() > 0 {
+                        Some(s.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        )
     }
 
     pub fn pid(&self) -> pid_t {
@@ -521,26 +617,26 @@ impl Proc {
                 // assume that the command line and uid don't change during a processes lifetime
                 // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
                 prc.stat.comm == self.stat.comm && prc.owner == self.owner
-            },
-            _ => false
+            }
+            _ => false,
         }
     }
 }
 
 pub fn all_processes() -> Vec<Proc> {
     let mut v = Vec::new();
-    for dir in std::fs::read_dir("/proc/").unwrap() {
-        let entry: DirEntry = dir.unwrap();
-        if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-            if let ProcResult::Ok(prc) = Proc::new(pid) {
-                v.push(prc);
+    for dir in std::fs::read_dir("/proc/").expect("No /proc/ directory") {
+        if let Ok(entry) = dir {
+            if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
+                if let ProcResult::Ok(prc) = Proc::new(pid) {
+                    v.push(prc);
+                }
             }
         }
     }
 
     v
 }
-
 
 #[cfg(test)]
 mod tests {
