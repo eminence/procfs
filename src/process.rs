@@ -1,12 +1,13 @@
 use super::*;
 
-use std::fs::DirEntry;
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::ffi::OsString;
+use std::collections::HashMap;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -621,6 +622,63 @@ impl Proc {
             _ => false,
         }
     }
+
+    /// The the current working directory of the process.  This done by dereferencing the
+    /// `/proc/pid/cwd` symbolic link.
+    ///
+    /// In a multithreaded process, the contents of this symbolic link are not available if the
+    /// main thread has already terminated (typically by calling pthread_exit(3)).
+    ///
+    /// Permission  to  dereference or read (readlink(2)) this symbolic link is governed by a
+    /// ptrace access mode PTRACE_MODE_READ_FSCREDS check;
+    pub fn cwd(&self) -> ProcResult<PathBuf> {
+        ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("cwd"))))
+    }
+
+    /// Gets the current environment for the process.  This is done by reading the
+    /// `/proc/pid/environ` file.
+    pub fn environ(&self) -> ProcResult<HashMap<OsString, OsString>> {
+        use std::fs::File;
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        let mut map = HashMap::new();
+
+        let mut file = proctry!(File::open(self.root.join("environ")));
+        let mut buf = Vec::new();
+        proctry!(file.read_to_end(&mut buf));
+
+        for slice in buf.split(|b| *b == 0) {
+            // slice will be in the form key=var, so split on the first equals sign
+            let mut split = slice.splitn(2, |b| *b == '=' as u8);
+            match (split.next(), split.next()) {
+                (Some(k), Some(v)) => {
+                    map.insert(OsStr::from_bytes(k).to_os_string(), OsStr::from_bytes(v).to_os_string());
+
+                }
+                _ => ()
+            }
+            //let env = OsStr::from_bytes(slice);
+
+        }
+
+        ProcResult::Ok(map)
+
+
+    }
+
+    /// The actual path of the executed command, taken by resolving the `/proc/pid/exe` symbolic
+    /// link.
+    ///
+    /// Under Linux 2.2 and later, this symbolic link contains the actual pathname of
+    /// the executed command.  If the pathname has been unlinked, the symbolic link will  contain
+    /// the  string  '(deleted)' appended  to the original pathname.  In a multithreaded process,
+    /// the contents of this symbolic link are not available if the main thread has already
+    /// terminated (typically by calling pthread_exit(3)).
+    pub fn exe(&self) -> ProcResult<PathBuf> {
+       ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("exe"))))
+    }
+
 }
 
 pub fn all_processes() -> Vec<Proc> {
@@ -641,7 +699,6 @@ pub fn all_processes() -> Vec<Proc> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn test_self_proc() {
@@ -667,6 +724,34 @@ mod tests {
     fn test_proc_alive() {
         let myself = Proc::myself().unwrap();
         assert!(myself.is_alive());
+    }
+
+    #[test]
+    fn test_proc_environ() {
+        let myself = Proc::myself().unwrap();
+        let proc_environ = myself.environ().unwrap();
+
+        let std_environ: HashMap<_,_> = std::env::vars_os().collect();
+        assert_eq!(proc_environ, std_environ);
+    }
+
+    #[test]
+    fn test_error_handling() {
+        // getting the proc struct should be OK
+        let init = Proc::new(1).unwrap();
+
+        // but accessing data should result in an error (unless we are running as root!)
+        assert!(! init.cwd().is_ok());
+        assert!(! init.environ().is_ok());
+    }
+
+
+    #[test]
+    fn test_proc_exe() {
+        let myself = Proc::myself().unwrap();
+        let proc_exe = myself.exe().unwrap();
+        let std_exe = std::env::current_exe().unwrap();
+        assert_eq!(proc_exe, std_exe);
     }
 
     #[test]

@@ -30,7 +30,7 @@ mod platform_specific_items {
 use platform_specific_items::*;
 
 use std::fs::File;
-use std::io::{self, ErrorKind, Read};
+use std::io::Read;
 use std::str::FromStr;
 
 use chrono::{DateTime, Local};
@@ -127,7 +127,7 @@ impl KernelVersion {
     }
     pub fn from_str(s: &str) -> Result<KernelVersion, &'static str> {
         let mut s = s.split('-');
-        let mut kernel = s.next().unwrap();
+        let kernel = s.next().unwrap();
         let mut kernel_split = kernel.split('.');
 
         let major = kernel_split
@@ -184,6 +184,13 @@ impl<T> ProcResult<T> {
         match self {
             ProcResult::Ok(v) => v,
             _ => panic!("ProcResult doesn't contain any data"),
+        }
+    }
+
+    pub fn is_ok(&self) -> bool {
+        match self {
+            ProcResult::Ok(_) => true,
+            _ => false
         }
     }
 }

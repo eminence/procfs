@@ -255,7 +255,7 @@ impl Meminfo {
         Meminfo::from_reader(f)
     }
 
-    fn from_reader<R: io::Read>(mut r: R) -> Option<Meminfo> {
+    fn from_reader<R: io::Read>(r: R) -> Option<Meminfo> {
         use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
 
