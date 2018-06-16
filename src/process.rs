@@ -1,13 +1,13 @@
 use super::*;
 
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::ffi::OsString;
-use std::collections::HashMap;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -240,16 +240,16 @@ pub struct Stat {
     /// Amount of time that this process's waited-for  children  have  been  scheduled  in  kernel
     /// mode,  measured  in  clock  ticks  (divide  by `[TICKS_PER_SECOND]`).
     pub cstime: i64,
-    /// For processes running a real-time scheduling policy (policy below; see sched_setscheduler(2)), 
+    /// For processes running a real-time scheduling policy (policy below; see sched_setscheduler(2)),
     /// this is the negated scheduling priority, minus one;
-    /// 
+    ///
     /// That is, a number in the range -2 to -100,
     /// corresponding to real-time priority orities  1  to 99.  For processes running under a non-real-time
     /// scheduling policy, this is the raw nice value (setpriority(2)) as represented in the kernel.
     /// The kernel stores nice values as numbers in the range 0 (high) to 39  (low),  corresponding
-    /// to the user-visible nice range of -20 to 19. 
+    /// to the user-visible nice range of -20 to 19.
     /// (This explanation is for Linux 2.6)
-    /// 
+    ///
     /// Before Linux 2.6, this was a scaled value based on the scheduler weighting given to this process.
     pub priority: i64,
     /// The nice value (see `setpriority(2)`), a value in the range 19 (low priority) to -20 (high priority).
@@ -259,7 +259,7 @@ pub struct Stat {
     pub num_threads: i64,
     /// The time in jiffies before the next SIGALRM is sent to the process due to an interval
     /// timer.
-    /// 
+    ///
     /// Since kernel 2.6.17, this  field is no longer maintained, and is hard coded as 0.
     pub itrealvalue: i64,
     /// The time the process started after system boot.
@@ -381,7 +381,6 @@ pub struct Stat {
     pub exit_code: Option<i32>,
 }
 
-
 /// This struct contains I/O statistics for the process, build from `/proc/<pid>/io`
 ///
 /// #  Note
@@ -420,7 +419,7 @@ pub struct Io {
     /// the storage layer.  This is accurate  for block-backed filesystems.
     pub read_bytes: u64,
     /// bytes written
-    /// 
+    ///
     /// Attempt to count the number of bytes which this process caused to be sent to the storage layer.
     pub write_bytes: u64,
     /// Cancelled write bytes.
@@ -432,8 +431,6 @@ pub struct Io {
     /// If this task truncates some dirty pagecache, some I/O which another task has been accounted
     /// for (in its write_bytes) will not be happening.
     pub cancelled_write_bytes: u64,
-
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -454,8 +451,7 @@ pub enum MMapPath {
     /// An anonymous mapping as obtained via mmap(2).
     Anonymous,
     /// Some other pseudo-path
-    Other(String)
-
+    Other(String),
 }
 
 impl MMapPath {
@@ -469,12 +465,13 @@ impl MMapPath {
                 let mut s = x[1..x.len() - 1].split(":");
                 let tid = u32::from_str_radix(s.nth(1).unwrap(), 10).unwrap();
                 MMapPath::TStack(tid)
-            },
-            x if x.starts_with("[") && x.ends_with("]") => MMapPath::Other(x[1..x.len()-1].to_string()),
-            x => MMapPath::Path(PathBuf::from(x))
+            }
+            x if x.starts_with("[") && x.ends_with("]") => {
+                MMapPath::Other(x[1..x.len() - 1].to_string())
+            }
+            x => MMapPath::Path(PathBuf::from(x)),
         }
     }
-
 }
 
 /// Represents an entry in a `/proc/<pid>/maps` file.
@@ -488,11 +485,11 @@ pub struct MemoryMap {
     /// The device (major, minor)
     pub dev: (i32, i32),
     /// The inode on that device
-    /// 
+    ///
     /// 0 indicates that no inode is associated with the memory region, as would be the case with
     /// BSS (uninitialized data).
     pub inode: u32,
-    pub pathname: MMapPath
+    pub pathname: MMapPath,
 }
 
 impl Io {
@@ -519,19 +516,18 @@ impl Io {
             syscw: map.remove("syscw").expect("syscw"),
             read_bytes: map.remove("read_bytes").expect("read_bytes"),
             write_bytes: map.remove("write_bytes").expect("write_bytes"),
-            cancelled_write_bytes: map.remove("cancelled_write_bytes").expect("cancelled_write_bytes")
+            cancelled_write_bytes: map
+                .remove("cancelled_write_bytes")
+                .expect("cancelled_write_bytes"),
         };
-        
+
         if !map.is_empty() {
             panic!("meminfo map is not empty: {:#?}", map);
         }
 
         Some(io)
-
     }
 }
-
-
 
 macro_rules! since_kernel {
     ($a:tt - $b:tt - $c:tt, $e:expr) => {
@@ -794,8 +790,8 @@ impl Process {
     /// Gets the current environment for the process.  This is done by reading the
     /// `/proc/pid/environ` file.
     pub fn environ(&self) -> ProcResult<HashMap<OsString, OsString>> {
-        use std::fs::File;
         use std::ffi::OsStr;
+        use std::fs::File;
         use std::os::unix::ffi::OsStrExt;
 
         let mut map = HashMap::new();
@@ -809,18 +805,17 @@ impl Process {
             let mut split = slice.splitn(2, |b| *b == '=' as u8);
             match (split.next(), split.next()) {
                 (Some(k), Some(v)) => {
-                    map.insert(OsStr::from_bytes(k).to_os_string(), OsStr::from_bytes(v).to_os_string());
-
+                    map.insert(
+                        OsStr::from_bytes(k).to_os_string(),
+                        OsStr::from_bytes(v).to_os_string(),
+                    );
                 }
-                _ => ()
+                _ => (),
             }
             //let env = OsStr::from_bytes(slice);
-
         }
 
         ProcResult::Ok(map)
-
-
     }
 
     /// The actual path of the executed command, taken by resolving the `/proc/pid/exe` symbolic
@@ -832,7 +827,7 @@ impl Process {
     /// the contents of this symbolic link are not available if the main thread has already
     /// terminated (typically by calling pthread_exit(3)).
     pub fn exe(&self) -> ProcResult<PathBuf> {
-       ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("exe"))))
+        ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("exe"))))
     }
 
     /// Return the Io stats for this process, based on the `/proc/pid/io` file.
@@ -853,33 +848,37 @@ impl Process {
 
         let reader = BufReader::new(file);
 
-        ProcResult::Ok(reader.lines().filter_map(|line| {
-            let line = line.unwrap();
-            let mut s = line.splitn(6, ' ');
-            let address = s.next().expect("maps::address");
-            let perms = s.next().expect("maps::perms");
-            let offset = s.next().expect("maps::offset");
-            let dev = s.next().expect("maps::dev");
-            let inode = s.next().expect("maps::inode");
-            let path = s.next().expect("maps::path");
+        ProcResult::Ok(
+            reader
+                .lines()
+                .filter_map(|line| {
+                    let line = line.unwrap();
+                    let mut s = line.splitn(6, ' ');
+                    let address = s.next().expect("maps::address");
+                    let perms = s.next().expect("maps::perms");
+                    let offset = s.next().expect("maps::offset");
+                    let dev = s.next().expect("maps::dev");
+                    let inode = s.next().expect("maps::inode");
+                    let path = s.next().expect("maps::path");
 
-            let mmap = MemoryMap {
-                address: split_into_num(address, '-', 16),
-                perms: perms.to_string(),
-                offset: u64::from_str_radix(offset, 16).unwrap_or_else(|_|panic!("Failed to parse {} as an offset number", offset)),
-                dev: split_into_num(dev, ':', 10),
-                inode: u32::from_str_radix(inode, 10).unwrap_or_else(|_| panic!("Failed to parse {} as an inode number", inode)),
-                pathname: MMapPath::from(path)
-            };
+                    let mmap = MemoryMap {
+                        address: split_into_num(address, '-', 16),
+                        perms: perms.to_string(),
+                        offset: u64::from_str_radix(offset, 16).unwrap_or_else(|_| {
+                            panic!("Failed to parse {} as an offset number", offset)
+                        }),
+                        dev: split_into_num(dev, ':', 10),
+                        inode: u32::from_str_radix(inode, 10).unwrap_or_else(|_| {
+                            panic!("Failed to parse {} as an inode number", inode)
+                        }),
+                        pathname: MMapPath::from(path),
+                    };
 
-            Some(mmap)
-
-        }).collect())
-        
-
-
+                    Some(mmap)
+                })
+                .collect(),
+        )
     }
-
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -933,7 +932,7 @@ mod tests {
         let myself = Process::myself().unwrap();
         let proc_environ = myself.environ().unwrap();
 
-        let std_environ: HashMap<_,_> = std::env::vars_os().collect();
+        let std_environ: HashMap<_, _> = std::env::vars_os().collect();
         assert_eq!(proc_environ, std_environ);
     }
 
@@ -943,10 +942,9 @@ mod tests {
         let init = Process::new(1).unwrap();
 
         // but accessing data should result in an error (unless we are running as root!)
-        assert!(! init.cwd().is_ok());
-        assert!(! init.environ().is_ok());
+        assert!(!init.cwd().is_ok());
+        assert!(!init.environ().is_ok());
     }
-
 
     #[test]
     fn test_proc_exe() {
@@ -978,9 +976,10 @@ mod tests {
         assert_eq!(MMapPath::from("[foo]"), MMapPath::Other("foo".to_owned()));
         assert_eq!(MMapPath::from(""), MMapPath::Anonymous);
         assert_eq!(MMapPath::from("[stack:154]"), MMapPath::TStack(154));
-        assert_eq!(MMapPath::from("/lib/libfoo.so"), MMapPath::Path(PathBuf::from("/lib/libfoo.so")));
-
-
+        assert_eq!(
+            MMapPath::from("/lib/libfoo.so"),
+            MMapPath::Path(PathBuf::from("/lib/libfoo.so"))
+        );
     }
 
 }

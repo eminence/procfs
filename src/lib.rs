@@ -131,14 +131,13 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     let mut s = s.split(sep);
     let a = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
         Ok(v) => v,
-        _ => panic!()
+        _ => panic!(),
     };
     let b = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
         Ok(v) => v,
-        _ => panic!()
+        _ => panic!(),
     };
     (a, b)
-
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -201,7 +200,6 @@ impl cmp::PartialOrd for KernelVersion {
     }
 }
 
-
 /// Common result type of procfs operations.
 #[derive(Debug)]
 pub enum ProcResult<T> {
@@ -214,19 +212,21 @@ impl<T> ProcResult<T> {
     pub fn is_ok(&self) -> bool {
         match self {
             ProcResult::Ok(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
-impl<T> ProcResult<T> where T: std::fmt::Debug {
+impl<T> ProcResult<T>
+where
+    T: std::fmt::Debug,
+{
     pub fn unwrap(self) -> T {
         match self {
             ProcResult::Ok(v) => v,
             _ => panic!("ProcResult is: {:?}", self),
         }
     }
-
 }
 
 trait ProcFrom<T> {

@@ -80,7 +80,7 @@ pub struct Meminfo {
     ///
     /// Lowmem is memory which can be used for every thing  that highmem can be used for,
     /// but it is also available for the kernel's use for its own data structures.
-    /// Among many other things, it is where everything from Slab is allocated. 
+    /// Among many other things, it is where everything from Slab is allocated.
     /// Bad things happen when you're out of lowmem.
     ///
     /// (Starting with Linux 2.6.19, CONFIG_HIGHMEM is required.)
@@ -156,19 +156,19 @@ pub struct Meminfo {
     ///
     /// (since Linux 2.6.10)
     pub commit_limit: Option<u64>,
-	/// The  amount of memory presently allocated on the system.
+    /// The  amount of memory presently allocated on the system.
     ///
     /// The committed memory is a sum of all of the memory which has been allocated
-	/// cated by processes, even if it has not been "used" by them as of yet.  A process which allocates 1GB of memory  (using  malloc(3)
-	/// or  similar),  but  touches only 300MB of that memory will show up as using only 300MB of memory even if it has the address space
-	/// allocated for the entire 1GB.
+    /// cated by processes, even if it has not been "used" by them as of yet.  A process which allocates 1GB of memory  (using  malloc(3)
+    /// or  similar),  but  touches only 300MB of that memory will show up as using only 300MB of memory even if it has the address space
+    /// allocated for the entire 1GB.
     ///
     /// This 1GB is memory which has been "committed" to by the VM and can be used at any  time  by  the  allocating  application.   With
-	/// strict  overcommit  enabled  on  the  system  (mode 2 in /proc/sys/vm/overcommit_memory), allocations which would exceed the Committed_AS
-	/// mitLimit will not be permitted.  This is useful if one needs to guarantee that processes will not fail due to lack of memory once
+    /// strict  overcommit  enabled  on  the  system  (mode 2 in /proc/sys/vm/overcommit_memory), allocations which would exceed the Committed_AS
+    /// mitLimit will not be permitted.  This is useful if one needs to guarantee that processes will not fail due to lack of memory once
     /// that memory has been successfully allocated.
     pub committed_as: Option<u64>,
-    /// Total size of vmalloc memory area.	
+    /// Total size of vmalloc memory area.
     pub vmalloc_total: u64,
     /// Amount of vmalloc area which is used.
     pub vmalloc_used: u64,

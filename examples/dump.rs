@@ -1,6 +1,5 @@
 extern crate procfs;
 
-
 fn main() {
     let mut args = std::env::args();
     args.next();
