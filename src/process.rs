@@ -867,7 +867,7 @@ impl Process {
                         offset: u64::from_str_radix(offset, 16).unwrap_or_else(|_| {
                             panic!("Failed to parse {} as an offset number", offset)
                         }),
-                        dev: split_into_num(dev, ':', 10),
+                        dev: split_into_num(dev, ':', 16),
                         inode: u32::from_str_radix(inode, 10).unwrap_or_else(|_| {
                             panic!("Failed to parse {} as an inode number", inode)
                         }),
