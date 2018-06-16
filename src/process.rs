@@ -381,6 +381,158 @@ pub struct Stat {
     pub exit_code: Option<i32>,
 }
 
+
+/// This struct contains I/O statistics for the process, build from `/proc/<pid>/io`
+///
+/// #  Note
+///
+/// In the current implementation, things are a bit racy on 32-bit systems: if process A
+/// reads process B's `/proc/<pid>/io` while process  B is updating one of these 64-bit
+/// counters, process A could see an intermediate result.
+#[derive(Debug)]
+pub struct Io {
+    /// Characters read
+    ///
+    /// The number of bytes which this task has caused to be read from storage.  This is simply the
+    /// sum of bytes which this process passed to read(2)  and  similar system calls.  It includes
+    /// things such as terminal I/O and is unaffected by whether or not actual physical disk I/O
+    /// was required (the read might have been satisfied from pagecache).
+    pub rchar: u64,
+
+    /// characters written
+    ///
+    /// The number of bytes which this task has caused, or shall cause to be written to disk.
+    /// Similar caveats apply here as with rchar.
+    pub wchar: u64,
+    /// read syscalls
+    ///
+    /// Attempt to count the number of write I/O operations—that is, system calls such as write(2)
+    /// and pwrite(2).
+    pub syscr: u64,
+    /// write syscalls
+    ///
+    /// Attempt to count the number of write I/O operations—that is, system calls such as write(2)
+    /// and pwrite(2).
+    pub syscw: u64,
+    /// bytes read
+    ///
+    /// Attempt to count the number of bytes which this process really did cause to be fetched from
+    /// the storage layer.  This is accurate  for block-backed filesystems.
+    pub read_bytes: u64,
+    /// bytes written
+    /// 
+    /// Attempt to count the number of bytes which this process caused to be sent to the storage layer.
+    pub write_bytes: u64,
+    /// Cancelled write bytes.
+    ///
+    /// The  big inaccuracy here is truncate.  If a process writes 1MB to a file and then deletes
+    /// the file, it will in fact perform no write‐ out.  But it will have been accounted as having
+    /// caused 1MB of write.  In other words: this field represents the number of bytes which this
+    /// process caused to not happen, by truncating pagecache.  A task can cause "negative" I/O too.
+    /// If this task truncates some dirty pagecache, some I/O which another task has been accounted
+    /// for (in its write_bytes) will not be happening.
+    pub cancelled_write_bytes: u64,
+
+
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MMapPath {
+    /// The file that is backing the mapping.
+    Path(PathBuf),
+    /// The process's heap.
+    Heap,
+    /// The initial process's (also known as the main thread's) stack.
+    Stack,
+    /// A thread's stack (where the <tid> is a thread ID).  It corresponds to the
+    /// /proc/[pid]/task/[tid]/ path.
+    ///
+    /// (since Linux 3.4)
+    TStack(u32),
+    /// The virtual dynamically linked shared object.
+    Vdso,
+    /// An anonymous mapping as obtained via mmap(2).
+    Anonymous,
+    /// Some other pseudo-path
+    Other(String)
+
+}
+
+impl MMapPath {
+    fn from(path: &str) -> MMapPath {
+        match path.trim() {
+            "" => MMapPath::Anonymous,
+            "[heap]" => MMapPath::Heap,
+            "[stack]" => MMapPath::Stack,
+            "[vdso]" => MMapPath::Vdso,
+            x if x.starts_with("[stack:") => {
+                let mut s = x[1..x.len() - 1].split(":");
+                let tid = u32::from_str_radix(s.nth(1).unwrap(), 10).unwrap();
+                MMapPath::TStack(tid)
+            },
+            x if x.starts_with("[") && x.ends_with("]") => MMapPath::Other(x[1..x.len()-1].to_string()),
+            x => MMapPath::Path(PathBuf::from(x))
+        }
+    }
+
+}
+
+/// Represents an entry in a `/proc/<pid>/maps` file.
+#[derive(Debug)]
+pub struct MemoryMap {
+    /// The address space in the process that the mapping occupies.
+    pub address: (u64, u64),
+    pub perms: String,
+    /// The offset into the file/whatever
+    pub offset: u64,
+    /// The device (major, minor)
+    pub dev: (i32, i32),
+    /// The inode on that device
+    /// 
+    /// 0 indicates that no inode is associated with the memory region, as would be the case with
+    /// BSS (uninitialized data).
+    pub inode: u32,
+    pub pathname: MMapPath
+}
+
+impl Io {
+    pub fn from_reader<R: io::Read>(r: R) -> Option<Io> {
+        use std::collections::HashMap;
+        use std::io::{BufRead, BufReader};
+        let mut map = HashMap::new();
+        let reader = BufReader::new(r);
+
+        for line in reader.lines() {
+            let line = line.expect("Failed to read line");
+            let mut s = line.split_whitespace();
+            let field = s.next()?;
+            let value = s.next()?;
+
+            let value = u64::from_str_radix(value, 10).expect("Failed to parse number");
+
+            map.insert(field[..field.len() - 1].to_string(), value);
+        }
+        let io = Io {
+            rchar: map.remove("rchar").expect("rchar"),
+            wchar: map.remove("wchar").expect("wchar"),
+            syscr: map.remove("syscr").expect("syscr"),
+            syscw: map.remove("syscw").expect("syscw"),
+            read_bytes: map.remove("read_bytes").expect("read_bytes"),
+            write_bytes: map.remove("write_bytes").expect("write_bytes"),
+            cancelled_write_bytes: map.remove("cancelled_write_bytes").expect("cancelled_write_bytes")
+        };
+        
+        if !map.is_empty() {
+            panic!("meminfo map is not empty: {:#?}", map);
+        }
+
+        Some(io)
+
+    }
+}
+
+
+
 macro_rules! since_kernel {
     ($a:tt - $b:tt - $c:tt, $e:expr) => {
         if *KERNEL >= KernelVersion::new($a, $b, $c) {
@@ -555,35 +707,39 @@ impl Stat {
     }
 }
 
-/// Represents a process in `/proc/<pid>`
+/// Represents a process in `/proc/<pid>`.
+///
+/// The `stat` structure is pre-populated because it's useful info, but other data is loaded on
+/// demand (and so might fail, if the process no longer exist).
 #[derive(Debug, Clone)]
-pub struct Proc {
+pub struct Process {
+    /// Process status, based on the `/proc/<pid>/stat` file.
     pub stat: Stat,
     /// The user id of the owner of this process
     pub owner: u32,
     root: PathBuf,
 }
 
-impl Proc {
-    pub fn new(pid: pid_t) -> ProcResult<Proc> {
+impl Process {
+    pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
 
         let md = proctry!(std::fs::metadata(&root));
 
-        ProcResult::Ok(Proc {
+        ProcResult::Ok(Process {
             root,
             stat,
             owner: md.st_uid(),
         })
     }
 
-    pub fn myself() -> ProcResult<Proc> {
+    pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
         let md = proctry!(std::fs::metadata(&root));
 
-        ProcResult::Ok(Proc {
+        ProcResult::Ok(Process {
             root,
             stat,
             owner: md.st_uid(),
@@ -613,7 +769,7 @@ impl Proc {
 
     /// Is this process still alive?
     pub fn is_alive(&self) -> bool {
-        match Proc::new(self.pid()) {
+        match Process::new(self.pid()) {
             ProcResult::Ok(prc) => {
                 // assume that the command line and uid don't change during a processes lifetime
                 // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
@@ -679,14 +835,59 @@ impl Proc {
        ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("exe"))))
     }
 
+    /// Return the Io stats for this process, based on the `/proc/pid/io` file.
+    ///
+    /// (since kernel 2.6.20)
+    pub fn io(&self) -> ProcResult<Io> {
+        let file = proctry!(File::open(self.root.join("io")));
+        ProcResult::Ok(Io::from_reader(file).unwrap())
+    }
+
+    /// Return a list of the currently mapped memory regions and their access permissions, based on
+    /// the `/proc/pid/maps` file.
+    pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
+        use std::io::{BufRead, BufReader};
+        use std::str::FromStr;
+
+        let file = proctry!(File::open(self.root.join("maps")));
+
+        let reader = BufReader::new(file);
+
+        ProcResult::Ok(reader.lines().filter_map(|line| {
+            let line = line.unwrap();
+            let mut s = line.splitn(6, ' ');
+            let address = s.next().expect("maps::address");
+            let perms = s.next().expect("maps::perms");
+            let offset = s.next().expect("maps::offset");
+            let dev = s.next().expect("maps::dev");
+            let inode = s.next().expect("maps::inode");
+            let path = s.next().expect("maps::path");
+
+            let mmap = MemoryMap {
+                address: split_into_num(address, '-', 16),
+                perms: perms.to_string(),
+                offset: u64::from_str_radix(offset, 16).unwrap_or_else(|_|panic!("Failed to parse {} as an offset number", offset)),
+                dev: split_into_num(dev, ':', 10),
+                inode: u32::from_str_radix(inode, 10).unwrap_or_else(|_| panic!("Failed to parse {} as an inode number", inode)),
+                pathname: MMapPath::from(path)
+            };
+
+            Some(mmap)
+
+        }).collect())
+        
+
+
+    }
+
 }
 
-pub fn all_processes() -> Vec<Proc> {
+pub fn all_processes() -> Vec<Process> {
     let mut v = Vec::new();
     for dir in std::fs::read_dir("/proc/").expect("No /proc/ directory") {
         if let Ok(entry) = dir {
             if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                if let ProcResult::Ok(prc) = Proc::new(pid) {
+                if let ProcResult::Ok(prc) = Process::new(pid) {
                     v.push(prc);
                 }
             }
@@ -702,7 +903,7 @@ mod tests {
 
     #[test]
     fn test_self_proc() {
-        let myself = Proc::myself().unwrap();
+        let myself = Process::myself().unwrap();
         println!("{:#?}", myself);
         println!("state: {:?}", myself.stat.state());
         println!("tty: {:?}", myself.stat.tty_nr());
@@ -713,22 +914,23 @@ mod tests {
     #[test]
     fn test_all() {
         for prc in all_processes() {
-            println!("{:?}", prc);
-            println!("{:?}", prc.stat.flags());
-            println!("{:?}", prc.stat.starttime());
-            println!("{:?}", prc.cmdline().unwrap());
+            prc.stat.flags();
+            prc.stat.starttime();
+            prc.cmdline();
+            prc.environ();
+            prc.cmdline();
         }
     }
 
     #[test]
     fn test_proc_alive() {
-        let myself = Proc::myself().unwrap();
+        let myself = Process::myself().unwrap();
         assert!(myself.is_alive());
     }
 
     #[test]
     fn test_proc_environ() {
-        let myself = Proc::myself().unwrap();
+        let myself = Process::myself().unwrap();
         let proc_environ = myself.environ().unwrap();
 
         let std_environ: HashMap<_,_> = std::env::vars_os().collect();
@@ -738,7 +940,7 @@ mod tests {
     #[test]
     fn test_error_handling() {
         // getting the proc struct should be OK
-        let init = Proc::new(1).unwrap();
+        let init = Process::new(1).unwrap();
 
         // but accessing data should result in an error (unless we are running as root!)
         assert!(! init.cwd().is_ok());
@@ -748,15 +950,37 @@ mod tests {
 
     #[test]
     fn test_proc_exe() {
-        let myself = Proc::myself().unwrap();
+        let myself = Process::myself().unwrap();
         let proc_exe = myself.exe().unwrap();
         let std_exe = std::env::current_exe().unwrap();
         assert_eq!(proc_exe, std_exe);
     }
 
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn test_proc_io() {
+        let myself = Process::myself().unwrap();
+        let io = myself.io().unwrap();
+        println!("{:?}", io);
+    }
+
+    #[test]
+    fn test_proc_maps() {
+        let myself = Process::myself().unwrap();
+        let maps = myself.maps().unwrap();
+        for map in maps {
+            println!("{:?}", map);
+        }
+    }
+
+    #[test]
+    fn test_mmap_path() {
+        assert_eq!(MMapPath::from("[stack]"), MMapPath::Stack);
+        assert_eq!(MMapPath::from("[foo]"), MMapPath::Other("foo".to_owned()));
+        assert_eq!(MMapPath::from(""), MMapPath::Anonymous);
+        assert_eq!(MMapPath::from("[stack:154]"), MMapPath::TStack(154));
+        assert_eq!(MMapPath::from("/lib/libfoo.so"), MMapPath::Path(PathBuf::from("/lib/libfoo.so")));
+
+
     }
 
 }

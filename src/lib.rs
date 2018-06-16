@@ -110,6 +110,37 @@ fn convert_to_bytes(num: u64, unit: &str) -> u64 {
     }
 }
 
+trait FromStrRadix: Sized {
+    fn from_str_radix(t: &str, radix: u32) -> Result<Self, std::num::ParseIntError>;
+}
+
+impl FromStrRadix for u64 {
+    fn from_str_radix(s: &str, radix: u32) -> Result<u64, std::num::ParseIntError> {
+        u64::from_str_radix(s, radix)
+    }
+}
+impl FromStrRadix for i32 {
+    fn from_str_radix(s: &str, radix: u32) -> Result<i32, std::num::ParseIntError> {
+        i32::from_str_radix(s, radix)
+    }
+}
+
+fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
+    use std::str::FromStr;
+
+    let mut s = s.split(sep);
+    let a = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
+        Ok(v) => v,
+        _ => panic!()
+    };
+    let b = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
+        Ok(v) => v,
+        _ => panic!()
+    };
+    (a, b)
+
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct KernelVersion {
     pub major: u8,
@@ -180,19 +211,22 @@ pub enum ProcResult<T> {
 }
 
 impl<T> ProcResult<T> {
-    pub fn unwrap(self) -> T {
-        match self {
-            ProcResult::Ok(v) => v,
-            _ => panic!("ProcResult doesn't contain any data"),
-        }
-    }
-
     pub fn is_ok(&self) -> bool {
         match self {
             ProcResult::Ok(_) => true,
             _ => false
         }
     }
+}
+
+impl<T> ProcResult<T> where T: std::fmt::Debug {
+    pub fn unwrap(self) -> T {
+        match self {
+            ProcResult::Ok(v) => v,
+            _ => panic!("ProcResult is: {:?}", self),
+        }
+    }
+
 }
 
 trait ProcFrom<T> {

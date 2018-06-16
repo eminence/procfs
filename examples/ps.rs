@@ -4,7 +4,7 @@ extern crate procfs;
 /// It shows all the processes that share the same tty as our self
 
 fn main() {
-    let me = procfs::Proc::myself().unwrap();
+    let me = procfs::Process::myself().unwrap();
 
     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 
