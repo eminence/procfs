@@ -530,7 +530,7 @@ impl Io {
 }
 
 macro_rules! since_kernel {
-    ($a:tt - $b:tt - $c:tt, $e:expr) => {
+    ($a:tt, $b:tt, $c:tt, $e:expr) => {
         if *KERNEL >= KernelVersion::new($a, $b, $c) {
             Some($e)
         } else {
@@ -593,21 +593,21 @@ impl Stat {
         let nswap = ProcFrom::from(&mut rest);
         let cnswap = ProcFrom::from(&mut rest);
 
-        let exit_signal = since_kernel!(2-1-22, ProcFrom::from(&mut rest));
-        let processor = since_kernel!(2-2-8, ProcFrom::from(&mut rest));
-        let rt_priority = since_kernel!(2-5-19, ProcFrom::from(&mut rest));
-        let policy = since_kernel!(2-5-19, ProcFrom::from(&mut rest));
-        let delayacct_blkio_ticks = since_kernel!(2-6-18, ProcFrom::from(&mut rest));
-        let guest_time = since_kernel!(2-6-24, ProcFrom::from(&mut rest));
-        let cguest_time = since_kernel!(2-6-24, ProcFrom::from(&mut rest));
-        let start_data = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
-        let end_data = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
-        let start_brk = since_kernel!(3-3-0, ProcFrom::from(&mut rest));
-        let arg_start = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
-        let arg_end = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
-        let env_start = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
-        let env_end = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
-        let exit_code = since_kernel!(3-5-0, ProcFrom::from(&mut rest));
+        let exit_signal = since_kernel!(2, 1, 22, ProcFrom::from(&mut rest));
+        let processor = since_kernel!(2, 2, 8, ProcFrom::from(&mut rest));
+        let rt_priority = since_kernel!(2, 5, 19, ProcFrom::from(&mut rest));
+        let policy = since_kernel!(2, 5, 19, ProcFrom::from(&mut rest));
+        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, ProcFrom::from(&mut rest));
+        let guest_time = since_kernel!(2, 6, 24, ProcFrom::from(&mut rest));
+        let cguest_time = since_kernel!(2, 6, 24, ProcFrom::from(&mut rest));
+        let start_data = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
+        let end_data = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
+        let start_brk = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
+        let arg_start = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
+        let arg_end = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
+        let env_start = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
+        let env_end = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
+        let exit_code = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
 
         Some(Stat {
             pid,
