@@ -174,6 +174,8 @@ impl FromStr for ProcState {
 
 /// Status information about the process, based on the `/proc/<pid>/stat` file.
 ///
+/// To construct one of these structures, you have to first create a [Process].
+///
 /// Not all fields are available in every kernel.  These fields have `Option<T>` types.
 #[derive(Debug, Clone)]
 pub struct Stat {
@@ -198,16 +200,16 @@ pub struct Stat {
     /// The minor device number is contained in the combination of bits 31 to 20 and  7  to  0;
     /// the major device number is in bits 15 to 8.
     ///
-    /// See [tty_nr()] to get this value decoded into a (major, minor) tuple
+    /// See [tty_nr()](#method.tty_nr) to get this value decoded into a (major, minor) tuple
     pub tty_nr: i32,
     /// The ID of the foreground process group of the controlling terminal of the process.
     pub tpgid: i32,
     /// The kernel flags  word of the process.
     ///
     /// For bit meanings, see the PF_* defines in  the  Linux  kernel  source  file
-    /// `include/linux/sched.h`.  
+    /// [`include/linux/sched.h`](https://github.com/torvalds/linux/blob/master/include/linux/sched.h).
     ///
-    /// See [flags()] to get a `StatField` object.
+    /// See [flags()](#method.flags) to get a [`StatFlags`](struct.StatFlags.html) bitfield object.
     pub flags: u32,
     /// The number of minor faults the process has made which have not required loading a memory
     /// page from disk.
@@ -288,25 +290,20 @@ pub struct Stat {
     /// The current EIP (instruction pointer).
     pub kstkeip: u64,
     /// The  bitmap of pending signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on real-time
-    ///                         signals; use /proc/[pid]/status instead.
+    /// not provide information on real-time signals; use /proc/<pid>/status instead.
     pub signal: u64,
     /// The bitmap of blocked signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on  real-time
-    ///                         signals; use /proc/[pid]/status instead.
+    /// not provide information on  real-time signals; use /proc/<pid>/status instead.
     pub blocked: u64,
     /// The  bitmap of ignored signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on real-time
-    ///                         signals; use /proc/[pid]/status instead.
+    /// not provide information on real-time signals; use /proc/<pid>/status instead.
     pub sigignore: u64,
     /// The bitmap of caught signals, displayed as a decimal number.  Obsolete, because it does not
-    /// provide information  on  real-time
-    ///                         signals; use /proc/[pid]/status instead.
+    /// provide information  on  real-time signals; use /proc/<pid>/status instead.
     pub sigcatch: u64,
     /// This  is  the  "channel"  in which the process is waiting.  It is the address of a location
-    /// in the kernel where the process is
-    ///                         sleeping.  The corresponding symbolic name can be found in
-    ///                         /proc/[pid]/wchan.
+    /// in the kernel where the process is sleeping.  The corresponding symbolic name can be found in
+    /// /proc/<pid>/wchan.
     pub wchan: u64,
     /// Number of pages swapped **(not maintained)**.
     pub nswap: u64,
@@ -380,7 +377,9 @@ pub struct Stat {
     pub exit_code: Option<i32>,
 }
 
-/// This struct contains I/O statistics for the process, build from `/proc/<pid>/io`
+/// This struct contains I/O statistics for the process, built from `/proc/<pid>/io`
+///
+/// To construct this structure, see [Process::io()].
 ///
 /// #  Note
 ///
@@ -441,7 +440,7 @@ pub enum MMapPath {
     /// The initial process's (also known as the main thread's) stack.
     Stack,
     /// A thread's stack (where the <tid> is a thread ID).  It corresponds to the
-    /// /proc/[pid]/task/[tid]/ path.
+    /// /proc/<pid>/task/<tid>/ path.
     ///
     /// (since Linux 3.4)
     TStack(u32),
@@ -474,6 +473,8 @@ impl MMapPath {
 }
 
 /// Represents an entry in a `/proc/<pid>/maps` file.
+///
+/// To construct this structure, see [Process::maps()].
 #[derive(Debug)]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
@@ -719,6 +720,9 @@ pub struct Process {
 }
 
 impl Process {
+    /// Tries to create a `Process` based on a PID.
+    ///
+    /// This can fail if the process doesn't exist, or if you don't have permission to access it.
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
@@ -732,6 +736,9 @@ impl Process {
         })
     }
 
+    /// Returns a `Process` for the currently running process.
+    ///
+    /// This is done by using the `/proc/self` symlink
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
         let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
@@ -744,6 +751,9 @@ impl Process {
         })
     }
 
+    /// Returns the complete command line for the process, unless the process is a zombie.
+    ///
+    ///
     pub fn cmdline(&self) -> ProcResult<Vec<String>> {
         let mut buf = String::new();
         let mut f = proctry!(File::open(self.root.join("cmdline")));
@@ -761,6 +771,7 @@ impl Process {
         )
     }
 
+    /// Returns the process ID for this process.
     pub fn pid(&self) -> pid_t {
         self.stat.pid
     }

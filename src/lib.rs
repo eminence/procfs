@@ -1,4 +1,30 @@
 #![feature(nll, const_fn)]
+//! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
+//! `/proc`.
+//!
+//! This is a pseudo-filesystem which is available on most every linux system and provides an
+//! interface to kernel data structures.
+//!
+//! 
+//! # Kernel support
+//!
+//! Not all fields/data are available in each kernel.  Some fields were added in specific kernel
+//! releases, and other fields are only present in certain kernel configuration options are
+//! enabled.  These are represented as `Option` fields in this crate.
+//!
+//! This crate aims to support all 2.6 kernels
+//!
+//! # Documentation
+//!
+//! In almost all cases, the documentation is taken from the
+//! [`proc.5`](http://man7.org/linux/man-pages/man5/proc.5.html) manual page.  This means that
+//! sometimes the style of writing is not very "rusty", or may do things like reference related files
+//! (instead of referencing related structs).  Contributions to improve this are welcome.
+//!
+//! # Panicing
+//!
+//! This crate is not panic-free.  It will panic if it encounters data in some unexpected format;
+//! this represents a bug in this crate, and should be [reported](https://github.com/eminence/procfs).
 
 #[cfg(unix)]
 extern crate libc;
@@ -62,6 +88,9 @@ pub use net::*;
 use std::cmp;
 
 lazy_static! {
+    /// The boottime of the system.
+    ///
+    /// This is calculated from `/proc/uptime`.
     pub static ref BOOTTIME: DateTime<Local> = {
         let now = Local::now();
 
@@ -74,7 +103,7 @@ lazy_static! {
         let uptime_seconds = f32::from_str(buf.split_whitespace().next().unwrap()).unwrap();
         now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64)
     };
-    /// The  number  of  clock  ticks  per  second.
+    /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
     pub static ref TICKS_PER_SECOND: i64 = {
@@ -84,9 +113,16 @@ lazy_static! {
             panic!("Not supported on non-unix platforms")
         }
     };
+    /// The version of the currently running kernel.
+    ///
+    /// This is a lazily constructed static.  You can also get this information via
+    /// [KernelVersion::new()].
     pub static ref KERNEL: KernelVersion = {
         KernelVersion::current().unwrap()
     };
+    /// Memory page size, in bytes.
+    ///
+    /// This is calculated from `sysconf(_SC_PAGESIZE)`.
     pub static ref PAGESIZE: i64 = {
         if cfg!(unix) {
             unsafe { sysconf(_SC_PAGESIZE) }
@@ -137,6 +173,7 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     (a, b)
 }
 
+/// Represents a kernel version, in major.minor.release version.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct KernelVersion {
     pub major: u8,
@@ -152,6 +189,10 @@ impl KernelVersion {
             patch,
         }
     }
+
+    /// Returns the kernel version of the curretly running kernel.
+    ///
+    /// This is taken from `/proc/sys/kernel/osrelease`;
     pub fn current() -> ProcResult<KernelVersion> {
         let mut f = proctry!(File::open("/proc/sys/kernel/osrelease"));
         let mut buf = String::new();
@@ -159,6 +200,19 @@ impl KernelVersion {
 
         ProcResult::Ok(KernelVersion::from_str(&buf).unwrap())
     }
+    /// Parses a kernel version string, in major.minor.release syntax.
+    ///
+    /// Note that any extra information (stuff after a dash) is ignored.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use procfs::KernelVersion;
+    /// let a = KernelVersion::from_str("3.16.0-6-amd64").unwrap();
+    /// let b = KernelVersion::new(3, 16, 0);
+    /// assert_eq!(a, b);
+    ///
+    /// ```
     pub fn from_str(s: &str) -> Result<KernelVersion, &'static str> {
         let mut s = s.split('-');
         let kernel = s.next().unwrap();
