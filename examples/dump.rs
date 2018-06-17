@@ -6,9 +6,9 @@ fn main() {
     let pid = i32::from_str_radix(&args.next().unwrap(), 10).unwrap();
 
     println!("Info for pid={}", pid);
-    let proc = procfs::Process::new(pid).unwrap();
-    println!("{:#?}", proc);
+    let prc = procfs::Process::new(pid).unwrap();
+    println!("{:#?}", prc);
 
-    println!("State: {:?}", proc.stat.state());
-    println!("RSS:   {} bytes", proc.stat.rss_bytes());
+    println!("State: {:?}", prc.stat.state());
+    println!("RSS:   {} bytes", prc.stat.rss_bytes());
 }

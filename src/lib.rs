@@ -1,4 +1,3 @@
-#![feature(nll, const_fn)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.
 //!
@@ -182,7 +181,7 @@ pub struct KernelVersion {
 }
 
 impl KernelVersion {
-    pub const fn new(major: u8, minor: u8, patch: u8) -> KernelVersion {
+    pub fn new(major: u8, minor: u8, patch: u8) -> KernelVersion {
         KernelVersion {
             major,
             minor,
