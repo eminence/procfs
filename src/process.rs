@@ -500,9 +500,12 @@ impl Io {
 
         for line in reader.lines() {
             let line = line.expect("Failed to read line");
+            if line.len() == 0 {
+                continue;
+            }
             let mut s = line.split_whitespace();
-            let field = s.next()?;
-            let value = s.next()?;
+            let field = s.next().expect("no field");
+            let value = s.next().expect("no value");
 
             let value = u64::from_str_radix(value, 10).expect("Failed to parse number");
 
