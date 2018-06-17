@@ -7,7 +7,9 @@ extern crate bitflags;
 
 #[macro_use]
 extern crate lazy_static;
+extern crate byteorder;
 extern crate chrono;
+extern crate hex;
 
 #[cfg(unix)]
 mod platform_specific_items {
@@ -40,7 +42,7 @@ macro_rules! proctry {
     ($e:expr) => {
         match $e {
             Ok(x) => x,
-            Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
+            Err(ref e) if e.kind() == ::std::io::ErrorKind::PermissionDenied => {
                 return ProcResult::PermissionDenied
             }
             Err(_) => return ProcResult::NotFound,
@@ -53,6 +55,9 @@ pub use process::*;
 
 mod meminfo;
 pub use meminfo::*;
+
+mod net;
+pub use net::*;
 
 use std::cmp;
 
@@ -80,13 +85,7 @@ lazy_static! {
         }
     };
     pub static ref KERNEL: KernelVersion = {
-        let mut f = File::open("/proc/sys/kernel/osrelease")
-            .unwrap_or_else(|_| panic!("Unable to open /proc/sys/kernel/osrelease"));
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)
-            .unwrap_or_else(|_| panic!("Unable to read from /proc/sys/kernel/osrelease"));
-
-        KernelVersion::from_str(&buf).unwrap()
+        KernelVersion::current().unwrap()
     };
     pub static ref PAGESIZE: i64 = {
         if cfg!(unix) {
@@ -126,8 +125,6 @@ impl FromStrRadix for i32 {
 }
 
 fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
-    use std::str::FromStr;
-
     let mut s = s.split(sep);
     let a = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
         Ok(v) => v,
@@ -154,6 +151,13 @@ impl KernelVersion {
             minor,
             patch,
         }
+    }
+    pub fn current() -> ProcResult<KernelVersion> {
+        let mut f = proctry!(File::open("/proc/sys/kernel/osrelease"));
+        let mut buf = String::new();
+        proctry!(f.read_to_string(&mut buf));
+
+        ProcResult::Ok(KernelVersion::from_str(&buf).unwrap())
     }
     pub fn from_str(s: &str) -> Result<KernelVersion, &'static str> {
         let mut s = s.split('-');
@@ -233,6 +237,57 @@ trait ProcFrom<T> {
     fn from(s: T) -> Self;
 }
 
+/// Load average figures.
+///
+/// Load averages are calculated as the number of jobs in the run queue (state R) or waiting for
+/// disk I/O (state D) averaged over 1, 5, and 15 minutes.
+#[derive(Debug)]
+pub struct LoadAverage {
+    /// The one-minute load average
+    pub one: f32,
+    /// The five-minute load average
+    pub five: f32,
+    /// THe fifteen-minute load average
+    pub fifteen: f32,
+    /// The number of currently runnable kernel scheduling  entities  (processes,  threads).
+    pub cur: u32,
+    /// The number of kernel scheduling entities that currently exist on the system.
+    pub max: u32,
+    /// The fifth field is the PID of the process that was most recently created on the system.
+    pub latest_pid: u32,
+}
+
+impl LoadAverage {
+    /// Reads load average info from `/proc/loadavg`
+    pub fn new() -> ProcResult<LoadAverage> {
+        use std::fs::File;
+
+        let mut f = proctry!(File::open("/proc/loadavg"));
+        let mut s = String::new();
+        proctry!(f.read_to_string(&mut s));
+        let mut s = s.split_whitespace();
+
+        let one = f32::from_str(s.next().unwrap()).unwrap();
+        let five = f32::from_str(s.next().unwrap()).unwrap();
+        let fifteen = f32::from_str(s.next().unwrap()).unwrap();
+        let curmax = s.next().unwrap();
+        let latest_pid = u32::from_str(s.next().unwrap()).unwrap();
+
+        let mut s = curmax.split("/");
+        let cur = u32::from_str(s.next().unwrap()).unwrap();
+        let max = u32::from_str(s.next().unwrap()).unwrap();
+
+        ProcResult::Ok(LoadAverage {
+            one,
+            five,
+            fifteen,
+            cur,
+            max,
+            latest_pid,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,5 +325,11 @@ mod tests {
         assert!(e > d);
         assert!(e > c);
         assert!(e > b);
+    }
+
+    #[test]
+    fn test_loadavg() {
+        let load = LoadAverage::new().unwrap();
+        println!("{:?}", load);
     }
 }

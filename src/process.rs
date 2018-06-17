@@ -3,11 +3,10 @@ use super::*;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
-use std::io::{self, ErrorKind, Read};
+use std::io::{self, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -842,7 +841,6 @@ impl Process {
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
         use std::io::{BufRead, BufReader};
-        use std::str::FromStr;
 
         let file = proctry!(File::open(self.root.join("maps")));
 
