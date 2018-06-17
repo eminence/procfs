@@ -16,6 +16,3 @@ lazy_static = "1"
 chrono = "0.4"
 byteorder = {version="1", features=["i128"]}
 hex = "0.3"
-
-[dev-dependencies]
-clap = "2.31"
