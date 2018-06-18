@@ -90,44 +90,27 @@ lazy_static! {
     /// The boottime of the system.
     ///
     /// This is calculated from `/proc/uptime`.
-    pub static ref BOOTTIME: DateTime<Local> = {
-        let now = Local::now();
-
-        let mut f =
-            File::open("/proc/uptime").unwrap_or_else(|_| panic!("Unable to open /proc/uptime"));
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)
-            .unwrap_or_else(|_| panic!("Unable to read from /proc/uptime"));
-
-        let uptime_seconds = f32::from_str(buf.split_whitespace().next().unwrap()).unwrap();
-        now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64)
+    static ref BOOTTIME: DateTime<Local> = {
+        boot_time().unwrap()
     };
     /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
-    pub static ref TICKS_PER_SECOND: i64 = {
-        if cfg!(unix) {
-            unsafe { sysconf(_SC_CLK_TCK) }
-        } else {
-            panic!("Not supported on non-unix platforms")
-        }
+    static ref TICKS_PER_SECOND: i64 = {
+        ticks_per_second().unwrap()
     };
     /// The version of the currently running kernel.
     ///
     /// This is a lazily constructed static.  You can also get this information via
     /// [KernelVersion::new()].
-    pub static ref KERNEL: KernelVersion = {
+    static ref KERNEL: KernelVersion = {
         KernelVersion::current().unwrap()
     };
     /// Memory page size, in bytes.
     ///
     /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-    pub static ref PAGESIZE: i64 = {
-        if cfg!(unix) {
-            unsafe { sysconf(_SC_PAGESIZE) }
-        } else {
-            panic!("Not supported on non-unix platforms")
-        }
+    static ref PAGESIZE: i64 = {
+        page_size().unwrap()
     };
 }
 
@@ -338,6 +321,49 @@ impl LoadAverage {
             max,
             latest_pid,
         })
+    }
+}
+
+/// Return the number of ticks per second.
+///
+/// This isn't part of the proc file system, but it's a useful thing to have, since several fields
+/// count in ticks.  This is calculated from `sysconf(_SC_CLK_TCK)`.
+pub fn ticks_per_second() -> std::io::Result<i64> {
+    if cfg!(unix) {
+        match unsafe { sysconf(_SC_CLK_TCK) } {
+            -1 => Err(std::io::Error::last_os_error()),
+            x => Ok(x)
+        }
+    } else {
+        panic!("Not supported on non-unix platforms")
+    }
+}
+
+/// The boottime of the system.
+///
+/// This is calculated from `/proc/uptime`.
+pub fn boot_time() -> ProcResult<DateTime<Local>> {
+    let now = Local::now();
+
+    let mut f = proctry!(File::open("/proc/uptime"));
+    let mut buf = String::new();
+    proctry!(f.read_to_string(&mut buf));
+
+    let uptime_seconds = f32::from_str(buf.split_whitespace().next().unwrap()).unwrap();
+    ProcResult::Ok(now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64))
+}
+
+/// Memory page size, in bytes.
+///
+/// This is calculated from `sysconf(_SC_PAGESIZE)`.
+pub fn page_size() -> std::io::Result<i64> {
+    if cfg!(unix) {
+        match unsafe { sysconf(_SC_PAGESIZE) } {
+            -1 => Err(std::io::Error::last_os_error()),
+            x => Ok(x)
+        }
+    } else {
+        panic!("Not supported on non-unix platforms")
     }
 }
 

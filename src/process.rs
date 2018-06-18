@@ -222,24 +222,24 @@ pub struct Stat {
     /// The number of major faults that the process's waited-for children have made.
     pub cmajflt: u64,
     /// Amount of time that this process has been scheduled in user mode, measured in clock ticks
-    /// (divide by [`TICKS_PER_SECOND`](struct.TICKS_PER_SECOND.html)).
+    /// (divide by [`ticks_per_second()`].
     ///
     /// This includes guest time, guest_time (time spent running a virtual CPU, see below), so that
     /// applications that are not aware of the guest time field  do not lose that time from their
     /// calculations.
     pub utime: u64,
     /// Amount of time that this process has been scheduled in kernel mode, measured in clock ticks
-    /// (divide by `TICKS_PER_SECOND`).
+    /// (divide by [`ticks_per_second()`]).
     pub stime: u64,
 
     /// Amount  of  time  that  this  process's  waited-for  children  have  been  scheduled  in
-    /// user  mode,  measured  in clock ticks (divide by `[TICKS_PER_SECOND]`).
+    /// user  mode,  measured  in clock ticks (divide by [`ticks_per_second()`]).
     ///
     /// This includes guest time, cguest_time (time spent running a virtual CPU, see below).
     pub cutime: i64,
 
     /// Amount of time that this process's waited-for  children  have  been  scheduled  in  kernel
-    /// mode,  measured  in  clock  ticks  (divide  by `[TICKS_PER_SECOND]`).
+    /// mode,  measured  in  clock  ticks  (divide  by [`ticks_per_second()`]).
     pub cstime: i64,
     /// For processes running a real-time scheduling policy (policy below; see sched_setscheduler(2)),
     /// this is the negated scheduling priority, minus one;
@@ -333,13 +333,13 @@ pub struct Stat {
     ///
     /// (since Linux 2.6.18)
     pub delayacct_blkio_ticks: Option<u64>,
-    /// Guest time of the process (time spent running a virtual CPU for a guest operating system), measured  in  clock  ticks
-    ///
-    /// (divide by `TICKS_PER_SECOND`)
+    /// Guest time of the process (time spent running a virtual CPU for a guest operating system),
+    /// measured in clock ticks (divide by [`ticks_per_second()`])
     ///
     /// (since Linux 2.6.24)
     pub guest_time: Option<u32>,
-    /// Guest time of the process's children, measured in clock ticks (divide by `TICKS_PER_SECOND`).
+    /// Guest time of the process's children, measured in clock ticks (divide by
+    /// [`ticks_per_second()`]).
     ///
     /// (since Linux 2.6.24)
     pub cguest_time: Option<u32>,
