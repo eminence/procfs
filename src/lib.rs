@@ -4,7 +4,7 @@
 //! This is a pseudo-filesystem which is available on most every linux system and provides an
 //! interface to kernel data structures.
 //!
-//! 
+//!
 //! # Kernel support
 //!
 //! Not all fields/data are available in each kernel.  Some fields were added in specific kernel
@@ -309,7 +309,7 @@ impl LoadAverage {
         let curmax = s.next().unwrap();
         let latest_pid = u32::from_str(s.next().unwrap()).unwrap();
 
-        let mut s = curmax.split("/");
+        let mut s = curmax.split('/');
         let cur = u32::from_str(s.next().unwrap()).unwrap();
         let max = u32::from_str(s.next().unwrap()).unwrap();
 
@@ -332,7 +332,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_CLK_TCK) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x)
+            x => Ok(x),
         }
     } else {
         panic!("Not supported on non-unix platforms")
@@ -360,7 +360,7 @@ pub fn page_size() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_PAGESIZE) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x)
+            x => Ok(x),
         }
     } else {
         panic!("Not supported on non-unix platforms")

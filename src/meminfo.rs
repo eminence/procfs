@@ -264,7 +264,7 @@ impl Meminfo {
 
         for line in reader.lines() {
             let line = line.expect("Failed to read line");
-            if line.len() == 0 {
+            if line.is_empty() {
                 continue;
             }
             let mut s = line.split_whitespace();

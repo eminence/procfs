@@ -24,61 +24,61 @@ impl FakeMedatadataExt for std::fs::Metadata {
 bitflags! {
     pub struct StatFlags: u32 {
         /// I am an IDLE thread
-        const PF_IDLE = 0x00000002;
+        const PF_IDLE = 0x0000_0002;
         /// Getting shut down
-        const PF_EXITING = 0x00000004;
+        const PF_EXITING = 0x0000_0004;
         /// PI exit done on shut down
-        const PF_EXITPIDONE = 0x00000008;
+        const PF_EXITPIDONE = 0x0000_0008;
         /// I'm a virtual CPU
-        const PF_VCPU = 0x00000010;
+        const PF_VCPU = 0x0000_0010;
         /// I'm a workqueue worker
-        const PF_WQ_WORKER = 0x00000020;
+        const PF_WQ_WORKER = 0x0000_0020;
         /// Forked but didn't exec
-        const PF_FORKNOEXEC = 0x00000040;
+        const PF_FORKNOEXEC = 0x0000_0040;
         /// Process policy on mce errors;
-        const PF_MCE_PROCESS = 0x00000080;
+        const PF_MCE_PROCESS = 0x0000_0080;
         /// Used super-user privileges
-        const PF_SUPERPRIV = 0x00000100;
+        const PF_SUPERPRIV = 0x0000_0100;
         /// Dumped core
-        const PF_DUMPCORE = 0x00000200;
+        const PF_DUMPCORE = 0x0000_0200;
         /// Killed by a signal
-        const PF_SIGNALED = 0x00000400;
+        const PF_SIGNALED = 0x0000_0400;
         ///Allocating memory
-        const PF_MEMALLOC = 0x00000800;
+        const PF_MEMALLOC = 0x0000_0800;
         /// set_user() noticed that RLIMIT_NPROC was exceeded
-        const PF_NPROC_EXCEEDED = 0x00001000;
+        const PF_NPROC_EXCEEDED = 0x0000_1000;
         /// If unset the fpu must be initialized before use
-        const PF_USED_MATH = 0x00002000;
+        const PF_USED_MATH = 0x0000_2000;
          /// Used async_schedule*(), used by module init
-        const PF_USED_ASYNC = 0x00004000;
+        const PF_USED_ASYNC = 0x0000_4000;
         ///  This thread should not be frozen
-        const PF_NOFREEZE = 0x00008000;
+        const PF_NOFREEZE = 0x0000_8000;
         /// Frozen for system suspend
-        const PF_FROZEN = 0x00010000;
+        const PF_FROZEN = 0x0001_0000;
         //// I am kswapd
-        const PF_KSWAPD = 0x00020000;
+        const PF_KSWAPD = 0x0002_0000;
         /// All allocation requests will inherit GFP_NOFS
-        const PF_MEMALLOC_NOFS = 0x00040000;
+        const PF_MEMALLOC_NOFS = 0x0004_0000;
         /// All allocation requests will inherit GFP_NOIO
-        const PF_MEMALLOC_NOIO = 0x00080000;
+        const PF_MEMALLOC_NOIO = 0x0008_0000;
         /// Throttle me less: I clean memory
-        const PF_LESS_THROTTLE = 0x00100000;
+        const PF_LESS_THROTTLE = 0x0010_0000;
         /// I am a kernel thread
-        const PF_KTHREAD = 0x00200000;
+        const PF_KTHREAD = 0x0020_0000;
         /// Randomize virtual address space
-        const PF_RANDOMIZE = 0x00400000;
+        const PF_RANDOMIZE = 0x0040_0000;
         /// Allowed to write to swap
-        const PF_SWAPWRITE = 0x00800000;
+        const PF_SWAPWRITE = 0x0080_0000;
         /// Userland is not allowed to meddle with cpus_allowed
-        const PF_NO_SETAFFINITY = 0x04000000;
+        const PF_NO_SETAFFINITY = 0x0400_0000;
         /// Early kill for mce process policy
-        const PF_MCE_EARLY = 0x08000000;
+        const PF_MCE_EARLY = 0x0800_0000;
         /// Thread belongs to the rt mutex tester
-        const PF_MUTEX_TESTER = 0x20000000;
+        const PF_MUTEX_TESTER = 0x2000_0000;
         /// Freezer should not count it as freezable
-        const PF_FREEZER_SKIP = 0x40000000;
+        const PF_FREEZER_SKIP = 0x4000_0000;
         /// This thread called freeze_processes() and should not be frozen
-        const PF_SUSPEND_TASK = 0x80000000;
+        const PF_SUSPEND_TASK = 0x8000_0000;
 
     }
 }
@@ -100,7 +100,7 @@ where
         let val = iter.next().expect("Missing iterator next item");
         match FromStr::from_str(val) {
             Ok(u) => u,
-            Err(..) => panic!(format!("Failed to convert")),
+            Err(..) => panic!("Failed to convert".to_string()),
         }
     }
 }
@@ -461,11 +461,11 @@ impl MMapPath {
             "[stack]" => MMapPath::Stack,
             "[vdso]" => MMapPath::Vdso,
             x if x.starts_with("[stack:") => {
-                let mut s = x[1..x.len() - 1].split(":");
+                let mut s = x[1..x.len() - 1].split(':');
                 let tid = u32::from_str_radix(s.nth(1).unwrap(), 10).unwrap();
                 MMapPath::TStack(tid)
             }
-            x if x.starts_with("[") && x.ends_with("]") => {
+            x if x.starts_with('[') && x.ends_with(']') => {
                 MMapPath::Other(x[1..x.len() - 1].to_string())
             }
             x => MMapPath::Path(PathBuf::from(x)),
@@ -502,7 +502,7 @@ impl Io {
 
         for line in reader.lines() {
             let line = line.expect("Failed to read line");
-            if line.len() == 0 {
+            if line.is_empty() {
                 continue;
             }
             let mut s = line.split_whitespace();
@@ -544,34 +544,34 @@ pub enum FDTarget {
     /// A file descriptor that have no corresponding inode.
     AnonInode(String),
     /// Some other file descriptor type, with an inode.
-    Other(String, u32)
+    Other(String, u32),
 }
 
 impl FromStr for FDTarget {
     type Err = String;
     fn from_str(s: &str) -> Result<FDTarget, String> {
-        if s.contains(":") {
-            let mut s = s.split(":");
+        if s.contains(':') {
+            let mut s = s.split(':');
             let fd_type = s.next().unwrap();
             match fd_type {
                 "socket" => {
                     let inode = s.next().expect("socket inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Socket(inode))
-                },
+                }
                 "net" => {
                     let inode = s.next().expect("net inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Net(inode))
                 }
                 "pipe" => {
                     let inode = s.next().expect("pipe inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Pipe(inode))
                 }
                 x => {
                     let inode = s.next().expect("other inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
             }
@@ -584,9 +584,8 @@ impl FromStr for FDTarget {
 #[derive(Debug)]
 pub struct FDInfo {
     fd: u32,
-    target: FDTarget
+    target: FDTarget,
 }
-
 
 macro_rules! since_kernel {
     ($a:tt, $b:tt, $c:tt, $e:expr) => {
@@ -817,7 +816,7 @@ impl Process {
         ProcResult::Ok(
             buf.split('\0')
                 .filter_map(|s| {
-                    if s.len() > 0 {
+                    if !s.is_empty() {
                         Some(s.to_string())
                     } else {
                         None
@@ -871,16 +870,13 @@ impl Process {
 
         for slice in buf.split(|b| *b == 0) {
             // slice will be in the form key=var, so split on the first equals sign
-            let mut split = slice.splitn(2, |b| *b == '=' as u8);
-            match (split.next(), split.next()) {
-                (Some(k), Some(v)) => {
-                    map.insert(
-                        OsStr::from_bytes(k).to_os_string(),
-                        OsStr::from_bytes(v).to_os_string(),
-                    );
-                }
-                _ => (),
-            }
+            let mut split = slice.splitn(2, |b| *b == b'=');
+            if let (Some(k), Some(v)) = (split.next(), split.next()) {
+                map.insert(
+                    OsStr::from_bytes(k).to_os_string(),
+                    OsStr::from_bytes(v).to_os_string(),
+                );
+            };
             //let env = OsStr::from_bytes(slice);
         }
 
@@ -950,8 +946,8 @@ impl Process {
 
     /// Gets a list of open file descriptors for a process
     pub fn fd(&self) -> ProcResult<Vec<FDInfo>> {
-        use std::fs::read_link;
         use std::ffi::OsStr;
+        use std::fs::read_link;
 
         let mut vec = Vec::new();
 
@@ -962,8 +958,7 @@ impl Process {
             let link_os: &OsStr = link.as_ref();
             vec.push(FDInfo {
                 fd,
-                target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap()
-                
+                target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap(),
             });
         }
         ProcResult::Ok(vec)

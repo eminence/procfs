@@ -56,7 +56,7 @@ pub struct TcpNetEntry {
 ///
 /// Panics if unparsable
 fn parse_addressport_str(s: &str) -> SocketAddr {
-    let mut las = s.split(":");
+    let mut las = s.split(':');
     let ip_part = las.next().expect("ip_part");
     let port = las.next().expect("port");
     let port = u16::from_str_radix(port, 16).unwrap();
@@ -141,8 +141,8 @@ pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
 
 #[cfg(test)]
 mod tests {
-    use std::net::IpAddr;
     use super::*;
+    use std::net::IpAddr;
 
     #[test]
     fn test_parse_ipaddr() {
