@@ -7,6 +7,7 @@ use std::io::{self, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -532,6 +533,61 @@ impl Io {
     }
 }
 
+#[derive(Debug)]
+pub enum FDTarget {
+    /// A file or device
+    Path(PathBuf),
+    /// A socket type, with an inode
+    Socket(u32),
+    Net(u32),
+    Pipe(u32),
+    /// A file descriptor that have no corresponding inode.
+    AnonInode(String),
+    /// Some other file descriptor type, with an inode.
+    Other(String, u32)
+}
+
+impl FromStr for FDTarget {
+    type Err = String;
+    fn from_str(s: &str) -> Result<FDTarget, String> {
+        if s.contains(":") {
+            let mut s = s.split(":");
+            let fd_type = s.next().unwrap();
+            match fd_type {
+                "socket" => {
+                    let inode = s.next().expect("socket inode");
+                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    Ok(FDTarget::Socket(inode))
+                },
+                "net" => {
+                    let inode = s.next().expect("net inode");
+                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    Ok(FDTarget::Net(inode))
+                }
+                "pipe" => {
+                    let inode = s.next().expect("pipe inode");
+                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    Ok(FDTarget::Pipe(inode))
+                }
+                x => {
+                    let inode = s.next().expect("other inode");
+                    let inode = u32::from_str_radix(&inode[1..inode.len()-1], 10).unwrap();
+                    Ok(FDTarget::Other(x.to_string(), inode))
+                }
+            }
+        } else {
+            Ok(FDTarget::Path(PathBuf::from(s)))
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FDInfo {
+    fd: u32,
+    target: FDTarget
+}
+
+
 macro_rules! since_kernel {
     ($a:tt, $b:tt, $c:tt, $e:expr) => {
         if *KERNEL >= KernelVersion::new($a, $b, $c) {
@@ -891,6 +947,27 @@ impl Process {
                 .collect(),
         )
     }
+
+    /// Gets a list of open file descriptors for a process
+    pub fn fd(&self) -> ProcResult<Vec<FDInfo>> {
+        use std::fs::read_link;
+        use std::ffi::OsStr;
+
+        let mut vec = Vec::new();
+
+        for dir in proctry!(self.root.join("fd").read_dir()) {
+            let entry = proctry!(dir);
+            let fd = u32::from_str_radix(entry.file_name().to_str().unwrap(), 10).unwrap();
+            let link = proctry!(read_link(entry.path()));
+            let link_os: &OsStr = link.as_ref();
+            vec.push(FDInfo {
+                fd,
+                target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap()
+                
+            });
+        }
+        ProcResult::Ok(vec)
+    }
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -992,6 +1069,13 @@ mod tests {
             MMapPath::from("/lib/libfoo.so"),
             MMapPath::Path(PathBuf::from("/lib/libfoo.so"))
         );
+    }
+    #[test]
+    fn test_proc_fd() {
+        let myself = Process::myself().unwrap();
+        for fd in myself.fd().unwrap() {
+            println!("{:?}", fd);
+        }
     }
 
 }
