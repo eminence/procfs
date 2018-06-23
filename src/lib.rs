@@ -84,6 +84,9 @@ pub use meminfo::*;
 mod net;
 pub use net::*;
 
+mod cpuinfo;
+pub use cpuinfo::*;
+
 use std::cmp;
 
 lazy_static! {
