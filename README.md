@@ -9,6 +9,8 @@ Long-term, this crate aims to be fairly feature complete, but at the moment not 
 See the docs for info on what's supported.
 
 ## Examples
+There are several examples in the docs and in the [examples folder](https://github.com/eminence/procfs/tree/master/examples)
+of the code repository.
 
 Here's a small example that prints out all processes that are running on the same tty as the calling
 process.  This is very similar to what "ps" does in its default mode:
