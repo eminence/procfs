@@ -954,12 +954,16 @@ impl Process {
         for dir in proctry!(self.root.join("fd").read_dir()) {
             let entry = proctry!(dir);
             let fd = u32::from_str_radix(entry.file_name().to_str().unwrap(), 10).unwrap();
-            let link = proctry!(read_link(entry.path()));
-            let link_os: &OsStr = link.as_ref();
-            vec.push(FDInfo {
-                fd,
-                target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap(),
-            });
+            //  note: the link might have disappeared between the time we got the directory listing
+            //  and now.  So if the read_link fails, that's OK
+            if let Ok(link) = read_link(entry.path()) {
+                let link_os: &OsStr = link.as_ref();
+                vec.push(FDInfo {
+                    fd,
+                    target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap(),
+                });
+
+            }
         }
         ProcResult::Ok(vec)
     }
