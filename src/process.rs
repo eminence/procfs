@@ -569,6 +569,9 @@ impl FromStr for FDTarget {
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Pipe(inode))
                 }
+                "anon_inode" => {
+                    Ok(FDTarget::AnonInode(s.next().expect("anon inode").to_string()))
+                }
                 x => {
                     let inode = s.next().expect("other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
@@ -583,8 +586,8 @@ impl FromStr for FDTarget {
 
 #[derive(Debug)]
 pub struct FDInfo {
-    fd: u32,
-    target: FDTarget,
+    pub fd: u32,
+    pub target: FDTarget,
 }
 
 macro_rules! since_kernel {
