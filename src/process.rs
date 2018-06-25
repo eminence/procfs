@@ -771,7 +771,7 @@ pub struct Process {
     pub stat: Stat,
     /// The user id of the owner of this process
     pub owner: u32,
-    root: PathBuf,
+    pub(crate) root: PathBuf,
 }
 
 impl Process {
