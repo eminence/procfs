@@ -146,7 +146,7 @@ mod tests {
         let info = cpuinfo().unwrap();
         println!("{:#?}", info.flags(0));
 
-        assert_eq!(info.num_cores(), 8);
+        //assert_eq!(info.num_cores(), 8);
 
     }
 
