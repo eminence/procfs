@@ -82,6 +82,20 @@ bitflags! {
 
     }
 }
+bitflags! {
+
+    pub struct CoredumpFlags: u32 {
+        const ANONYMOUS_PRIVATE_MAPPINGS = 0x01;
+        const ANONYMOUS_SHARED_MAPPINGS = 0x02;
+        const FILEBACKED_PRIVATE_MAPPINGS = 0x04;
+        const FILEBACKED_SHARED_MAPPINGS = 0x08;
+        const ELF_HEADERS = 0x10;
+        const PROVATE_HUGEPAGES = 0x20;
+        const SHARED_HUGEPAGES = 0x40;
+        const PRIVATE_DAX_PAGES = 0x80;
+        const SHARED_DAX_PAGES = 0x100;
+    }
+}
 
 //impl<'a, 'b, T> ProcFrom<&'b mut T> for u32 where T: Iterator<Item=&'a str> + Sized, 'a: 'b {
 //    fn from(i: &'b mut T) -> u32 {
@@ -970,6 +984,22 @@ impl Process {
         }
         ProcResult::Ok(vec)
     }
+
+    /// Lists which memory segments are written to the core dump in the event that a core dump is performed.
+    ///
+    /// By default, the following bits are set:
+    /// 0, 1, 4 (if the CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS kernel configuration option is enabled), and 5.
+    /// This default can be modified at boot time using the core dump_filter boot option.
+    pub fn coredump_filter(&self) -> ProcResult<CoredumpFlags> {
+        use std::fs::File;
+        let mut file = proctry!(File::open(self.root.join("coredump_filter")));
+        let mut s = String::new();
+        proctry!(file.read_to_string(&mut s));
+        let flags = u32::from_str_radix(&s.trim(), 16).expect("from_str_radix");
+
+        ProcResult::Ok(CoredumpFlags::from_bits(flags).expect("from_bits"))
+
+    }
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -1078,6 +1108,13 @@ mod tests {
         for fd in myself.fd().unwrap() {
             println!("{:?}", fd);
         }
+    }
+
+    #[test]
+    fn test_proc_coredump() {
+        let myself = Process::myself().unwrap();
+        let flags = myself.coredump_filter();
+        println!("{:?}", flags);
     }
 
 }
