@@ -992,6 +992,38 @@ impl Process {
 
         ProcResult::Ok(expect!(CoredumpFlags::from_bits(flags)))
     }
+
+    /// Gets the process's autogroup membership
+    ///
+    /// (since Linux 2.6.38 and requires CONFIG_SCHED_AUTOGROUP)
+    pub fn autogroup(&self) -> ProcResult<String> {
+        let mut s = String::new();
+        let mut file = proctry!(File::open(self.root.join("autogroup")));
+        proctry!(file.read_to_string(&mut s));
+        ProcResult::Ok(s)
+    }
+
+    /// Get the process's auxiliary vector
+    ///
+    /// (since 2.6.0-test7)
+    pub fn auxv(&self) -> ProcResult<HashMap<u32, u32>> {
+        use byteorder::{NativeEndian, ReadBytesExt};
+
+        let mut file = proctry!(File::open(self.root.join("auxv")));
+        let mut map = HashMap::new();
+
+        loop {
+            let key = proctry!(file.read_u32::<NativeEndian>());
+            let value = proctry!(file.read_u32::<NativeEndian>());
+            if key == 0 && value == 0 {
+                break;
+            }
+            map.insert(key, value);
+        }
+
+        ProcResult::Ok(map)
+
+    }
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -1107,6 +1139,13 @@ mod tests {
         let myself = Process::myself().unwrap();
         let flags = myself.coredump_filter();
         println!("{:?}", flags);
+    }
+
+    #[test]
+    fn test_proc_auxv() {
+        let myself = Process::myself().unwrap();
+        let auxv = myself.auxv().unwrap();
+        println!("{:?}", auxv);
     }
 
 }

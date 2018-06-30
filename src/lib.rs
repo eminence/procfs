@@ -112,6 +112,7 @@ extern crate lazy_static;
 extern crate byteorder;
 extern crate chrono;
 extern crate hex;
+extern crate libflate;
 
 #[cfg(unix)]
 mod platform_specific_items {
@@ -136,6 +137,7 @@ use platform_specific_items::*;
 use std::fs::File;
 use std::io::Read;
 use std::str::FromStr;
+use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
 
@@ -511,6 +513,46 @@ pub fn page_size() -> std::io::Result<i64> {
     }
 }
 
+
+#[derive(Debug, PartialEq)]
+pub enum ConfigSetting {
+    Yes,
+    Module,
+    Value(String),
+}
+/// Returns a configuration options used to build the currently running kernel
+///
+/// (since Linux 2.6 and requires CONFIG_IKCONFIG_PROC)
+pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
+    use libflate::gzip::Decoder;
+    use std::io::{BufRead, BufReader};
+
+    let file = proctry!(File::open("/proc/config.gz"));
+    let decoder = proctry!(Decoder::new(file));
+    let reader = BufReader::new(decoder);
+
+    let mut map = HashMap::new();
+
+    for line in reader.lines() {
+        let line = proctry!(line);
+        if line.starts_with('#') {
+            continue
+        }
+        if line.contains('=') {
+            let mut s = line.splitn(2, '=');
+            let name = expect!(s.next()).to_owned();
+            let value = match expect!(s.next()) {
+                "y" => ConfigSetting::Yes,
+                "m" => ConfigSetting::Module,
+                s => ConfigSetting::Value(s.to_owned()),
+            };
+            map.insert(name, value);
+        }
+    }
+
+    ProcResult::Ok(map)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -567,5 +609,13 @@ mod tests {
     fn test_from_str_panic() {
         let s = "four";
         from_str!(u8, s);
+    }
+
+    #[test]
+    fn test_kernel_config() {
+        let config = kernel_config().unwrap();
+        println!("{:#?}", config);
+        let cfg = config.get("CONFIG_IKCONFIG_PROC").unwrap();
+        assert!(*cfg == ConfigSetting::Yes);
     }
 }
