@@ -1,4 +1,3 @@
-
 use ProcResult;
 
 use std::collections::HashMap;
@@ -15,7 +14,7 @@ use std::collections::HashMap;
 pub struct CpuInfo {
     /// This stores fields that are common among all CPUs
     pub fields: HashMap<String, String>,
-    pub cpus: Vec<HashMap<String, String>>
+    pub cpus: Vec<HashMap<String, String>>,
 }
 
 impl CpuInfo {
@@ -32,11 +31,10 @@ impl CpuInfo {
     ///
     /// Returns None if the requested cpu index is not found.
     pub fn get_info(&self, cpu_num: usize) -> Option<HashMap<&str, &str>> {
-
         if let Some(info) = self.cpus.get(cpu_num) {
             let mut map = HashMap::new();
-            
-            for (k, v) in self.fields.iter() {
+
+            for (k, v) in &self.fields {
                 map.insert(k.as_ref(), v.as_ref());
             }
 
@@ -50,12 +48,13 @@ impl CpuInfo {
         }
     }
 
-
     pub fn model_name(&self, cpu_num: usize) -> Option<&str> {
-        self.get_info(cpu_num).and_then(|mut m| m.remove("model name"))
+        self.get_info(cpu_num)
+            .and_then(|mut m| m.remove("model name"))
     }
     pub fn vendor_id(&self, cpu_num: usize) -> Option<&str> {
-        self.get_info(cpu_num).and_then(|mut m| m.remove("vendor_id"))
+        self.get_info(cpu_num)
+            .and_then(|mut m| m.remove("vendor_id"))
     }
     pub fn physical_id(&self, cpu_num: usize) -> Option<u32> {
         self.get_info(cpu_num)
@@ -67,9 +66,7 @@ impl CpuInfo {
             .and_then(|mut m| m.remove("flags"))
             .map(|flags: &str| flags.split_whitespace().collect())
     }
-    
 }
-
 
 pub fn cpuinfo() -> ProcResult<CpuInfo> {
     use std::fs::File;
@@ -91,12 +88,9 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
                     let value = value.trim().to_owned();
 
                     map.get_or_insert(HashMap::new()).insert(key, value);
-
                 }
-            } else {
-                if let Some(map) = map.take() {
-                    list.push(map);
-                }
+            } else if let Some(map) = map.take() {
+                list.push(map);
             }
         }
     }
@@ -105,37 +99,40 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
     }
 
     // find properties that are the same for all cpus
-    assert!(list.len() > 0);
+    assert!(!list.is_empty());
 
-
-    let common_fields: Vec<String> = list[0].iter().filter_map(|(key, val)| {
-        if list.iter().all(|map| map.get(key).map_or(false, |v| v == val)) {
-            Some(key.clone())
-        } else {
-            None
-        }
-    }).collect();
+    let common_fields: Vec<String> = list[0]
+        .iter()
+        .filter_map(|(key, val)| {
+            if list
+                .iter()
+                .all(|map| map.get(key).map_or(false, |v| v == val))
+            {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
 
     let mut common_map = HashMap::new();
-    for (k, v) in list[0].iter() {
+    for (k, v) in &list[0] {
         if common_fields.contains(k) {
             common_map.insert(k.clone(), v.clone());
         }
     }
 
-    for map in list.iter_mut() {
+    for map in &mut list {
         map.retain(|k, _| !common_fields.contains(k));
-
     }
 
     print!("{:?}", common_fields);
 
     ProcResult::Ok(CpuInfo {
         fields: common_map,
-        cpus: list
+        cpus: list,
     })
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -147,7 +144,6 @@ mod tests {
         println!("{:#?}", info.flags(0));
 
         //assert_eq!(info.num_cores(), 8);
-
     }
 
 }

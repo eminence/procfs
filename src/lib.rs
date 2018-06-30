@@ -35,13 +35,13 @@
 //!
 //! ```rust
 //! extern crate procfs;
-//! 
+//!
 //! fn main() {
 //!     let me = procfs::Process::myself().unwrap();
 //!     let tps = procfs::ticks_per_second().unwrap();
-//! 
+//!
 //!     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
-//! 
+//!
 //!     let tty = format!("pty/{}", me.stat.tty_nr().1);
 //!     for prc in procfs::all_processes() {
 //!         if prc.stat.tty_nr == me.stat.tty_nr {
@@ -65,13 +65,13 @@
 //!
 //! ```rust
 //! extern crate procfs;
-//! 
+//!
 //! use procfs::{ProcResult, Process, FDTarget};
 //! use std::collections::HashMap;
-//! 
+//!
 //! fn main() {
 //!     let all_procs = procfs::all_processes();
-//! 
+//!
 //!     // build up a map between socket inodes and processes:
 //!     let mut map: HashMap<u32, &Process> = HashMap::new();
 //!     for process in &all_procs {
@@ -83,7 +83,7 @@
 //!             }
 //!         }
 //!     }
-//! 
+//!
 //!     // get the tcp table
 //!     let tcp = procfs::tcp().unwrap();
 //!     let tcp6 = procfs::tcp6().unwrap();
@@ -101,7 +101,6 @@
 //!         }
 //!     }
 //! }
-
 
 #[cfg(unix)]
 extern crate libc;

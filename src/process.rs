@@ -583,9 +583,9 @@ impl FromStr for FDTarget {
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Pipe(inode))
                 }
-                "anon_inode" => {
-                    Ok(FDTarget::AnonInode(s.next().expect("anon inode").to_string()))
-                }
+                "anon_inode" => Ok(FDTarget::AnonInode(
+                    s.next().expect("anon inode").to_string(),
+                )),
                 x => {
                     let inode = s.next().expect("other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
@@ -979,7 +979,6 @@ impl Process {
                     fd,
                     target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap(),
                 });
-
             }
         }
         ProcResult::Ok(vec)
@@ -998,7 +997,6 @@ impl Process {
         let flags = u32::from_str_radix(&s.trim(), 16).expect("from_str_radix");
 
         ProcResult::Ok(CoredumpFlags::from_bits(flags).expect("from_bits"))
-
     }
 }
 

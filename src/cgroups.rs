@@ -18,7 +18,7 @@ pub struct CGroupController {
     /// The number of control groups in this hierarchy using this controller.
     pub num_cgroups: u32,
     /// This field contains the value `true` if this controller is enabled, or `false` if it has been disabled
-    pub enabled: bool
+    pub enabled: bool,
 }
 
 /// Information about the cgroup controllers that are compiled into the kernel
@@ -28,7 +28,7 @@ pub struct CGroupController {
 // instead
 pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
     use std::fs::File;
-    use std::io::{BufRead, BufReader, Read};
+    use std::io::{BufRead, BufReader};
 
     let file = proctry!(File::open("/proc/cgroups"));
     let reader = BufReader::new(file);
@@ -51,14 +51,11 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
             name,
             hierarchy,
             num_cgroups,
-            enabled
+            enabled,
         });
-
-
     }
 
     ProcResult::Ok(vec)
-
 }
 
 #[derive(Debug)]
@@ -86,7 +83,7 @@ impl Process {
     /// The displayed information differs for cgroupsversion 1 and version 2 hierarchies.
     pub fn cgroups(&self) -> ProcResult<Vec<ProcessCgroup>> {
         use std::fs::File;
-        use std::io::{BufRead, BufReader, Read};
+        use std::io::{BufRead, BufReader};
 
         let file = proctry!(File::open(self.root.join("cgroup")));
         let reader = BufReader::new(file);
@@ -101,21 +98,23 @@ impl Process {
 
             let mut s = line.split(':');
             let hierarchy = u32::from_str_radix(s.next().expect("hierarchy"), 10).unwrap();
-            let controllers = s.next().expect("controllers").split(',').map(|s| s.to_owned()).collect();
+            let controllers = s
+                .next()
+                .expect("controllers")
+                .split(',')
+                .map(|s| s.to_owned())
+                .collect();
             let pathname = s.next().expect("path").to_owned();
 
-            vec.push(ProcessCgroup{
+            vec.push(ProcessCgroup {
                 hierarchy,
                 controllers,
-                pathname
+                pathname,
             });
-
         }
 
         ProcResult::Ok(vec)
-
     }
-
 }
 
 #[cfg(test)]
@@ -133,6 +132,5 @@ mod tests {
         let myself = Process::myself().unwrap();
         let groups = myself.cgroups();
         println!("{:?}", groups);
-
     }
 }
