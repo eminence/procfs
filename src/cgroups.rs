@@ -42,10 +42,10 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
         }
 
         let mut s = line.split_whitespace();
-        let name = s.next().expect("name").to_owned();
-        let hierarchy = u32::from_str_radix(s.next().expect("hierarchy"), 10).unwrap();
-        let num_cgroups = u32::from_str_radix(s.next().expect("num_cgroups"), 10).unwrap();
-        let enabled = s.next().expect("enabled") == "1";
+        let name = expect!(s.next(), "name").to_owned();
+        let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
+        let num_cgroups = from_str!(u32, expect!(s.next(), "num_cgroups"));
+        let enabled = expect!(s.next(), "enabled") == "1";
 
         vec.push(CGroupController {
             name,
@@ -97,14 +97,12 @@ impl Process {
             }
 
             let mut s = line.split(':');
-            let hierarchy = u32::from_str_radix(s.next().expect("hierarchy"), 10).unwrap();
-            let controllers = s
-                .next()
-                .expect("controllers")
+            let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
+            let controllers = expect!(s.next(), "controllers")
                 .split(',')
                 .map(|s| s.to_owned())
                 .collect();
-            let pathname = s.next().expect("path").to_owned();
+            let pathname = expect!(s.next(), "path").to_owned();
 
             vec.push(ProcessCgroup {
                 hierarchy,

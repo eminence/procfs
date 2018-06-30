@@ -57,9 +57,9 @@ pub struct TcpNetEntry {
 /// Panics if unparsable
 fn parse_addressport_str(s: &str) -> SocketAddr {
     let mut las = s.split(':');
-    let ip_part = las.next().expect("ip_part");
-    let port = las.next().expect("port");
-    let port = u16::from_str_radix(port, 16).unwrap();
+    let ip_part = expect!(las.next(), "ip_part");
+    let port = expect!(las.next(), "port");
+    let port = from_str!(u16, port, 16);
 
     if ip_part.len() == 8 {
         let bytes = hex::decode(&ip_part).unwrap();
@@ -102,21 +102,21 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         let line = proctry!(line);
         let mut s = line.split_whitespace();
         s.next();
-        let local_address = s.next().expect("tcp::local_address");
-        let rem_address = s.next().expect("tcp::rem_address");
-        let state = s.next().expect("tcp::st");
+        let local_address = expect!(s.next(), "tcp::local_address");
+        let rem_address = expect!(s.next(), "tcp::rem_address");
+        let state = expect!(s.next(), "tcp::st");
         s.next(); // skip tx_queue:rx_queue
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
         s.next(); // skip uid
         s.next(); // skip timeout
-        let inode = s.next().expect("tcp::inode");
+        let inode = expect!(s.next(), "tcp::inode");
 
         vec.push(TcpNetEntry {
             local_address: parse_addressport_str(local_address),
             remote_address: parse_addressport_str(rem_address),
-            state: TcpState::from_u8(u8::from_str_radix(state, 16).unwrap()).unwrap(),
-            inode: u32::from_str_radix(inode, 10).unwrap(),
+            state: TcpState::from_u8(from_str!(u8, state, 16)).unwrap(),
+            inode: from_str!(u32, inode),
         });
     }
 

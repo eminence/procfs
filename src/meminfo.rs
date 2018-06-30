@@ -263,16 +263,16 @@ impl Meminfo {
         let mut map = HashMap::new();
 
         for line in reader.lines() {
-            let line = line.expect("Failed to read line");
+            let line = expect!(line);
             if line.is_empty() {
                 continue;
             }
             let mut s = line.split_whitespace();
-            let field = s.next().expect("no field");
-            let value = s.next().expect("no value");
+            let field = expect!(s.next(), "no field");
+            let value = expect!(s.next(), "no value");
             let unit = s.next(); // optional
 
-            let value = u64::from_str_radix(value, 10).expect("Failed to parse number");
+            let value = from_str!(u64, value);
 
             let value = if let Some(unit) = unit {
                 convert_to_bytes(value, unit)
@@ -287,14 +287,14 @@ impl Meminfo {
         // if there's anything still left in the map at the end, that
         // means we probably have a bug/typo, or are out-of-date
         let meminfo = Meminfo {
-            mem_total: map.remove("MemTotal").expect("MemTotal"),
-            mem_free: map.remove("MemFree").expect("MemFree"),
+            mem_total: expect!(map.remove("MemTotal")),
+            mem_free: expect!(map.remove("MemFree")),
             mem_available: map.remove("MemAvailable"),
-            buffers: map.remove("Buffers").expect("Buffers"),
-            cached: map.remove("Cached").expect("Cached"),
-            swap_cached: map.remove("SwapCached").expect("SwapCached"),
-            active: map.remove("Active").expect("Active"),
-            inactive: map.remove("Inactive").expect("Inactive"),
+            buffers: expect!(map.remove("Buffers")),
+            cached: expect!(map.remove("Cached")),
+            swap_cached: expect!(map.remove("SwapCached")),
+            active: expect!(map.remove("Active")),
+            inactive: expect!(map.remove("Inactive")),
             active_anon: map.remove("Active(anon)"),
             inactive_anon: map.remove("Inactive(anon)"),
             active_file: map.remove("Active(file)"),
@@ -306,14 +306,14 @@ impl Meminfo {
             low_total: map.remove("LowTotal"),
             low_free: map.remove("LowFree"),
             mmap_copy: map.remove("MmapCopy"),
-            swap_total: map.remove("SwapTotal").expect("SwapTotal"),
-            swap_free: map.remove("SwapFree").expect("SwapFree"),
-            dirty: map.remove("Dirty").expect("Dirty"),
-            writeback: map.remove("Writeback").expect("Writeback"),
+            swap_total: expect!(map.remove("SwapTotal")),
+            swap_free: expect!(map.remove("SwapFree")),
+            dirty: expect!(map.remove("Dirty")),
+            writeback: expect!(map.remove("Writeback")),
             anon_pages: map.remove("AnonPages"),
-            mapped: map.remove("Mapped").expect("Mapped"),
+            mapped: expect!(map.remove("Mapped")),
             shmem: map.remove("Shmem"),
-            slab: map.remove("Slab").expect("Slab"),
+            slab: expect!(map.remove("Slab")),
             s_reclaimable: map.remove("SReclaimable"),
             s_unreclaim: map.remove("SUnreclaim"),
             kernel_stack: map.remove("KernelStack"),
@@ -324,9 +324,9 @@ impl Meminfo {
             writeback_tmp: map.remove("WritebackTmp"),
             commit_limit: map.remove("CommitLimit"),
             committed_as: map.remove("Committed_AS"),
-            vmalloc_total: map.remove("VmallocTotal").expect("VmallocTotal"),
-            vmalloc_used: map.remove("VmallocUsed").expect("VmallocUsed"),
-            vmalloc_chunk: map.remove("VmallocChunk").expect("VmallocChunk"),
+            vmalloc_total: expect!(map.remove("VmallocTotal")),
+            vmalloc_used: expect!(map.remove("VmallocUsed")),
+            vmalloc_chunk: expect!(map.remove("VmallocChunk")),
             hardware_corrupted: map.remove("HardwareCorrupted"),
             anon_hugepages: map.remove("AnonHugePages"),
             shmem_hugepages: map.remove("ShmemHugePages"),

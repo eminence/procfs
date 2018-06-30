@@ -139,6 +139,22 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Local};
 
+trait IntoOption<T> {
+    fn into_option(t: Self) -> Option<T>;
+}
+
+impl<T> IntoOption<T> for Option<T> {
+    fn into_option(t: Option<T>) -> Option<T> {
+        t
+    }
+}
+
+impl<T, R> IntoOption<T> for Result<T, R> {
+    fn into_option(t: Result<T, R>) -> Option<T> {
+        t.ok()
+    }
+}
+
 #[macro_use]
 macro_rules! proctry {
     ($e:expr) => {
@@ -149,6 +165,51 @@ macro_rules! proctry {
             }
             Err(_) => return ProcResult::NotFound,
         }
+    };
+}
+
+#[macro_use]
+macro_rules! expect {
+    ($e:expr) => {
+        ::IntoOption::into_option($e).unwrap_or_else(|| {
+            panic!(
+                "Failed to unwrap {}. Please report this as a procfs bug.",
+                stringify!($e)
+            )
+        })
+    };
+    ($e:expr, $msg:expr) => {
+        ::IntoOption::into_option($e).unwrap_or_else(|| {
+            panic!(
+                "Failed to unwrap {} ({}). Please report this as a procfs bug.",
+                stringify!($e),
+                $msg
+            )
+        })
+    };
+}
+
+#[macro_use]
+macro_rules! from_str {
+    ($t:tt, $e:expr) => {
+        $t::from_str_radix($e, 10).unwrap_or_else(|_| {
+            panic!(
+                "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
+                stringify!($e),
+                $e,
+                stringify!($t)
+            )
+        })
+    };
+    ($t:tt, $e:expr, $radix:expr) => {
+        $t::from_str_radix($e, $radix).unwrap_or_else(|_| {
+            panic!(
+                "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
+                stringify!($e),
+                $e,
+                stringify!($t)
+            )
+        })
     };
 }
 
@@ -493,5 +554,18 @@ mod tests {
     fn test_loadavg() {
         let load = LoadAverage::new().unwrap();
         println!("{:?}", load);
+    }
+
+    #[test]
+    fn test_from_str() {
+        assert_eq!(from_str!(u8, "12"), 12);
+        assert_eq!(from_str!(u8, "A", 16), 10);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_from_str_panic() {
+        let s = "four";
+        from_str!(u8, s);
     }
 }

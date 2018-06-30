@@ -111,7 +111,7 @@ where
 {
     fn from(i: I) -> U {
         let mut iter = i.into_iter();
-        let val = iter.next().expect("Missing iterator next item");
+        let val = expect!(iter.next(), "Missing iterator next item");
         match FromStr::from_str(val) {
             Ok(u) => u,
             Err(..) => panic!("Failed to convert".to_string()),
@@ -177,7 +177,7 @@ impl ProcState {
 impl FromStr for ProcState {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<ProcState, &'static str> {
-        ProcState::from_char(s.chars().next().expect("empty string")).ok_or("Failed to convert")
+        ProcState::from_char(expect!(s.chars().next(), "empty string")).ok_or("Failed to convert")
     }
 }
 
@@ -476,7 +476,7 @@ impl MMapPath {
             "[vdso]" => MMapPath::Vdso,
             x if x.starts_with("[stack:") => {
                 let mut s = x[1..x.len() - 1].split(':');
-                let tid = u32::from_str_radix(s.nth(1).unwrap(), 10).unwrap();
+                let tid = from_str!(u32, s.nth(1).unwrap());
                 MMapPath::TStack(tid)
             }
             x if x.starts_with('[') && x.ends_with(']') => {
@@ -515,28 +515,26 @@ impl Io {
         let reader = BufReader::new(r);
 
         for line in reader.lines() {
-            let line = line.expect("Failed to read line");
+            let line = expect!(line, "Failed to read line");
             if line.is_empty() {
                 continue;
             }
             let mut s = line.split_whitespace();
-            let field = s.next().expect("no field");
-            let value = s.next().expect("no value");
+            let field = expect!(s.next(), "no field");
+            let value = expect!(s.next(), "no value");
 
-            let value = u64::from_str_radix(value, 10).expect("Failed to parse number");
+            let value = from_str!(u64, value);
 
             map.insert(field[..field.len() - 1].to_string(), value);
         }
         let io = Io {
-            rchar: map.remove("rchar").expect("rchar"),
-            wchar: map.remove("wchar").expect("wchar"),
-            syscr: map.remove("syscr").expect("syscr"),
-            syscw: map.remove("syscw").expect("syscw"),
-            read_bytes: map.remove("read_bytes").expect("read_bytes"),
-            write_bytes: map.remove("write_bytes").expect("write_bytes"),
-            cancelled_write_bytes: map
-                .remove("cancelled_write_bytes")
-                .expect("cancelled_write_bytes"),
+            rchar: expect!(map.remove("rchar")),
+            wchar: expect!(map.remove("wchar")),
+            syscr: expect!(map.remove("syscr")),
+            syscw: expect!(map.remove("syscw")),
+            read_bytes: expect!(map.remove("read_bytes")),
+            write_bytes: expect!(map.remove("write_bytes")),
+            cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
         };
 
         if !map.is_empty() {
@@ -569,25 +567,25 @@ impl FromStr for FDTarget {
             let fd_type = s.next().unwrap();
             match fd_type {
                 "socket" => {
-                    let inode = s.next().expect("socket inode");
+                    let inode = expect!(s.next(), "socket inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Socket(inode))
                 }
                 "net" => {
-                    let inode = s.next().expect("net inode");
+                    let inode = expect!(s.next(), "net inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Net(inode))
                 }
                 "pipe" => {
-                    let inode = s.next().expect("pipe inode");
+                    let inode = expect!(s.next(), "pipe inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Pipe(inode))
                 }
                 "anon_inode" => Ok(FDTarget::AnonInode(
-                    s.next().expect("anon inode").to_string(),
+                    expect!(s.next(), "anon inode").to_string(),
                 )),
                 x => {
-                    let inode = s.next().expect("other inode");
+                    let inode = expect!(s.next(), "other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
@@ -935,23 +933,19 @@ impl Process {
                 .filter_map(|line| {
                     let line = line.unwrap();
                     let mut s = line.splitn(6, ' ');
-                    let address = s.next().expect("maps::address");
-                    let perms = s.next().expect("maps::perms");
-                    let offset = s.next().expect("maps::offset");
-                    let dev = s.next().expect("maps::dev");
-                    let inode = s.next().expect("maps::inode");
-                    let path = s.next().expect("maps::path");
+                    let address = expect!(s.next(), "maps::address");
+                    let perms = expect!(s.next(), "maps::perms");
+                    let offset = expect!(s.next(), "maps::offset");
+                    let dev = expect!(s.next(), "maps::dev");
+                    let inode = expect!(s.next(), "maps::inode");
+                    let path = expect!(s.next(), "maps::path");
 
                     let mmap = MemoryMap {
                         address: split_into_num(address, '-', 16),
                         perms: perms.to_string(),
-                        offset: u64::from_str_radix(offset, 16).unwrap_or_else(|_| {
-                            panic!("Failed to parse {} as an offset number", offset)
-                        }),
+                        offset: from_str!(u64, offset, 16),
                         dev: split_into_num(dev, ':', 16),
-                        inode: u32::from_str_radix(inode, 10).unwrap_or_else(|_| {
-                            panic!("Failed to parse {} as an inode number", inode)
-                        }),
+                        inode: from_str!(u32, inode),
                         pathname: MMapPath::from(path),
                     };
 
@@ -994,15 +988,15 @@ impl Process {
         let mut file = proctry!(File::open(self.root.join("coredump_filter")));
         let mut s = String::new();
         proctry!(file.read_to_string(&mut s));
-        let flags = u32::from_str_radix(&s.trim(), 16).expect("from_str_radix");
+        let flags = from_str!(u32, &s.trim(), 16);
 
-        ProcResult::Ok(CoredumpFlags::from_bits(flags).expect("from_bits"))
+        ProcResult::Ok(expect!(CoredumpFlags::from_bits(flags)))
     }
 }
 
 pub fn all_processes() -> Vec<Process> {
     let mut v = Vec::new();
-    for dir in std::fs::read_dir("/proc/").expect("No /proc/ directory") {
+    for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
         if let Ok(entry) = dir {
             if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
                 if let ProcResult::Ok(prc) = Process::new(pid) {
