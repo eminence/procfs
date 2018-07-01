@@ -1022,7 +1022,6 @@ impl Process {
         }
 
         ProcResult::Ok(map)
-
     }
 }
 
@@ -1053,6 +1052,72 @@ mod tests {
         println!("tty: {:?}", myself.stat.tty_nr());
         println!("flags: {:?}", myself.stat.flags());
         println!("starttime: {:#?}", myself.stat.starttime());
+
+        let kernel = KernelVersion::current().unwrap();
+
+        if kernel >= KernelVersion::new(2, 1, 22) {
+            assert!(myself.stat.exit_signal.is_some());
+        } else {
+            assert!(myself.stat.exit_signal.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 2, 8) {
+            assert!(myself.stat.processor.is_some());
+        } else {
+            assert!(myself.stat.processor.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 5, 19) {
+            assert!(myself.stat.rt_priority.is_some());
+        } else {
+            assert!(myself.stat.rt_priority.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 5, 19) {
+            assert!(myself.stat.rt_priority.is_some());
+            assert!(myself.stat.policy.is_some());
+        } else {
+            assert!(myself.stat.rt_priority.is_none());
+            assert!(myself.stat.policy.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 18) {
+            assert!(myself.stat.delayacct_blkio_ticks.is_some());
+        } else {
+            assert!(myself.stat.delayacct_blkio_ticks.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 24) {
+            assert!(myself.stat.guest_time.is_some());
+            assert!(myself.stat.cguest_time.is_some());
+        } else {
+            assert!(myself.stat.guest_time.is_none());
+            assert!(myself.stat.cguest_time.is_none());
+        }
+
+        if kernel >= KernelVersion::new(3, 3, 0) {
+            assert!(myself.stat.start_data.is_some());
+            assert!(myself.stat.end_data.is_some());
+            assert!(myself.stat.start_brk.is_some());
+        } else {
+            assert!(myself.stat.start_data.is_none());
+            assert!(myself.stat.end_data.is_none());
+            assert!(myself.stat.start_brk.is_none());
+        }
+
+        if kernel >= KernelVersion::new(3, 5, 0) {
+            assert!(myself.stat.arg_start.is_some());
+            assert!(myself.stat.arg_end.is_some());
+            assert!(myself.stat.env_start.is_some());
+            assert!(myself.stat.env_end.is_some());
+            assert!(myself.stat.exit_code.is_some());
+        } else {
+            assert!(myself.stat.arg_start.is_none());
+            assert!(myself.stat.arg_end.is_none());
+            assert!(myself.stat.env_start.is_none());
+            assert!(myself.stat.env_end.is_none());
+            assert!(myself.stat.exit_code.is_none());
+        }
     }
 
     #[test]
@@ -1102,8 +1167,12 @@ mod tests {
     #[test]
     fn test_proc_io() {
         let myself = Process::myself().unwrap();
-        let io = myself.io().unwrap();
+        let kernel = KernelVersion::current().unwrap();
+        let io = myself.io();
         println!("{:?}", io);
+        if let ProcResult::Ok(_) = io {
+            assert!(kernel >= KernelVersion::new(2, 6, 20));
+        }
     }
 
     #[test]

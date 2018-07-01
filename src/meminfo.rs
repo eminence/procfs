@@ -1,6 +1,6 @@
 use std::io;
 
-use super::convert_to_bytes;
+use super::{convert_to_bytes, ProcResult};
 
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
@@ -167,7 +167,7 @@ pub struct Meminfo {
     /// strict  overcommit  enabled  on  the  system  (mode 2 in /proc/sys/vm/overcommit_memory), allocations which would exceed the Committed_AS
     /// mitLimit will not be permitted.  This is useful if one needs to guarantee that processes will not fail due to lack of memory once
     /// that memory has been successfully allocated.
-    pub committed_as: Option<u64>,
+    pub committed_as: u64,
     /// Total size of vmalloc memory area.
     pub vmalloc_total: u64,
     /// Amount of vmalloc area which is used.
@@ -247,15 +247,15 @@ impl Meminfo {
     ///
     /// This may panic if expected fields are missing.  This can happen when running on kernels
     /// older than 2.6.0.
-    pub fn new() -> Option<Meminfo> {
+    pub fn new() -> ProcResult<Meminfo> {
         use std::fs::File;
 
-        let f = File::open("/proc/meminfo").ok()?;
+        let f = proctry!(File::open("/proc/meminfo"));
 
-        Meminfo::from_reader(f)
+        ProcResult::Ok(Meminfo::from_reader(f))
     }
 
-    fn from_reader<R: io::Read>(r: R) -> Option<Meminfo> {
+    fn from_reader<R: io::Read>(r: R) -> Meminfo {
         use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
 
@@ -323,7 +323,7 @@ impl Meminfo {
             bounce: map.remove("Bounce"),
             writeback_tmp: map.remove("WritebackTmp"),
             commit_limit: map.remove("CommitLimit"),
-            committed_as: map.remove("Committed_AS"),
+            committed_as: expect!(map.remove("Committed_AS")),
             vmalloc_total: expect!(map.remove("VmallocTotal")),
             vmalloc_used: expect!(map.remove("VmallocUsed")),
             vmalloc_chunk: expect!(map.remove("VmallocChunk")),
@@ -348,17 +348,171 @@ impl Meminfo {
             panic!("meminfo map is not empty: {:#?}", map);
         }
 
-        Some(meminfo)
+        meminfo
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use {kernel_config, KernelVersion};
 
     #[test]
     fn test_meminfo() {
-        let meminfo = Meminfo::new();
+        let kernel = KernelVersion::current().unwrap();
+        let config = kernel_config().unwrap();
+
+        let meminfo = Meminfo::new().unwrap();
         println!("{:#?}", meminfo);
+
+        // for the fields that are only present in some kernel versions, make sure our
+        // actual kernel agrees
+
+        if kernel >= KernelVersion::new(3, 14, 0) {
+            assert!(meminfo.mem_available.is_some());
+        } else {
+            assert!(meminfo.mem_available.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 28) {
+            assert!(meminfo.active_anon.is_some());
+            assert!(meminfo.inactive_anon.is_some());
+            assert!(meminfo.active_file.is_some());
+            assert!(meminfo.inactive_file.is_some());
+        } else {
+            assert!(meminfo.active_anon.is_none());
+            assert!(meminfo.inactive_anon.is_none());
+            assert!(meminfo.active_file.is_none());
+            assert!(meminfo.inactive_file.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 28)
+            && kernel <= KernelVersion::new(2, 6, 30)
+            && meminfo.unevictable.is_some()
+        {
+            assert!(config.get("CONFIG_UNEVICTABLE_LRU").is_some());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 19) && config.contains_key("CONFIG_HIGHMEM") {
+            assert!(meminfo.high_total.is_some());
+            assert!(meminfo.high_free.is_some());
+            assert!(meminfo.low_total.is_some());
+            assert!(meminfo.low_free.is_some());
+        } else {
+            assert!(meminfo.high_total.is_none());
+            assert!(meminfo.high_free.is_none());
+            assert!(meminfo.low_total.is_none());
+            assert!(meminfo.low_free.is_none());
+        }
+
+        // Possible bug in procfs documentation:
+        // The man page says that MmapCopy requires CONFIG_MMU, but if you look at the
+        // source, MmapCopy is only included if CONFIG_MMU is *missing*:
+        // https://github.com/torvalds/linux/blob/v4.17/fs/proc/meminfo.c#L80
+        //if kernel >= KernelVersion::new(2, 6, 29) && config.contains_key("CONFIG_MMU") {
+        //    assert!(meminfo.mmap_copy.is_some());
+        //} else {
+        //    assert!(meminfo.mmap_copy.is_none());
+        //}
+
+        if kernel >= KernelVersion::new(2, 6, 18) {
+            assert!(meminfo.anon_pages.is_some());
+            assert!(meminfo.page_tables.is_some());
+            assert!(meminfo.nfs_unstable.is_some());
+            assert!(meminfo.bounce.is_some());
+        } else {
+            assert!(meminfo.anon_pages.is_none());
+            assert!(meminfo.page_tables.is_none());
+            assert!(meminfo.nfs_unstable.is_none());
+            assert!(meminfo.bounce.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 32) {
+            assert!(meminfo.shmem.is_some());
+            assert!(meminfo.kernel_stack.is_some());
+        } else {
+            assert!(meminfo.shmem.is_none());
+            assert!(meminfo.kernel_stack.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 19) {
+            assert!(meminfo.s_reclaimable.is_some());
+            assert!(meminfo.s_unreclaim.is_some());
+        } else {
+            assert!(meminfo.s_reclaimable.is_none());
+            assert!(meminfo.s_unreclaim.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 27) && config.contains_key("CONFIG_QUICKLIST") {
+            assert!(meminfo.quicklists.is_some());
+        } else {
+            assert!(meminfo.quicklists.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 26) {
+            assert!(meminfo.writeback_tmp.is_some());
+        } else {
+            assert!(meminfo.writeback_tmp.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 10) {
+            assert!(meminfo.commit_limit.is_some());
+        } else {
+            assert!(meminfo.commit_limit.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 32) && config.contains_key("CONFIG_MEMORY_FAILURE") {
+            assert!(meminfo.hardware_corrupted.is_some());
+        } else {
+            assert!(meminfo.hardware_corrupted.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 38)
+            && config.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+        {
+            assert!(meminfo.anon_hugepages.is_some());
+        } else {
+            assert!(meminfo.anon_hugepages.is_none());
+        }
+
+        if kernel >= KernelVersion::new(4, 8, 0)
+            && config.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+        {
+            assert!(meminfo.shmem_hugepages.is_some());
+            assert!(meminfo.shmem_pmd_mapped.is_some());
+        } else {
+            assert!(meminfo.shmem_hugepages.is_none());
+            assert!(meminfo.shmem_pmd_mapped.is_none());
+        }
+
+        if kernel >= KernelVersion::new(3, 1, 0) && config.contains_key("CONFIG_CMA") {
+            assert!(meminfo.cma_total.is_some());
+            assert!(meminfo.cma_free.is_some());
+        } else {
+            assert!(meminfo.cma_total.is_none());
+            assert!(meminfo.cma_free.is_none());
+        }
+
+        if config.contains_key("CONFIG_HUGETLB_PAGE") {
+            assert!(meminfo.hugepages_total.is_some());
+            assert!(meminfo.hugepages_free.is_some());
+            assert!(meminfo.hugepagesize.is_some());
+        } else {
+            assert!(meminfo.hugepages_total.is_none());
+            assert!(meminfo.hugepages_free.is_none());
+            assert!(meminfo.hugepagesize.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 17) && config.contains_key("CONFIG_HUGETLB_PAGE") {
+            assert!(meminfo.hugepages_rsvd.is_some());
+        } else {
+            assert!(meminfo.hugepages_rsvd.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 24) && config.contains_key("CONFIG_HUGETLB_PAGE") {
+            assert!(meminfo.hugepages_surp.is_some());
+        } else {
+            assert!(meminfo.hugepages_surp.is_none());
+        }
     }
 }

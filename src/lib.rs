@@ -134,10 +134,10 @@ mod platform_specific_items {
 
 use platform_specific_items::*;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::str::FromStr;
-use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
 
@@ -513,7 +513,6 @@ pub fn page_size() -> std::io::Result<i64> {
     }
 }
 
-
 #[derive(Debug, PartialEq)]
 pub enum ConfigSetting {
     Yes,
@@ -536,7 +535,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     for line in reader.lines() {
         let line = proctry!(line);
         if line.starts_with('#') {
-            continue
+            continue;
         }
         if line.contains('=') {
             let mut s = line.splitn(2, '=');
@@ -551,6 +550,10 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     }
 
     ProcResult::Ok(map)
+}
+
+pub fn meminfo() -> ProcResult<Meminfo> {
+    Meminfo::new()
 }
 
 #[cfg(test)]
