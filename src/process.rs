@@ -988,14 +988,18 @@ impl Process {
     /// By default, the following bits are set:
     /// 0, 1, 4 (if the CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS kernel configuration option is enabled), and 5.
     /// This default can be modified at boot time using the core dump_filter boot option.
-    pub fn coredump_filter(&self) -> ProcResult<CoredumpFlags> {
+    ///
+    /// This function will return `ProcResult::NotFound` if the `coredump_filter` file can't be
+    /// found.  If it returns `ProcResult::Ok(None)` then the process has no coredump_filter
+    pub fn coredump_filter(&self) -> ProcResult<Option<CoredumpFlags>> {
         use std::fs::File;
         let mut file = proctry!(File::open(self.root.join("coredump_filter")));
         let mut s = String::new();
         proctry!(file.read_to_string(&mut s));
-        let flags = from_str!(u32, &s.trim(), 16);
+        if s.trim().is_empty() { return ProcResult::Ok(None) }
+        let flags = from_str!(u32, &s.trim(), 16, pid:self.stat.pid);
 
-        ProcResult::Ok(expect!(CoredumpFlags::from_bits(flags)))
+        ProcResult::Ok(Some(expect!(CoredumpFlags::from_bits(flags))))
     }
 
     /// Gets the process's autogroup membership
@@ -1132,7 +1136,13 @@ mod tests {
             prc.stat.starttime();
             prc.cmdline();
             prc.environ();
-            prc.cmdline();
+            prc.fd();
+            prc.io();
+            prc.maps();
+            prc.coredump_filter();
+            prc.autogroup();
+            prc.auxv();
+            prc.cgroups();
         }
     }
 

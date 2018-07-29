@@ -213,6 +213,17 @@ macro_rules! from_str {
             )
         })
     };
+    ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {
+        $t::from_str_radix($e, $radix).unwrap_or_else(|_| {
+            panic!(
+                "Failed to parse {} ({:?}) as a {} (pid {}). Please report this as a procfs bug.",
+                stringify!($e),
+                $e,
+                stringify!($t),
+                $pid
+            )
+        })
+    };
 }
 
 mod process;
