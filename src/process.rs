@@ -555,6 +555,8 @@ pub enum FDTarget {
     Pipe(u32),
     /// A file descriptor that have no corresponding inode.
     AnonInode(String),
+    /// A memfd file descriptor with a name.
+    MemFD(String),
     /// Some other file descriptor type, with an inode.
     Other(String, u32),
 }
@@ -584,6 +586,9 @@ impl FromStr for FDTarget {
                 "anon_inode" => Ok(FDTarget::AnonInode(
                     expect!(s.next(), "anon inode").to_string(),
                 )),
+                "/memfd" => {
+                    Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string()))
+                }
                 x => {
                     let inode = expect!(s.next(), "other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
