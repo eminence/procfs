@@ -855,9 +855,14 @@ impl Process {
     pub fn is_alive(&self) -> bool {
         match Process::new(self.pid()) {
             ProcResult::Ok(prc) => {
-                // assume that the command line and uid don't change during a processes lifetime
+                // assume that the command line, uid and starttime don't change during a processes lifetime
+                // additionally, do not consider defunct processes as "alive"
                 // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
-                prc.stat.comm == self.stat.comm && prc.owner == self.owner
+                prc.stat.comm == self.stat.comm &&
+                    prc.owner == self.owner &&
+                    prc.stat.starttime == self.stat.starttime &&
+                    prc.stat.state() != ProcState::Zombie &&
+                    self.stat.state() != ProcState::Zombie
             }
             _ => false,
         }
