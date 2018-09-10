@@ -370,8 +370,6 @@ mod test {
 
         if kernel >= KernelVersion::new(3, 14, 0) {
             assert!(meminfo.mem_available.is_some());
-        } else {
-            assert!(meminfo.mem_available.is_none());
         }
 
         if kernel >= KernelVersion::new(2, 6, 28) {
