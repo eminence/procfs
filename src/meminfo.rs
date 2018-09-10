@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{convert_to_bytes, ProcResult};
+use super::{convert_to_kibibytes, ProcResult};
 
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
@@ -70,7 +70,7 @@ pub struct Meminfo {
     /// user-space programs, or for the page cache.  The kernel must use tricks to access this
     /// memory, making it slower to access than lowmem.
     ///
-    /// (Starting with Linux 2.6.19, CONFIG_HIGHMEM is required.)  
+    /// (Starting with Linux 2.6.19, CONFIG_HIGHMEM is required.)
     pub high_total: Option<u64>,
     /// Amount of free highmem.
     ///
@@ -275,7 +275,7 @@ impl Meminfo {
             let value = from_str!(u64, value);
 
             let value = if let Some(unit) = unit {
-                convert_to_bytes(value, unit)
+                convert_to_kibibytes(value, unit)
             } else {
                 value
             };
