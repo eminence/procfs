@@ -545,9 +545,6 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         let file = proctry!(File::open(PROC_CONFIG_GZ));
         let decoder = proctry!(Decoder::new(file));
         Box::new(BufReader::new(decoder))
-    } else if Path::new(BOOT_CONFIG).exists() {
-        let file = proctry!(File::open(BOOT_CONFIG));
-        Box::new(BufReader::new(file))
     } else {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
@@ -560,8 +557,14 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
             BOOT_CONFIG,
             unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const i8) }.to_string_lossy()
         );
-        let file = proctry!(File::open(filename));
-        Box::new(BufReader::new(file))
+
+        if Path::new(&filename).exists() {
+            let file = proctry!(File::open(filename));
+            Box::new(BufReader::new(file))
+        } else {
+            let file = proctry!(File::open(BOOT_CONFIG));
+            Box::new(BufReader::new(file))
+        }
     };
 
     let mut map = HashMap::new();
