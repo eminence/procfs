@@ -13,6 +13,15 @@ use super::{convert_to_kibibytes, ProcResult};
 /// Except as noted below, all of the fields have been present since at least
 /// Linux 2.6.0.  Some fields are optional and are present only if the kernel
 /// was configured with various options; those dependencies are noted in the list.
+///
+/// **Notes**
+///
+/// While the file shows kilobytes (kB; 1 kB equals 1000 B),
+/// it is actually kibibytes (KiB; 1 KiB equals 1024 B).
+///
+/// This imprecision in /proc/meminfo is known,
+/// but is not corrected due to legacy concerns -
+/// programs rely on /proc/meminfo to specify size with the "kB" string.
 #[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct Meminfo {
