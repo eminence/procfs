@@ -479,7 +479,8 @@ mod test {
         {
             assert!(meminfo.anon_hugepages.is_some());
         } else {
-            assert!(meminfo.anon_hugepages.is_none());
+            // SOme distributions may backport this option into older kernels
+            // assert!(meminfo.anon_hugepages.is_none());
         }
 
         if kernel >= KernelVersion::new(4, 8, 0)

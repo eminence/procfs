@@ -547,6 +547,9 @@ pub enum ConfigSetting {
     Value(String),
 }
 /// Returns a configuration options used to build the currently running kernel
+///
+/// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
+/// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use libflate::gzip::Decoder;
     use std::io::{BufRead, BufReader};
