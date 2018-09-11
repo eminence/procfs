@@ -135,11 +135,17 @@ mod platform_specific_items {
 use platform_specific_items::*;
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::fs::File;
 use std::io::Read;
+use std::mem;
+use std::path::Path;
 use std::str::FromStr;
 
 use chrono::{DateTime, Local};
+
+const PROC_CONFIG_GZ: &str = "/proc/config.gz";
+const BOOT_CONFIG: &str = "/boot/config";
 
 trait IntoOption<T> {
     fn into_option(t: Self) -> Option<T>;
@@ -541,15 +547,35 @@ pub enum ConfigSetting {
     Value(String),
 }
 /// Returns a configuration options used to build the currently running kernel
-///
-/// (since Linux 2.6 and requires CONFIG_IKCONFIG_PROC)
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use libflate::gzip::Decoder;
     use std::io::{BufRead, BufReader};
 
-    let file = proctry!(File::open("/proc/config.gz"));
-    let decoder = proctry!(Decoder::new(file));
-    let reader = BufReader::new(decoder);
+    let reader: Box<BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
+        let file = proctry!(File::open(PROC_CONFIG_GZ));
+        let decoder = proctry!(Decoder::new(file));
+        Box::new(BufReader::new(decoder))
+    } else {
+        let mut kernel: libc::utsname = unsafe { mem::zeroed() };
+
+        if unsafe { libc::uname(&mut kernel) != 0 } {
+            return ProcResult::PermissionDenied;
+        }
+
+        let filename = format!(
+            "{}-{}",
+            BOOT_CONFIG,
+            unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const i8) }.to_string_lossy()
+        );
+
+        if Path::new(&filename).exists() {
+            let file = proctry!(File::open(filename));
+            Box::new(BufReader::new(file))
+        } else {
+            let file = proctry!(File::open(BOOT_CONFIG));
+            Box::new(BufReader::new(file))
+        }
+    };
 
     let mut map = HashMap::new();
 
@@ -639,7 +665,5 @@ mod tests {
     fn test_kernel_config() {
         let config = kernel_config().unwrap();
         println!("{:#?}", config);
-        let cfg = config.get("CONFIG_IKCONFIG_PROC").unwrap();
-        assert!(*cfg == ConfigSetting::Yes);
     }
 }
