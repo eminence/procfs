@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{convert_to_bytes, ProcResult};
+use super::{convert_to_kibibytes, ProcResult};
 
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
@@ -13,6 +13,15 @@ use super::{convert_to_bytes, ProcResult};
 /// Except as noted below, all of the fields have been present since at least
 /// Linux 2.6.0.  Some fields are optional and are present only if the kernel
 /// was configured with various options; those dependencies are noted in the list.
+///
+/// **Notes**
+///
+/// While the file shows kilobytes (kB; 1 kB equals 1000 B),
+/// it is actually kibibytes (KiB; 1 KiB equals 1024 B).
+///
+/// This imprecision in /proc/meminfo is known,
+/// but is not corrected due to legacy concerns -
+/// programs rely on /proc/meminfo to specify size with the "kB" string.
 #[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct Meminfo {
@@ -70,7 +79,7 @@ pub struct Meminfo {
     /// user-space programs, or for the page cache.  The kernel must use tricks to access this
     /// memory, making it slower to access than lowmem.
     ///
-    /// (Starting with Linux 2.6.19, CONFIG_HIGHMEM is required.)  
+    /// (Starting with Linux 2.6.19, CONFIG_HIGHMEM is required.)
     pub high_total: Option<u64>,
     /// Amount of free highmem.
     ///
@@ -275,7 +284,7 @@ impl Meminfo {
             let value = from_str!(u64, value);
 
             let value = if let Some(unit) = unit {
-                convert_to_bytes(value, unit)
+                convert_to_kibibytes(value, unit)
             } else {
                 value
             };

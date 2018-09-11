@@ -284,6 +284,16 @@ fn convert_to_bytes(num: u64, unit: &str) -> u64 {
     }
 }
 
+fn convert_to_kibibytes(num: u64, unit: &str) -> u64 {
+    match unit {
+        "B" => num,
+        "KiB" | "kiB" | "kB" | "KB" => num * 1024,
+        "MiB" | "miB" | "MB" | "mB" => num * 1024 * 1024,
+        "GiB" | "giB" | "GB" | "gB" => num * 1024 * 1024 * 1024,
+        unknown => panic!("Unknown unit type {}", unknown),
+    }
+}
+
 trait FromStrRadix: Sized {
     fn from_str_radix(t: &str, radix: u32) -> Result<Self, std::num::ParseIntError>;
 }
