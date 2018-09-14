@@ -47,6 +47,8 @@ pub struct TcpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
     pub state: TcpState,
+    pub rx_queue: u32,
+    pub tx_queue: u32,
     pub inode: u32,
 }
 
@@ -105,7 +107,12 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         let local_address = expect!(s.next(), "tcp::local_address");
         let rem_address = expect!(s.next(), "tcp::rem_address");
         let state = expect!(s.next(), "tcp::st");
-        s.next(); // skip tx_queue:rx_queue
+        let tx_rx_queue: Vec<u32> = expect!(s.next(), "tcp::tx_queue:rx_queue")
+            .splitn(2, ':')
+            .map(|s| from_str!(u32, s, 16))
+            .collect();
+        let tx_queue = *expect!(tx_rx_queue.get(0), "tcp::tx_queue");
+        let rx_queue = *expect!(tx_rx_queue.get(1), "tcp::rx_queue");
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
         s.next(); // skip uid
@@ -115,6 +122,8 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         vec.push(TcpNetEntry {
             local_address: parse_addressport_str(local_address),
             remote_address: parse_addressport_str(rem_address),
+            rx_queue: rx_queue,
+            tx_queue: tx_queue,
             state: TcpState::from_u8(from_str!(u8, state, 16)).unwrap(),
             inode: from_str!(u32, inode),
         });
