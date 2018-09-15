@@ -586,9 +586,7 @@ impl FromStr for FDTarget {
                 "anon_inode" => Ok(FDTarget::AnonInode(
                     expect!(s.next(), "anon inode").to_string(),
                 )),
-                "/memfd" => {
-                    Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string()))
-                }
+                "/memfd" => Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string())),
                 x => {
                     let inode = expect!(s.next(), "other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
@@ -841,8 +839,7 @@ impl Process {
                     } else {
                         None
                     }
-                })
-                .collect(),
+                }).collect(),
         )
     }
 
@@ -858,11 +855,11 @@ impl Process {
                 // assume that the command line, uid and starttime don't change during a processes lifetime
                 // additionally, do not consider defunct processes as "alive"
                 // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
-                prc.stat.comm == self.stat.comm &&
-                    prc.owner == self.owner &&
-                    prc.stat.starttime == self.stat.starttime &&
-                    prc.stat.state() != ProcState::Zombie &&
-                    self.stat.state() != ProcState::Zombie
+                prc.stat.comm == self.stat.comm
+                    && prc.owner == self.owner
+                    && prc.stat.starttime == self.stat.starttime
+                    && prc.stat.state() != ProcState::Zombie
+                    && self.stat.state() != ProcState::Zombie
             }
             _ => false,
         }
@@ -960,8 +957,7 @@ impl Process {
                     };
 
                     Some(mmap)
-                })
-                .collect(),
+                }).collect(),
         )
     }
 
@@ -1001,7 +997,9 @@ impl Process {
         let mut file = proctry!(File::open(self.root.join("coredump_filter")));
         let mut s = String::new();
         proctry!(file.read_to_string(&mut s));
-        if s.trim().is_empty() { return ProcResult::Ok(None) }
+        if s.trim().is_empty() {
+            return ProcResult::Ok(None);
+        }
         let flags = from_str!(u32, &s.trim(), 16, pid:self.stat.pid);
 
         ProcResult::Ok(Some(expect!(CoredumpFlags::from_bits(flags))))

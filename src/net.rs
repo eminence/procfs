@@ -122,8 +122,8 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         vec.push(TcpNetEntry {
             local_address: parse_addressport_str(local_address),
             remote_address: parse_addressport_str(rem_address),
-            rx_queue: rx_queue,
-            tx_queue: tx_queue,
+            rx_queue,
+            tx_queue,
             state: TcpState::from_u8(from_str!(u8, state, 16)).unwrap(),
             inode: from_str!(u32, inode),
         });

@@ -112,8 +112,7 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
             } else {
                 None
             }
-        })
-        .collect();
+        }).collect();
 
     let mut common_map = HashMap::new();
     for (k, v) in &list[0] {
