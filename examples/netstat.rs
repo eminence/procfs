@@ -1,6 +1,6 @@
 extern crate procfs;
 
-use procfs::{FDTarget, ProcResult, Process};
+use procfs::{FDTarget, Process};
 
 use std::collections::HashMap;
 
@@ -11,7 +11,7 @@ fn main() {
     // build up a map between socket inodes and processes:
     let mut map: HashMap<u32, &Process> = HashMap::new();
     for process in &all_procs {
-        if let ProcResult::Ok(fds) = process.fd() {
+        if let Ok(fds) = process.fd() {
             for fd in fds {
                 if let FDTarget::Socket(inode) = fd.target {
                     map.insert(inode, process);

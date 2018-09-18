@@ -72,7 +72,7 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    let file = proctry!(File::open("/proc/cpuinfo"));
+    let file = File::open("/proc/cpuinfo")?;
     let reader = BufReader::new(file);
 
     let mut list = Vec::new();
@@ -127,7 +127,7 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
 
     print!("{:?}", common_fields);
 
-    ProcResult::Ok(CpuInfo {
+    Ok(CpuInfo {
         fields: common_map,
         cpus: list,
     })

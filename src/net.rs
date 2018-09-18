@@ -101,7 +101,7 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
 
     // first line is a header we need to skip
     for line in reader.lines().skip(1) {
-        let line = proctry!(line);
+        let line = line?;
         let mut s = line.split_whitespace();
         s.next();
         let local_address = expect!(s.next(), "tcp::local_address");
@@ -129,13 +129,13 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         });
     }
 
-    ProcResult::Ok(vec)
+    Ok(vec)
 }
 
 /// Reads the tcp socket table
 pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
     use std::fs::File;
-    let file = proctry!(File::open("/proc/net/tcp"));
+    let file = File::open("/proc/net/tcp")?;
 
     read_tcp_table(BufReader::new(file))
 }
@@ -143,7 +143,7 @@ pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
 /// Reads the tcp6 socket table
 pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
     use std::fs::File;
-    let file = proctry!(File::open("/proc/net/tcp6"));
+    let file = File::open("/proc/net/tcp6")?;
 
     read_tcp_table(BufReader::new(file))
 }

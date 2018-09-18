@@ -259,9 +259,9 @@ impl Meminfo {
     pub fn new() -> ProcResult<Meminfo> {
         use std::fs::File;
 
-        let f = proctry!(File::open("/proc/meminfo"));
+        let f = File::open("/proc/meminfo")?;
 
-        ProcResult::Ok(Meminfo::from_reader(f))
+        Ok(Meminfo::from_reader(f))
     }
 
     fn from_reader<R: io::Read>(r: R) -> Meminfo {
