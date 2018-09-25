@@ -990,7 +990,7 @@ impl Process {
     /// 0, 1, 4 (if the CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS kernel configuration option is enabled), and 5.
     /// This default can be modified at boot time using the core dump_filter boot option.
     ///
-    /// This function will return `ProcResult::NotFound` if the `coredump_filter` file can't be
+    /// This function will return `Err(ProcError::NotFound)` if the `coredump_filter` file can't be
     /// found.  If it returns `Ok(None)` then the process has no coredump_filter
     pub fn coredump_filter(&self) -> ProcResult<Option<CoredumpFlags>> {
         use std::fs::File;

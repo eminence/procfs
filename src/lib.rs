@@ -66,7 +66,7 @@
 //! ```rust
 //! extern crate procfs;
 //!
-//! use procfs::{ProcResult, Process, FDTarget};
+//! use procfs::{Process, FDTarget};
 //! use std::collections::HashMap;
 //!
 //! fn main() {
