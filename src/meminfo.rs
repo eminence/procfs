@@ -368,6 +368,13 @@ mod test {
 
     #[test]
     fn test_meminfo() {
+        // TRAVIS
+        // we don't have access to the kernel_config on travis, so skip that test there
+        match ::std::env::var("TRAVIS") {
+            Ok(ref s) if s == "true" => {return}
+            _ => {}
+        }
+
         let kernel = KernelVersion::current().unwrap();
         let config = kernel_config().unwrap();
 
