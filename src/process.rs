@@ -8,6 +8,7 @@ use std::io::{self, Read};
 use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::Duration;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -445,6 +446,99 @@ pub struct Io {
     /// for (in its write_bytes) will not be happening.
     pub cancelled_write_bytes: u64,
 }
+
+/// Mount information from `/proc/<pid>/mountstats`.
+#[derive(Debug, PartialEq)]
+pub struct MountStat {
+    device: Option<String>,
+    mount_point: PathBuf,
+    fs: String,
+    statistics: Option<MountNFSStatistics>,
+}
+
+impl MountStat {
+    pub fn from_reader<R: io::Read>(r: R) -> Vec<MountStat> {
+        vec![]
+    }
+}
+
+/// Only NFS mounts provide additional statistics in `MountStat` entries.
+#[derive(Debug, PartialEq)]
+pub struct MountNFSStatistics {
+    version: String,
+    // * opts: HashMap<String, Some(String)>
+    /// Duration the NFS mount has been in existence.
+    age: Duration,
+    // * fsc (?)
+    // * impl_id (NFSv4): Option<HashMap<String, Some(String)>>
+    // * caps: HashMap<String, String>
+    // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
+    // * sec: HashMap<String, Some(String)>
+    events: NFSEventCounter,
+    bytes: NFSByteCounter,
+    // * RPC iostats version:
+    // * xprt
+    // * per-op statistics
+    per_op_stats: NFSPerOpStats,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct NFSEventCounter {
+    // * inode revalidate
+    // * deny try revalidate
+    // * data invalidate
+    // * attr invalidate
+    // * vfs open
+    // * vfs lookup
+    // * vfs access
+    // * vfs update page
+    // * vfs read page
+    // * vfs read pages
+    // * vfs write page
+    // * vfs write pages
+    // * vfs get dents
+    // * vfs set attr
+    // * vfs flush
+    // * vfs fs sync
+    // * vfs lock
+    // * vfs release
+    // * congestion wait
+    // * set attr trunc
+    // * extend write
+    // * silly rename
+    // * short read
+    // * short write
+    // * delay
+    // * pnfs read
+    // * pnfs write
+}
+
+/// Can be found in on NFS mounts in `/proc/<pid>/mountstats` under the section `bytes`.
+#[derive(Debug, PartialEq)]
+pub struct NFSByteCounter {
+    // * normal_read
+    // * normal_write
+    // * direct_read
+    // * direct_write
+    // * server_read
+    // * server_write
+    // * pages_read
+    // * pages_write
+}
+
+#[derive(Debug, PartialEq)]
+pub struct NFSOperationStat {
+    // * operations
+    // * transmissions
+    // * major timeouts
+    // * bytes sent
+    // * bytes received
+    // * cumulative response time
+    // * cumulative total request time
+}
+
+pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
+
 
 #[derive(Debug, PartialEq)]
 pub enum MMapPath {
@@ -1233,6 +1327,62 @@ mod tests {
         let myself = Process::myself().unwrap();
         let auxv = myself.auxv().unwrap();
         println!("{:?}", auxv);
+    }
+
+    #[test]
+    fn test_proc_mountstats() {
+        let simple = MountStat::from_reader("device /dev/md127 mounted on /boot with fstype ext2 
+device /dev/md124 mounted on /home with fstype ext4 
+device tmpfs mounted on /run/user/0 with fstype tmpfs 
+".as_bytes());
+        let simple_parsed = vec![
+            MountStat {
+                device: Some("/dev/md127".to_string()),
+                mount_point: PathBuf::from("/boot"),
+                fs: "ext2".to_string(),
+                statistics: None
+            },
+            MountStat {
+                device: Some("/dev/md124".to_string()),
+                mount_point: PathBuf::from("/home"),
+                fs: "ext4".to_string(),
+                statistics: None
+            },
+            MountStat {
+                device: Some("tmpfs".to_string()),
+                mount_point: PathBuf::from("/run/user/0"),
+                fs: "tmpfs".to_string(),
+                statistics: None
+            },
+        ];
+        assert_eq!(simple, simple_parsed);
+        let mountstats = MountStat::from_reader("device elwe:/space mounted on /srv/elwe/space with fstype nfs4 statvers=1.1 
+       opts:   rw,vers=4.1,rsize=131072,wsize=131072,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=krb5,clientaddr=10.0.1.77,local_lock=none 
+       age:    3542 
+       impl_id:        name='',domain='',date='0,0' 
+       caps:   caps=0x3ffdf,wtmult=512,dtsize=32768,bsize=0,namlen=255 
+       nfsv4:  bm0=0xfdffbfff,bm1=0x40f9be3e,bm2=0x803,acl=0x3,sessions,pnfs=not configured 
+       sec:    flavor=6,pseudoflavor=390003 
+       events: 114 1579 5 3 132 20 3019 1 2 3 4 5 115 1 4 1 2 4 3 4 5 6 7 8 9 0 1  
+       bytes:  1 2 3 4 5 6 7 8  
+       RPC iostats version: 1.0  p/v: 100003/4 (nfs) 
+       xprt:   tcp 909 0 1 0 2 294 294 0 294 0 2 0 0 
+       per-op statistics 
+               NULL: 0 0 0 0 0 0 0 0 
+               READ: 1 2 3 4 5 6 7 8 
+              WRITE: 0 0 0 0 0 0 0 0 
+             COMMIT: 0 0 0 0 0 0 0 0 
+               OPEN: 1 1 0 320 420 0 124 124 
+        ".as_bytes());
+        let nfs_v4 = &mountstats[0];
+        match &nfs_v4.statistics {
+            Some(stats) => {
+                assert_eq!("1.1".to_string(), stats.version, "mountstats version wrongly parsed.");
+            }
+            None => {
+                assert!(false, "Failed to retrieve nfs statistics");
+            }
+        }
     }
 
 }
