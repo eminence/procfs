@@ -509,7 +509,7 @@ pub struct MountNFSStatistics {
     // * caps: HashMap<String, String>
     // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
     // * sec: HashMap<String, Some(String)>
-    //events: NFSEventCounter,
+    pub events: NFSEventCounter,
     pub bytes: NFSByteCounter,
     // * RPC iostats version:
     // * xprt
@@ -526,6 +526,7 @@ impl MountNFSStatistics {
 
         let mut age = None;
         let mut bytes = None;
+        let mut events = None;
         let mut per_op = HashMap::new();
 
         while let Some(Ok(line)) = r.next() {
@@ -538,12 +539,14 @@ impl MountNFSStatistics {
                     age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
                 } else if line.starts_with("bytes:") {
                     bytes = Some(NFSByteCounter::from_str(&line[6..].trim()));
+                } else if line.starts_with("events:") {
+                    events = Some(NFSEventCounter::from_str(&line[7..].trim()));
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;
                 }
             } else {
-                let mut split = line.split(':'); 
+                let mut split = line.split(':');
                 let name = expect!(split.next()).to_string();
                 let stats = NFSOperationStat::from_str(expect!(split.next()));
                 per_op.insert(name, stats);
@@ -554,6 +557,7 @@ impl MountNFSStatistics {
         MountNFSStatistics {
             version: statsver.to_string(),
             age: expect!(age, "Failed to find age file in nfs stats"),
+            events: expect!(events, "Failed to find events section in nfs stats"),
             bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
             per_op_stats: per_op
         }
@@ -561,35 +565,76 @@ impl MountNFSStatistics {
 
 }
 
+/// Represents NFS data from `/proc/<pid>/mountstats` under the section `events`.
+///
+/// The underlying data structure in the kernel can be found under *fs/nfs/iostat.h* `nfs_iostat`.
+/// The fields are documented in the kernel source only under *include/linux/nfs_iostat.h* `enum
+/// nfs_stat_eventcounters`.
 #[derive(Debug, PartialEq)]
 pub struct NFSEventCounter {
-    // * inode revalidate
-    // * deny try revalidate
-    // * data invalidate
-    // * attr invalidate
-    // * vfs open
-    // * vfs lookup
-    // * vfs access
-    // * vfs update page
-    // * vfs read page
-    // * vfs read pages
-    // * vfs write page
-    // * vfs write pages
-    // * vfs get dents
-    // * vfs set attr
-    // * vfs flush
-    // * vfs fs sync
-    // * vfs lock
-    // * vfs release
-    // * congestion wait
-    // * set attr trunc
-    // * extend write
-    // * silly rename
-    // * short read
-    // * short write
-    // * delay
-    // * pnfs read
-    // * pnfs write
+    inode_revalidate: libc::c_ulong,
+    deny_try_revalidate: libc::c_ulong,
+    data_invalidate: libc::c_ulong,
+    attr_invalidate: libc::c_ulong,
+    vfs_open: libc::c_ulong,
+    vfs_lookup: libc::c_ulong,
+    vfs_access: libc::c_ulong,
+    vfs_update_page: libc::c_ulong,
+    vfs_read_page: libc::c_ulong,
+    vfs_read_pages: libc::c_ulong,
+    vfs_write_page: libc::c_ulong,
+    vfs_write_pages: libc::c_ulong,
+    vfs_get_dents: libc::c_ulong,
+    vfs_set_attr: libc::c_ulong,
+    vfs_flush: libc::c_ulong,
+    vfs_fs_sync: libc::c_ulong,
+    vfs_lock: libc::c_ulong,
+    vfs_release: libc::c_ulong,
+    congestion_wait: libc::c_ulong,
+    set_attr_trunc: libc::c_ulong,
+    extend_write: libc::c_ulong,
+    silly_rename: libc::c_ulong,
+    short_read: libc::c_ulong,
+    short_write: libc::c_ulong,
+    delay: libc::c_ulong,
+    pnfs_read: libc::c_ulong,
+    pnfs_write: libc::c_ulong,
+}
+
+impl NFSEventCounter {
+    fn from_str(s: &str) -> NFSEventCounter {
+        use libc::c_ulong;
+        let mut s = s.split_whitespace();
+        NFSEventCounter {
+            inode_revalidate: from_str!(c_ulong, expect!(s.next())),
+            deny_try_revalidate: from_str!(c_ulong, expect!(s.next())),
+            data_invalidate: from_str!(c_ulong, expect!(s.next())),
+            attr_invalidate: from_str!(c_ulong, expect!(s.next())),
+            vfs_open: from_str!(c_ulong, expect!(s.next())),
+            vfs_lookup: from_str!(c_ulong, expect!(s.next())),
+            vfs_access: from_str!(c_ulong, expect!(s.next())),
+            vfs_update_page: from_str!(c_ulong, expect!(s.next())),
+            vfs_read_page: from_str!(c_ulong, expect!(s.next())),
+            vfs_read_pages: from_str!(c_ulong, expect!(s.next())),
+            vfs_write_page: from_str!(c_ulong, expect!(s.next())),
+            vfs_write_pages: from_str!(c_ulong, expect!(s.next())),
+            vfs_get_dents: from_str!(c_ulong, expect!(s.next())),
+            vfs_set_attr: from_str!(c_ulong, expect!(s.next())),
+            vfs_flush: from_str!(c_ulong, expect!(s.next())),
+            vfs_fs_sync: from_str!(c_ulong, expect!(s.next())),
+            vfs_lock: from_str!(c_ulong, expect!(s.next())),
+            vfs_release: from_str!(c_ulong, expect!(s.next())),
+            congestion_wait: from_str!(c_ulong, expect!(s.next())),
+            set_attr_trunc: from_str!(c_ulong, expect!(s.next())),
+            extend_write: from_str!(c_ulong, expect!(s.next())),
+            silly_rename: from_str!(c_ulong, expect!(s.next())),
+            short_read: from_str!(c_ulong, expect!(s.next())),
+            short_write: from_str!(c_ulong, expect!(s.next())),
+            delay: from_str!(c_ulong, expect!(s.next())),
+            pnfs_read: from_str!(c_ulong, expect!(s.next())),
+            pnfs_write: from_str!(c_ulong, expect!(s.next())),
+        }
+    }
 }
 
 /// Represents NFS data from `/proc/<pid>/mountstats` under the section `bytes`.
@@ -1556,6 +1601,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 assert_eq!("1.1".to_string(), stats.version, "mountstats version wrongly parsed.");
                 assert_eq!(Duration::from_secs(3542), stats.age);
                 assert_eq!(1, stats.bytes.normal_read);
+                assert_eq!(114, stats.events.inode_revalidate);
             }
             None => {
                 assert!(false, "Failed to retrieve nfs statistics");
