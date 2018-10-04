@@ -450,10 +450,10 @@ pub struct Io {
 /// Mount information from `/proc/<pid>/mountstats`.
 #[derive(Debug, PartialEq)]
 pub struct MountStat {
-    device: Option<String>,
-    mount_point: PathBuf,
-    fs: String,
-    statistics: Option<MountNFSStatistics>,
+    pub device: Option<String>,
+    pub mount_point: PathBuf,
+    pub fs: String,
+    pub statistics: Option<MountNFSStatistics>,
 }
 
 impl MountStat {
@@ -500,10 +500,10 @@ impl MountStat {
 /// Only NFS mounts provide additional statistics in `MountStat` entries.
 #[derive(Debug, PartialEq)]
 pub struct MountNFSStatistics {
-    version: String,
+    pub version: String,
     // * opts: HashMap<String, Some(String)>
     /// Duration the NFS mount has been in existence.
-    age: Duration,
+    pub age: Duration,
     // * fsc (?)
     // * impl_id (NFSv4): Option<HashMap<String, Some(String)>>
     // * caps: HashMap<String, String>
@@ -514,7 +514,7 @@ pub struct MountNFSStatistics {
     // * RPC iostats version:
     // * xprt
     // * per-op statistics
-    per_op_stats: NFSPerOpStats,
+    pub per_op_stats: NFSPerOpStats,
 }
 
 impl MountNFSStatistics {
