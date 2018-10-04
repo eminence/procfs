@@ -601,52 +601,54 @@ pub struct NFSByteCounter {
     // * pages_write
 }
 
+/// Represents NFS data from `/proc/<pid>/mountstats` under the section of `per-op statistics`.
+///
 /// Here is what the Kernel says about the attributes:
 ///
 /// Regarding `operations`, `transmissions` and `major_timeouts`:
 ///
-///    These counters give an idea about how many request
-///    transmissions are required, on average, to complete that
-///    particular procedure.  Some procedures may require more
-///    than one transmission because the server is unresponsive,
-///    the client is retransmitting too aggressively, or the
-///    requests are large and the network is congested.
+/// >  These counters give an idea about how many request
+/// >  transmissions are required, on average, to complete that
+/// >  particular procedure.  Some procedures may require more
+/// >  than one transmission because the server is unresponsive,
+/// >  the client is retransmitting too aggressively, or the
+/// >  requests are large and the network is congested.
 ///
 /// Regarding `bytes_sent` and `bytes_recv`:
 ///
-///    These count how many bytes are sent and received for a
-///    given RPC procedure type.  This indicates how much load a
-///    particular procedure is putting on the network.  These
-///    counts include the RPC and ULP headers, and the request
-///    payload.
+/// >  These count how many bytes are sent and received for a
+/// >  given RPC procedure type.  This indicates how much load a
+/// >  particular procedure is putting on the network.  These
+/// >  counts include the RPC and ULP headers, and the request
+/// >  payload.
 ///
 /// Regarding `cum_queue_time`, `cum_resp_time` and `cum_total_req_time`:
 ///
-///    The length of time an RPC request waits in queue before
-///    transmission, the network + server latency of the request,
-///    and the total time the request spent from init to release
-///    are measured.
+/// >  The length of time an RPC request waits in queue before
+/// >  transmission, the network + server latency of the request,
+/// >  and the total time the request spent from init to release
+/// >  are measured.
 ///
 /// (source: *include/linux/sunrpc/metrics.h* `struct rpc_iostats`)
 #[derive(Debug, PartialEq)]
 pub struct NFSOperationStat {
     /// Count of rpc operations.
-    operations: libc::c_ulong,
+    pub operations: libc::c_ulong,
     /// Count of rpc transmissions
-    transmissions: libc::c_ulong,
+    pub transmissions: libc::c_ulong,
     /// Count of rpc major timeouts
-    major_timeouts: libc::c_ulong,
+    pub major_timeouts: libc::c_ulong,
     /// Count of bytes send. Does not only include the RPC payload but the RPC headers as well.
-    bytes_sent: libc::c_ulonglong,
+    pub bytes_sent: libc::c_ulonglong,
     /// Count of bytes received as `bytes_sent`.
-    bytes_recv: libc::c_ulonglong,
+    pub bytes_recv: libc::c_ulonglong,
     /// How long all requests have spend in the queue before being send.
-    cum_queue_time: Duration,
+    pub cum_queue_time: Duration,
     /// How long it took to get a response back.
-    cum_resp_time: Duration,
+    pub cum_resp_time: Duration,
     /// How long all requests have taken from beeing queued to the point they where completely
     /// handled.
-    cum_total_req_time: Duration,
+    pub cum_total_req_time: Duration,
 }
 
 impl NFSOperationStat {
