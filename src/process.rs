@@ -510,7 +510,7 @@ pub struct MountNFSStatistics {
     // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
     // * sec: HashMap<String, Some(String)>
     //events: NFSEventCounter,
-    //bytes: NFSByteCounter,
+    pub bytes: NFSByteCounter,
     // * RPC iostats version:
     // * xprt
     // * per-op statistics
@@ -525,6 +525,7 @@ impl MountNFSStatistics {
         let mut parsing_per_op = false;
 
         let mut age = None;
+        let mut bytes = None;
         let mut per_op = HashMap::new();
 
         while let Some(Ok(line)) = r.next() {
@@ -535,6 +536,8 @@ impl MountNFSStatistics {
             if !parsing_per_op {
                 if line.starts_with("age:") {
                     age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
+                } else if line.starts_with("bytes:") {
+                    bytes = Some(NFSByteCounter::from_str(&line[6..].trim()));
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;
@@ -551,6 +554,7 @@ impl MountNFSStatistics {
         MountNFSStatistics {
             version: statsver.to_string(),
             age: expect!(age, "Failed to find age file in nfs stats"),
+            bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
             per_op_stats: per_op
         }
     }
@@ -588,17 +592,38 @@ pub struct NFSEventCounter {
     // * pnfs write
 }
 
-/// Can be found in on NFS mounts in `/proc/<pid>/mountstats` under the section `bytes`.
+/// Represents NFS data from `/proc/<pid>/mountstats` under the section `bytes`.
+///
+/// The underlying data structure in the kernel can be found under *fs/nfs/iostat.h* `nfs_iostat`.
+/// The fields are documented in the kernel source only under *include/linux/nfs_iostat.h* `enum
+/// nfs_stat_bytecounters`
 #[derive(Debug, PartialEq)]
 pub struct NFSByteCounter {
-    // * normal_read
-    // * normal_write
-    // * direct_read
-    // * direct_write
-    // * server_read
-    // * server_write
-    // * pages_read
-    // * pages_write
+    pub normal_read: libc::c_ulonglong,
+    pub normal_write: libc::c_ulonglong,
+    pub direct_read: libc::c_ulonglong,
+    pub direct_write: libc::c_ulonglong,
+    pub server_read: libc::c_ulonglong,
+    pub server_write: libc::c_ulonglong,
+    pub pages_read: libc::c_ulonglong,
+    pub pages_write: libc::c_ulonglong,
+}
+
+impl NFSByteCounter {
+    fn from_str(s: &str) -> NFSByteCounter {
+        use libc::c_ulonglong;
+        let mut s = s.split_whitespace();
+        NFSByteCounter {
+            normal_read: from_str!(c_ulonglong, expect!(s.next())),
+            normal_write: from_str!(c_ulonglong, expect!(s.next())),
+            direct_read: from_str!(c_ulonglong, expect!(s.next())),
+            direct_write: from_str!(c_ulonglong, expect!(s.next())),
+            server_read: from_str!(c_ulonglong, expect!(s.next())),
+            server_write: from_str!(c_ulonglong, expect!(s.next())),
+            pages_read: from_str!(c_ulonglong, expect!(s.next())),
+            pages_write: from_str!(c_ulonglong, expect!(s.next())),
+        }
+    }
 }
 
 /// Represents NFS data from `/proc/<pid>/mountstats` under the section of `per-op statistics`.
@@ -1529,6 +1554,8 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         match &nfs_v4.statistics {
             Some(stats) => {
                 assert_eq!("1.1".to_string(), stats.version, "mountstats version wrongly parsed.");
+                assert_eq!(Duration::from_secs(3542), stats.age);
+                assert_eq!(1, stats.bytes.normal_read);
             }
             None => {
                 assert!(false, "Failed to retrieve nfs statistics");
