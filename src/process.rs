@@ -458,7 +458,42 @@ pub struct MountStat {
 
 impl MountStat {
     pub fn from_reader<R: io::Read>(r: R) -> Vec<MountStat> {
-        vec![]
+        use std::io::{BufReader, BufRead};
+        use std::path::PathBuf;
+
+        let mut v = Vec::new();
+
+        let bufread = BufReader::new(r);
+        let mut lines = bufread.lines();
+        while let Some(Ok(line)) = lines.next() {
+            if line.starts_with("device ") {
+                // line will be of the format:
+                // device proc mounted on /proc with fstype proc
+                let mut s = line.split_whitespace();
+
+                let device = Some(s.nth(1).unwrap().to_owned());
+                let mount_point = PathBuf::from(s.nth(2).unwrap()); 
+                let fs = s.nth(2).unwrap().to_owned();
+                let statistics = match s.next() {
+                    Some(stats) if stats.starts_with("statvers=") => {
+                        Some(MountNFSStatistics::from_lines(&mut lines, &stats[9..]))
+                    },
+                    _ => None
+                };
+
+                v.push(MountStat {
+                    device,
+                    mount_point,
+                    fs,
+                    statistics
+                });
+            } else {
+                println!("Skipping line {}", line);
+            }
+        }
+
+
+        v
     }
 }
 
@@ -474,12 +509,52 @@ pub struct MountNFSStatistics {
     // * caps: HashMap<String, String>
     // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
     // * sec: HashMap<String, Some(String)>
-    events: NFSEventCounter,
-    bytes: NFSByteCounter,
+    //events: NFSEventCounter,
+    //bytes: NFSByteCounter,
     // * RPC iostats version:
     // * xprt
     // * per-op statistics
     per_op_stats: NFSPerOpStats,
+}
+
+impl MountNFSStatistics {
+    // Keep reading lines until we get to a blank line
+    fn from_lines<B: io::BufRead>(r: &mut io::Lines<B>, statsver: &str) -> MountNFSStatistics {
+        use std::iter::Iterator;
+
+        let mut parsing_per_op = false;
+
+        let mut age = None;
+        let mut per_op = HashMap::new();
+
+        while let Some(Ok(line)) = r.next() {
+            let line = line.trim();
+            if line.trim() == "" {
+                break;
+            }
+            if !parsing_per_op {
+                if line.starts_with("age:") {
+                    age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
+                }
+                if line == "per-op statistics" {
+                    parsing_per_op = true;
+                }
+            } else {
+                let mut split = line.split(':'); 
+                let name = expect!(split.next()).to_string();
+                let stats = NFSOperationStat::from_str(expect!(split.next()));
+                per_op.insert(name, stats);
+            }
+
+        }
+
+        MountNFSStatistics {
+            version: statsver.to_string(),
+            age: expect!(age, "Failed to find age file in nfs stats"),
+            per_op_stats: per_op
+        }
+    }
+
 }
 
 #[derive(Debug, PartialEq)]
@@ -528,16 +603,32 @@ pub struct NFSByteCounter {
 
 #[derive(Debug, PartialEq)]
 pub struct NFSOperationStat {
-    // * operations
-    // * transmissions
-    // * major timeouts
-    // * bytes sent
-    // * bytes received
-    // * cumulative response time
-    // * cumulative total request time
+    operations: u64,
+    transmissions: u64,
+    major_timeouts: u64,
+    bytes_sent: u64,
+    bytes_recv: u64,
+    cum_resp_time: u64,
+    cum_total_req_time: u64,
+}
+
+impl NFSOperationStat {
+    fn from_str(s: &str) -> NFSOperationStat {
+        let mut s = s.split_whitespace();
+        NFSOperationStat {
+            operations: from_str!(u64, expect!(s.next())),
+            transmissions: from_str!(u64, expect!(s.next())),
+            major_timeouts: from_str!(u64, expect!(s.next())),
+            bytes_sent: from_str!(u64, expect!(s.next())),
+            bytes_recv: from_str!(u64, expect!(s.next())),
+            cum_resp_time: from_str!(u64, expect!(s.next())),
+            cum_total_req_time: from_str!(u64, expect!(s.next())),
+        }
+    }
 }
 
 pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
+
 
 
 #[derive(Debug, PartialEq)]
@@ -1383,6 +1474,17 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 assert!(false, "Failed to retrieve nfs statistics");
             }
         }
+    }
+    #[test]
+    fn test_proc_mountstats_live() {
+        // this tries to parse a live mountstats file
+        // thera are no assertions, but we still want to check for parsing errors (which can
+        // cause panics)
+
+        let stats = MountStat::from_reader(File::open("/proc/self/mountstats").unwrap());
+        println!("{:#?}", stats);
+
+
     }
 
 }
