@@ -601,28 +601,86 @@ pub struct NFSByteCounter {
     // * pages_write
 }
 
+/// Here is what the Kernel says about the attributes:
+///
+/// Regarding `operations`, `transmissions` and `major_timeouts`:
+///
+///    These counters give an idea about how many request
+///    transmissions are required, on average, to complete that
+///    particular procedure.  Some procedures may require more
+///    than one transmission because the server is unresponsive,
+///    the client is retransmitting too aggressively, or the
+///    requests are large and the network is congested.
+///
+/// Regarding `bytes_sent` and `bytes_recv`:
+///
+///    These count how many bytes are sent and received for a
+///    given RPC procedure type.  This indicates how much load a
+///    particular procedure is putting on the network.  These
+///    counts include the RPC and ULP headers, and the request
+///    payload.
+///
+/// Regarding `cum_queue_time`, `cum_resp_time` and `cum_total_req_time`:
+///
+///    The length of time an RPC request waits in queue before
+///    transmission, the network + server latency of the request,
+///    and the total time the request spent from init to release
+///    are measured.
+///
+/// (source: *include/linux/sunrpc/metrics.h* `struct rpc_iostats`)
 #[derive(Debug, PartialEq)]
 pub struct NFSOperationStat {
-    operations: u64,
-    transmissions: u64,
-    major_timeouts: u64,
-    bytes_sent: u64,
-    bytes_recv: u64,
-    cum_resp_time: u64,
-    cum_total_req_time: u64,
+    /// Count of rpc operations.
+    operations: libc::c_ulong,
+    /// Count of rpc transmissions
+    transmissions: libc::c_ulong,
+    /// Count of rpc major timeouts
+    major_timeouts: libc::c_ulong,
+    /// Count of bytes send. Does not only include the RPC payload but the RPC headers as well.
+    bytes_sent: libc::c_ulonglong,
+    /// Count of bytes received as `bytes_sent`.
+    bytes_recv: libc::c_ulonglong,
+    /// How long all requests have spend in the queue before being send.
+    cum_queue_time: Duration,
+    /// How long it took to get a response back.
+    cum_resp_time: Duration,
+    /// How long all requests have taken from beeing queued to the point they where completely
+    /// handled.
+    cum_total_req_time: Duration,
 }
 
 impl NFSOperationStat {
     fn from_str(s: &str) -> NFSOperationStat {
+        use libc::{c_ulong, c_ulonglong};
         let mut s = s.split_whitespace();
+
+        let operations = from_str!(c_ulong, expect!(s.next()));
+        let transmissions = from_str!(c_ulong, expect!(s.next()));
+        let major_timeouts = from_str!(c_ulong, expect!(s.next()));
+        let bytes_sent = from_str!(c_ulonglong, expect!(s.next()));
+        let bytes_recv = from_str!(c_ulonglong, expect!(s.next()));
+        let cum_queue_time_ms = from_str!(i64, expect!(s.next()));
+        let cum_resp_time_ms = from_str!(i64, expect!(s.next()));
+        let cum_total_req_time_ms = from_str!(i64, expect!(s.next()));
+        if cum_queue_time_ms < 0 {
+            panic!("Got a negative duration on cum_queue_time, this unexpected. Please report this error.");
+        }
+        if cum_resp_time_ms < 0 {
+            panic!("Got a negative duration on cum_resp_time, this unexpected. Please report this error.");
+        }
+        if cum_total_req_time_ms < 0 {
+            panic!("Got a negative duration on cum_total_req_time, this unexpected. Please report this error.");
+        }
+
         NFSOperationStat {
-            operations: from_str!(u64, expect!(s.next())),
-            transmissions: from_str!(u64, expect!(s.next())),
-            major_timeouts: from_str!(u64, expect!(s.next())),
-            bytes_sent: from_str!(u64, expect!(s.next())),
-            bytes_recv: from_str!(u64, expect!(s.next())),
-            cum_resp_time: from_str!(u64, expect!(s.next())),
-            cum_total_req_time: from_str!(u64, expect!(s.next())),
+            operations: operations,
+            transmissions: transmissions,
+            major_timeouts: major_timeouts,
+            bytes_sent: bytes_sent,
+            bytes_recv: bytes_recv,
+            cum_queue_time: Duration::from_millis(cum_queue_time_ms as u64),
+            cum_resp_time: Duration::from_millis(cum_resp_time_ms as u64),
+            cum_total_req_time: Duration::from_millis(cum_total_req_time_ms as u64),
         }
     }
 }
