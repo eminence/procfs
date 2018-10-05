@@ -502,15 +502,19 @@ impl MountStat {
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct MountNFSStatistics {
+    /// The version of the NFS statistics block.  Either "1.0" or "1.1".
     pub version: String,
-    // * opts: HashMap<String, Some(String)>
+    /// The mount options.
+    ///
+    /// The meaning of these can be found in the manual pages for mount(5) and nfs(5)
+    pub opts: Vec<String>,
     /// Duration the NFS mount has been in existence.
     pub age: Duration,
     // * fsc (?)
     // * impl_id (NFSv4): Option<HashMap<String, Some(String)>>
-    // * caps: HashMap<String, String>
+    pub caps: Vec<String>,
     // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
-    // * sec: HashMap<String, Some(String)>
+    pub sec: Vec<String>,
     pub events: NFSEventCounter,
     pub bytes: NFSByteCounter,
     // * RPC iostats version:
@@ -526,7 +530,10 @@ impl MountNFSStatistics {
 
         let mut parsing_per_op = false;
 
+        let mut opts : Option<Vec<String>> = None;
         let mut age = None;
+        let mut caps = None;
+        let mut sec = None;
         let mut bytes = None;
         let mut events = None;
         let mut per_op = HashMap::new();
@@ -537,8 +544,14 @@ impl MountNFSStatistics {
                 break;
             }
             if !parsing_per_op {
-                if line.starts_with("age:") {
+                if line.starts_with("opts:") {
+                    opts = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
+                } else if line.starts_with("age:") {
                     age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
+                } else if line.starts_with("caps:") {
+                    caps = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
+                } else if line.starts_with("sec:") {
+                    sec = Some(line[4..].trim().split(',').map(|s| s.to_string()).collect());
                 } else if line.starts_with("bytes:") {
                     bytes = Some(NFSByteCounter::from_str(&line[6..].trim()));
                 } else if line.starts_with("events:") {
@@ -558,7 +571,10 @@ impl MountNFSStatistics {
 
         MountNFSStatistics {
             version: statsver.to_string(),
-            age: expect!(age, "Failed to find age file in nfs stats"),
+            opts: expect!(opts, "Failed to find opts field in nfs stats"),
+            age: expect!(age, "Failed to find age field in nfs stats"),
+            caps: expect!(caps, "Failed to find caps field in nfs stats"),
+            sec: expect!(sec, "Failed to find sec field in nfs stats"),
             events: expect!(events, "Failed to find events section in nfs stats"),
             bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
             per_op_stats: per_op
