@@ -448,7 +448,8 @@ pub struct Io {
 }
 
 /// Mount information from `/proc/<pid>/mountstats`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct MountStat {
     pub device: Option<String>,
     pub mount_point: PathBuf,
@@ -498,7 +499,8 @@ impl MountStat {
 }
 
 /// Only NFS mounts provide additional statistics in `MountStat` entries.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct MountNFSStatistics {
     pub version: String,
     // * opts: HashMap<String, Some(String)>
@@ -570,7 +572,8 @@ impl MountNFSStatistics {
 /// The underlying data structure in the kernel can be found under *fs/nfs/iostat.h* `nfs_iostat`.
 /// The fields are documented in the kernel source only under *include/linux/nfs_iostat.h* `enum
 /// nfs_stat_eventcounters`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct NFSEventCounter {
     inode_revalidate: libc::c_ulong,
     deny_try_revalidate: libc::c_ulong,
@@ -642,7 +645,8 @@ impl NFSEventCounter {
 /// The underlying data structure in the kernel can be found under *fs/nfs/iostat.h* `nfs_iostat`.
 /// The fields are documented in the kernel source only under *include/linux/nfs_iostat.h* `enum
 /// nfs_stat_bytecounters`
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct NFSByteCounter {
     pub normal_read: libc::c_ulonglong,
     pub normal_write: libc::c_ulonglong,
@@ -700,7 +704,8 @@ impl NFSByteCounter {
 /// >  are measured.
 ///
 /// (source: *include/linux/sunrpc/metrics.h* `struct rpc_iostats`)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct NFSOperationStat {
     /// Count of rpc operations.
     pub operations: libc::c_ulong,
