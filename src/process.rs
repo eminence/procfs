@@ -804,7 +804,8 @@ impl NFSOperationStat {
         let major_timeouts = from_str!(c_ulong, expect!(s.next()));
         let bytes_sent = from_str!(c_ulonglong, expect!(s.next()));
         let bytes_recv = from_str!(c_ulonglong, expect!(s.next()));
-        let cum_queue_time_ms = from_str!(i64, expect!(s.next()));
+        // TODO: on my system, the following value overflows an i64!
+        let cum_queue_time_ms = from_str!(u64, expect!(s.next()));
         let cum_resp_time_ms = from_str!(i64, expect!(s.next()));
         let cum_total_req_time_ms = from_str!(i64, expect!(s.next()));
         if cum_queue_time_ms < 0 {
