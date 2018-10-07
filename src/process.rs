@@ -98,6 +98,38 @@ bitflags! {
     }
 }
 
+bitflags! {
+    pub struct NFSServerCaps: u32 {
+
+        const NFS_CAP_READDIRPLUS = (1 << 0);
+        const NFS_CAP_HARDLINKS = (1 << 1);
+        const NFS_CAP_SYMLINKS = (1 << 2);
+        const NFS_CAP_ACLS = (1 << 3);
+        const NFS_CAP_ATOMIC_OPEN = (1 << 4);
+        const NFS_CAP_LGOPEN = (1 << 5);
+        const NFS_CAP_FILEID = (1 << 6);
+        const NFS_CAP_MODE = (1 << 7);
+        const NFS_CAP_NLINK = (1 << 8);
+        const NFS_CAP_OWNER = (1 << 9);
+        const NFS_CAP_OWNER_GROUP = (1 << 10);
+        const NFS_CAP_ATIME = (1 << 11);
+        const NFS_CAP_CTIME = (1 << 12);
+        const NFS_CAP_MTIME = (1 << 13);
+        const NFS_CAP_POSIX_LOCK = (1 << 14);
+        const NFS_CAP_UIDGID_NOMAP = (1 << 15);
+        const NFS_CAP_STATEID_NFSV41 = (1 << 16);
+        const NFS_CAP_ATOMIC_OPEN_V1 = (1 << 17);
+        const NFS_CAP_SECURITY_LABEL = (1 << 18);
+        const NFS_CAP_SEEK = (1 << 19);
+        const NFS_CAP_ALLOCATE = (1 << 20);
+        const NFS_CAP_DEALLOCATE = (1 << 21);
+        const NFS_CAP_LAYOUTSTATS = (1 << 22);
+        const NFS_CAP_CLONE = (1 << 23);
+        const NFS_CAP_COPY = (1 << 24);
+        const NFS_CAP_OFFLOAD_CANCEL = (1 << 25);
+    }
+}
+
 //impl<'a, 'b, T> ProcFrom<&'b mut T> for u32 where T: Iterator<Item=&'a str> + Sized, 'a: 'b {
 //    fn from(i: &'b mut T) -> u32 {
 //        let s = i.next().unwrap();
@@ -512,6 +544,15 @@ pub struct MountNFSStatistics {
     pub age: Duration,
     // * fsc (?)
     // * impl_id (NFSv4): Option<HashMap<String, Some(String)>>
+    /// NFS Capabilities.
+    ///
+    /// See `include/linux/nfs_fs_sb.h`
+    ///
+    /// Some known values:
+    /// * caps: server capabilities.  See [NFSServerCaps].
+    /// * wtmult: server disk block size
+    /// * dtsize: readdir size
+    /// * bsize: server block size
     pub caps: Vec<String>,
     // * nfsv4 (NFSv4): Option<HashMap<String, Some(String)>>
     pub sec: Vec<String>,
@@ -579,6 +620,17 @@ impl MountNFSStatistics {
             bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
             per_op_stats: per_op
         }
+    }
+
+    /// Attempts to parse the caps= value from the [caps] field.
+    pub fn server_caps(&self) -> Option<NFSServerCaps> {
+        for data in &self.caps {
+            if data.starts_with("caps=0x") {
+                let val = from_str!(u32, &data[7..], 16);
+                return NFSServerCaps::from_bits(val);
+            }
+        }
+        None
     }
 
 }
@@ -1623,6 +1675,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 assert_eq!(Duration::from_secs(3542), stats.age);
                 assert_eq!(1, stats.bytes.normal_read);
                 assert_eq!(114, stats.events.inode_revalidate);
+                assert!(stats.server_caps().is_some());
             }
             None => {
                 assert!(false, "Failed to retrieve nfs statistics");
@@ -1636,7 +1689,12 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         // cause panics)
 
         let stats = MountStat::from_reader(File::open("/proc/self/mountstats").unwrap());
-        println!("{:#?}", stats);
+        for stat in stats {
+            println!("{:#?}", stat);
+            if let Some(nfs) = stat.statistics {
+                println!("  {:?}", nfs.server_caps().unwrap());
+            }
+        }
 
 
     }
