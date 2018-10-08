@@ -66,7 +66,7 @@
 //! ```rust
 //! extern crate procfs;
 //!
-//! use procfs::{ProcResult, Process, FDTarget};
+//! use procfs::{Process, FDTarget};
 //! use std::collections::HashMap;
 //!
 //! fn main() {
@@ -75,7 +75,7 @@
 //!     // build up a map between socket inodes and processes:
 //!     let mut map: HashMap<u32, &Process> = HashMap::new();
 //!     for process in &all_procs {
-//!         if let ProcResult::Ok(fds) = process.fd() {
+//!         if let Ok(fds) = process.fd() {
 //!             for fd in fds {
 //!                 if let FDTarget::Socket(inode) = fd.target {
 //!                     map.insert(inode, process);
@@ -165,19 +165,6 @@ impl<T, R> IntoOption<T> for Result<T, R> {
 }
 
 #[macro_use]
-macro_rules! proctry {
-    ($e:expr) => {
-        match $e {
-            Ok(x) => x,
-            Err(ref e) if e.kind() == ::std::io::ErrorKind::PermissionDenied => {
-                return ProcResult::PermissionDenied
-            }
-            Err(_) => return ProcResult::NotFound,
-        }
-    };
-}
-
-#[macro_use]
 macro_rules! expect {
     ($e:expr) => {
         ::IntoOption::into_option($e).unwrap_or_else(|| {
@@ -234,16 +221,16 @@ macro_rules! from_str {
 }
 
 pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
-    let mut f = proctry!(File::open(path));
+    let mut f = File::open(path)?;
     let mut buf = String::new();
-    proctry!(f.read_to_string(&mut buf));
-    ProcResult::Ok(buf)
+    f.read_to_string(&mut buf)?;
+    Ok(buf)
 }
 
 pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
-    let mut f = proctry!(File::open(path));
-    proctry!(f.write_all(buf.as_ref()));
-    ProcResult::Ok(())
+    let mut f = File::open(path)?;
+    f.write_all(buf.as_ref())?;
+    Ok(())
 }
 
 pub(crate) fn read_value<P: AsRef<Path>, T: FromStr<Err = E>, E: fmt::Debug>(
@@ -353,42 +340,32 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     (a, b)
 }
 
-/// Common result type of procfs operations.
+pub type ProcResult<T> = Result<T, ProcError>;
+
+/// Error type for most procfs functions
 #[derive(Debug)]
-pub enum ProcResult<T> {
-    Ok(T),
+pub enum ProcError {
+    /// A standard permission denied error.
+    ///
+    /// This will be a common error, since some files in the procfs filesystem are only readable by
+    /// the root user.
     PermissionDenied,
+    /// This might mean that the process no longer exists, or that your kernel doesn't support the
+    /// feature you are trying to use.
     NotFound,
+    /// Any other IO error (rare).
+    Io(std::io::Error),
+    /// Any other non-IO error (very rare).
+    Other(String),
 }
 
-impl<T> ProcResult<T> {
-    pub fn is_ok(&self) -> bool {
-        match self {
-            ProcResult::Ok(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn map<U, F>(self, op: F) -> ProcResult<U>
-    where
-        F: FnOnce(T) -> U,
-    {
-        match self {
-            ProcResult::Ok(res) => ProcResult::Ok(op(res)),
-            ProcResult::PermissionDenied => ProcResult::PermissionDenied,
-            ProcResult::NotFound => ProcResult::NotFound,
-        }
-    }
-}
-
-impl<T> ProcResult<T>
-where
-    T: std::fmt::Debug,
-{
-    pub fn unwrap(self) -> T {
-        match self {
-            ProcResult::Ok(v) => v,
-            _ => panic!("ProcResult is: {:?}", self),
+impl From<std::io::Error> for ProcError {
+    fn from(io: std::io::Error) -> Self {
+        use std::io::ErrorKind;
+        match io.kind() {
+            ErrorKind::PermissionDenied => ProcError::PermissionDenied,
+            ErrorKind::NotFound => ProcError::NotFound,
+            _other => ProcError::Io(io),
         }
     }
 }
@@ -422,9 +399,9 @@ impl LoadAverage {
     pub fn new() -> ProcResult<LoadAverage> {
         use std::fs::File;
 
-        let mut f = proctry!(File::open("/proc/loadavg"));
+        let mut f = File::open("/proc/loadavg")?;
         let mut s = String::new();
-        proctry!(f.read_to_string(&mut s));
+        f.read_to_string(&mut s)?;
         let mut s = s.split_whitespace();
 
         let one = f32::from_str(s.next().unwrap()).unwrap();
@@ -437,7 +414,7 @@ impl LoadAverage {
         let cur = u32::from_str(s.next().unwrap()).unwrap();
         let max = u32::from_str(s.next().unwrap()).unwrap();
 
-        ProcResult::Ok(LoadAverage {
+        Ok(LoadAverage {
             one,
             five,
             fifteen,
@@ -469,12 +446,12 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
     let now = Local::now();
 
-    let mut f = proctry!(File::open("/proc/uptime"));
+    let mut f = File::open("/proc/uptime")?;
     let mut buf = String::new();
-    proctry!(f.read_to_string(&mut buf));
+    f.read_to_string(&mut buf)?;
 
     let uptime_seconds = f32::from_str(buf.split_whitespace().next().unwrap()).unwrap();
-    ProcResult::Ok(now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64))
+    Ok(now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64))
 }
 
 /// Memory page size, in bytes.
@@ -506,14 +483,14 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use std::io::{BufRead, BufReader};
 
     let reader: Box<BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
-        let file = proctry!(File::open(PROC_CONFIG_GZ));
-        let decoder = proctry!(Decoder::new(file));
+        let file = File::open(PROC_CONFIG_GZ)?;
+        let decoder = Decoder::new(file)?;
         Box::new(BufReader::new(decoder))
     } else {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
         if unsafe { libc::uname(&mut kernel) != 0 } {
-            return ProcResult::PermissionDenied;
+            return Err(ProcError::Other(format!("Failed to call uname()")));
         }
 
         let filename = format!(
@@ -523,10 +500,10 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         );
 
         if Path::new(&filename).exists() {
-            let file = proctry!(File::open(filename));
+            let file = File::open(filename)?;
             Box::new(BufReader::new(file))
         } else {
-            let file = proctry!(File::open(BOOT_CONFIG));
+            let file = File::open(BOOT_CONFIG)?;
             Box::new(BufReader::new(file))
         }
     };
@@ -534,7 +511,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     let mut map = HashMap::new();
 
     for line in reader.lines() {
-        let line = proctry!(line);
+        let line = line?;
         if line.starts_with('#') {
             continue;
         }
@@ -550,7 +527,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         }
     }
 
-    ProcResult::Ok(map)
+    Ok(map)
 }
 
 pub fn meminfo() -> ProcResult<Meminfo> {
@@ -617,6 +594,13 @@ mod tests {
 
     #[test]
     fn test_kernel_config() {
+        // TRAVIS
+        // we don't have access to the kernel_config on travis, so skip that test there
+        match std::env::var("TRAVIS") {
+            Ok(ref s) if s == "true" => return,
+            _ => {}
+        }
+
         let config = kernel_config().unwrap();
         println!("{:#?}", config);
     }

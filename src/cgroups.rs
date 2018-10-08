@@ -30,13 +30,13 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
 
-    let file = proctry!(File::open("/proc/cgroups"));
+    let file = File::open("/proc/cgroups")?;
     let reader = BufReader::new(file);
 
     let mut vec = Vec::new();
 
     for line in reader.lines() {
-        let line = proctry!(line);
+        let line = line?;
         if line.starts_with('#') {
             continue;
         }
@@ -55,7 +55,7 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
         });
     }
 
-    ProcResult::Ok(vec)
+    Ok(vec)
 }
 
 #[derive(Debug)]
@@ -85,13 +85,13 @@ impl Process {
         use std::fs::File;
         use std::io::{BufRead, BufReader};
 
-        let file = proctry!(File::open(self.root.join("cgroup")));
+        let file = File::open(self.root.join("cgroup"))?;
         let reader = BufReader::new(file);
 
         let mut vec = Vec::new();
 
         for line in reader.lines() {
-            let line = proctry!(line);
+            let line = line?;
             if line.starts_with('#') {
                 continue;
             }
@@ -111,7 +111,7 @@ impl Process {
             });
         }
 
-        ProcResult::Ok(vec)
+        Ok(vec)
     }
 }
 

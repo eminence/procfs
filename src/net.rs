@@ -47,6 +47,8 @@ pub struct TcpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
     pub state: TcpState,
+    pub rx_queue: u32,
+    pub tx_queue: u32,
     pub inode: u32,
 }
 
@@ -99,13 +101,18 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
 
     // first line is a header we need to skip
     for line in reader.lines().skip(1) {
-        let line = proctry!(line);
+        let line = line?;
         let mut s = line.split_whitespace();
         s.next();
         let local_address = expect!(s.next(), "tcp::local_address");
         let rem_address = expect!(s.next(), "tcp::rem_address");
         let state = expect!(s.next(), "tcp::st");
-        s.next(); // skip tx_queue:rx_queue
+        let tx_rx_queue: Vec<u32> = expect!(s.next(), "tcp::tx_queue:rx_queue")
+            .splitn(2, ':')
+            .map(|s| from_str!(u32, s, 16))
+            .collect();
+        let tx_queue = *expect!(tx_rx_queue.get(0), "tcp::tx_queue");
+        let rx_queue = *expect!(tx_rx_queue.get(1), "tcp::rx_queue");
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
         s.next(); // skip uid
@@ -115,18 +122,20 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         vec.push(TcpNetEntry {
             local_address: parse_addressport_str(local_address),
             remote_address: parse_addressport_str(rem_address),
+            rx_queue,
+            tx_queue,
             state: TcpState::from_u8(from_str!(u8, state, 16)).unwrap(),
             inode: from_str!(u32, inode),
         });
     }
 
-    ProcResult::Ok(vec)
+    Ok(vec)
 }
 
 /// Reads the tcp socket table
 pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
     use std::fs::File;
-    let file = proctry!(File::open("/proc/net/tcp"));
+    let file = File::open("/proc/net/tcp")?;
 
     read_tcp_table(BufReader::new(file))
 }
@@ -134,7 +143,7 @@ pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
 /// Reads the tcp6 socket table
 pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
     use std::fs::File;
-    let file = proctry!(File::open("/proc/net/tcp6"));
+    let file = File::open("/proc/net/tcp6")?;
 
     read_tcp_table(BufReader::new(file))
 }

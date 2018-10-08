@@ -259,9 +259,9 @@ impl Meminfo {
     pub fn new() -> ProcResult<Meminfo> {
         use std::fs::File;
 
-        let f = proctry!(File::open("/proc/meminfo"));
+        let f = File::open("/proc/meminfo")?;
 
-        ProcResult::Ok(Meminfo::from_reader(f))
+        Ok(Meminfo::from_reader(f))
     }
 
     fn from_reader<R: io::Read>(r: R) -> Meminfo {
@@ -368,6 +368,13 @@ mod test {
 
     #[test]
     fn test_meminfo() {
+        // TRAVIS
+        // we don't have access to the kernel_config on travis, so skip that test there
+        match ::std::env::var("TRAVIS") {
+            Ok(ref s) if s == "true" => {return}
+            _ => {}
+        }
+
         let kernel = KernelVersion::current().unwrap();
         let config = kernel_config().unwrap();
 

@@ -586,9 +586,7 @@ impl FromStr for FDTarget {
                 "anon_inode" => Ok(FDTarget::AnonInode(
                     expect!(s.next(), "anon inode").to_string(),
                 )),
-                "/memfd" => {
-                    Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string()))
-                }
+                "/memfd" => Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string())),
                 x => {
                     let inode = expect!(s.next(), "other inode");
                     let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
@@ -800,11 +798,11 @@ impl Process {
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
-        let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
+        let stat = Stat::from_reader(File::open(root.join("stat"))?).unwrap();
 
-        let md = proctry!(std::fs::metadata(&root));
+        let md = std::fs::metadata(&root)?;
 
-        ProcResult::Ok(Process {
+        Ok(Process {
             root,
             stat,
             owner: md.st_uid(),
@@ -816,10 +814,10 @@ impl Process {
     /// This is done by using the `/proc/self` symlink
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
-        let stat = Stat::from_reader(proctry!(File::open(root.join("stat")))).unwrap();
-        let md = proctry!(std::fs::metadata(&root));
+        let stat = Stat::from_reader(File::open(root.join("stat"))?).unwrap();
+        let md = std::fs::metadata(&root)?;
 
-        ProcResult::Ok(Process {
+        Ok(Process {
             root,
             stat,
             owner: md.st_uid(),
@@ -831,9 +829,9 @@ impl Process {
     ///
     pub fn cmdline(&self) -> ProcResult<Vec<String>> {
         let mut buf = String::new();
-        let mut f = proctry!(File::open(self.root.join("cmdline")));
-        proctry!(f.read_to_string(&mut buf));
-        ProcResult::Ok(
+        let mut f = File::open(self.root.join("cmdline"))?;
+        f.read_to_string(&mut buf)?;
+        Ok(
             buf.split('\0')
                 .filter_map(|s| {
                     if !s.is_empty() {
@@ -841,8 +839,7 @@ impl Process {
                     } else {
                         None
                     }
-                })
-                .collect(),
+                }).collect(),
         )
     }
 
@@ -854,15 +851,15 @@ impl Process {
     /// Is this process still alive?
     pub fn is_alive(&self) -> bool {
         match Process::new(self.pid()) {
-            ProcResult::Ok(prc) => {
+            Ok(prc) => {
                 // assume that the command line, uid and starttime don't change during a processes lifetime
                 // additionally, do not consider defunct processes as "alive"
                 // i.e. if they are different, a new process has the same PID as `self` and so `self` is not considered alive
-                prc.stat.comm == self.stat.comm &&
-                    prc.owner == self.owner &&
-                    prc.stat.starttime == self.stat.starttime &&
-                    prc.stat.state() != ProcState::Zombie &&
-                    self.stat.state() != ProcState::Zombie
+                prc.stat.comm == self.stat.comm
+                    && prc.owner == self.owner
+                    && prc.stat.starttime == self.stat.starttime
+                    && prc.stat.state() != ProcState::Zombie
+                    && self.stat.state() != ProcState::Zombie
             }
             _ => false,
         }
@@ -877,7 +874,7 @@ impl Process {
     /// Permission  to  dereference or read (readlink(2)) this symbolic link is governed by a
     /// ptrace access mode PTRACE_MODE_READ_FSCREDS check;
     pub fn cwd(&self) -> ProcResult<PathBuf> {
-        ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("cwd"))))
+        Ok(std::fs::read_link(self.root.join("cwd"))?)
     }
 
     /// Gets the current environment for the process.  This is done by reading the
@@ -889,9 +886,9 @@ impl Process {
 
         let mut map = HashMap::new();
 
-        let mut file = proctry!(File::open(self.root.join("environ")));
+        let mut file = File::open(self.root.join("environ"))?;
         let mut buf = Vec::new();
-        proctry!(file.read_to_end(&mut buf));
+        file.read_to_end(&mut buf)?;
 
         for slice in buf.split(|b| *b == 0) {
             // slice will be in the form key=var, so split on the first equals sign
@@ -905,7 +902,7 @@ impl Process {
             //let env = OsStr::from_bytes(slice);
         }
 
-        ProcResult::Ok(map)
+        Ok(map)
     }
 
     /// The actual path of the executed command, taken by resolving the `/proc/pid/exe` symbolic
@@ -917,15 +914,15 @@ impl Process {
     /// the contents of this symbolic link are not available if the main thread has already
     /// terminated (typically by calling pthread_exit(3)).
     pub fn exe(&self) -> ProcResult<PathBuf> {
-        ProcResult::Ok(proctry!(std::fs::read_link(self.root.join("exe"))))
+        Ok(std::fs::read_link(self.root.join("exe"))?)
     }
 
     /// Return the Io stats for this process, based on the `/proc/pid/io` file.
     ///
     /// (since kernel 2.6.20)
     pub fn io(&self) -> ProcResult<Io> {
-        let file = proctry!(File::open(self.root.join("io")));
-        ProcResult::Ok(Io::from_reader(file).unwrap())
+        let file = File::open(self.root.join("io"))?;
+        Ok(Io::from_reader(file).unwrap())
     }
 
     /// Return a list of the currently mapped memory regions and their access permissions, based on
@@ -933,11 +930,11 @@ impl Process {
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
         use std::io::{BufRead, BufReader};
 
-        let file = proctry!(File::open(self.root.join("maps")));
+        let file = File::open(self.root.join("maps"))?;
 
         let reader = BufReader::new(file);
 
-        ProcResult::Ok(
+        Ok(
             reader
                 .lines()
                 .filter_map(|line| {
@@ -960,8 +957,7 @@ impl Process {
                     };
 
                     Some(mmap)
-                })
-                .collect(),
+                }).collect(),
         )
     }
 
@@ -972,8 +968,8 @@ impl Process {
 
         let mut vec = Vec::new();
 
-        for dir in proctry!(self.root.join("fd").read_dir()) {
-            let entry = proctry!(dir);
+        for dir in self.root.join("fd").read_dir()? {
+            let entry = dir?;
             let fd = u32::from_str_radix(entry.file_name().to_str().unwrap(), 10).unwrap();
             //  note: the link might have disappeared between the time we got the directory listing
             //  and now.  So if the read_link fails, that's OK
@@ -985,7 +981,7 @@ impl Process {
                 });
             }
         }
-        ProcResult::Ok(vec)
+        Ok(vec)
     }
 
     /// Lists which memory segments are written to the core dump in the event that a core dump is performed.
@@ -994,17 +990,19 @@ impl Process {
     /// 0, 1, 4 (if the CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS kernel configuration option is enabled), and 5.
     /// This default can be modified at boot time using the core dump_filter boot option.
     ///
-    /// This function will return `ProcResult::NotFound` if the `coredump_filter` file can't be
-    /// found.  If it returns `ProcResult::Ok(None)` then the process has no coredump_filter
+    /// This function will return `Err(ProcError::NotFound)` if the `coredump_filter` file can't be
+    /// found.  If it returns `Ok(None)` then the process has no coredump_filter
     pub fn coredump_filter(&self) -> ProcResult<Option<CoredumpFlags>> {
         use std::fs::File;
-        let mut file = proctry!(File::open(self.root.join("coredump_filter")));
+        let mut file = File::open(self.root.join("coredump_filter"))?;
         let mut s = String::new();
-        proctry!(file.read_to_string(&mut s));
-        if s.trim().is_empty() { return ProcResult::Ok(None) }
+        file.read_to_string(&mut s)?;
+        if s.trim().is_empty() {
+            return Ok(None);
+        }
         let flags = from_str!(u32, &s.trim(), 16, pid:self.stat.pid);
 
-        ProcResult::Ok(Some(expect!(CoredumpFlags::from_bits(flags))))
+        Ok(Some(expect!(CoredumpFlags::from_bits(flags))))
     }
 
     /// Gets the process's autogroup membership
@@ -1012,9 +1010,9 @@ impl Process {
     /// (since Linux 2.6.38 and requires CONFIG_SCHED_AUTOGROUP)
     pub fn autogroup(&self) -> ProcResult<String> {
         let mut s = String::new();
-        let mut file = proctry!(File::open(self.root.join("autogroup")));
-        proctry!(file.read_to_string(&mut s));
-        ProcResult::Ok(s)
+        let mut file = File::open(self.root.join("autogroup"))?;
+        file.read_to_string(&mut s)?;
+        Ok(s)
     }
 
     /// Get the process's auxiliary vector
@@ -1023,19 +1021,19 @@ impl Process {
     pub fn auxv(&self) -> ProcResult<HashMap<u32, u32>> {
         use byteorder::{NativeEndian, ReadBytesExt};
 
-        let mut file = proctry!(File::open(self.root.join("auxv")));
+        let mut file = File::open(self.root.join("auxv"))?;
         let mut map = HashMap::new();
 
         loop {
-            let key = proctry!(file.read_u32::<NativeEndian>());
-            let value = proctry!(file.read_u32::<NativeEndian>());
+            let key = file.read_u32::<NativeEndian>()?;
+            let value = file.read_u32::<NativeEndian>()?;
             if key == 0 && value == 0 {
                 break;
             }
             map.insert(key, value);
         }
 
-        ProcResult::Ok(map)
+        Ok(map)
     }
 }
 
@@ -1044,7 +1042,7 @@ pub fn all_processes() -> Vec<Process> {
     for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
         if let Ok(entry) = dir {
             if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                if let ProcResult::Ok(prc) = Process::new(pid) {
+                if let Ok(prc) = Process::new(pid) {
                     v.push(prc);
                 }
             }
@@ -1190,7 +1188,7 @@ mod tests {
         let kernel = KernelVersion::current().unwrap();
         let io = myself.io();
         println!("{:?}", io);
-        if let ProcResult::Ok(_) = io {
+        if let Ok(_) = io {
             assert!(kernel >= KernelVersion::new(2, 6, 20));
         }
     }

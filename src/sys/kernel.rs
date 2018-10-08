@@ -45,7 +45,7 @@ impl Version {
     /// assert_eq!(a, b);
     ///
     /// ```
-    pub fn from_str(s: &str) -> Result<Self, &'static str> {
+    pub fn from_str(s: &str) -> Result<Version, &'static str> {
         let mut s = s.split('-');
         let kernel = s.next().unwrap();
         let mut kernel_split = kernel.split('.');
