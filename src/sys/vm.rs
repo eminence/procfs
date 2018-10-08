@@ -7,24 +7,20 @@
 use std::fmt;
 use std::str;
 
-use {read_value, write_value, ProcResult};
+use value::write_value;
+use ProcResult;
 
-/// The amount of free memory in the system that should be reserved for users with the capability cap_sys_admin.
-///
-/// # Example
-///
-/// ```
-/// use procfs::sys::vm::admin_reserve_kbytes;
-///
-/// assert_ne!(admin_reserve_kbytes().unwrap(), 0);
-/// ```
-pub fn admin_reserve_kbytes() -> ProcResult<usize> {
-    read_value("/proc/sys/vm/admin_reserve_kbytes")
-}
-
-/// Set the amount of free memory in the system that should be reserved for users with the capability cap_sys_admin.
-pub fn set_admin_reserve_kbytes(kbytes: usize) -> ProcResult<()> {
-    write_value("/proc/sys/vm/admin_reserve_kbytes", kbytes)
+procfs_value! {
+    /// The amount of free memory in the system that should be reserved for users with the capability cap_sys_admin.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use procfs::sys::vm::admin_reserve_kbytes;
+    ///
+    /// assert_ne!(admin_reserve_kbytes().unwrap().get().unwrap(), 0);
+    /// ```
+    admin_reserve_kbytes: usize;
 }
 
 /// Force all zones are compacted such that free memory is available in contiguous blocks where possible.
@@ -85,36 +81,43 @@ impl str::FromStr for DropCache {
     }
 }
 
-/// Causes the kernel to drop clean caches, dentries, and inodes from memory,
-/// causing that memory to become free.
-///
-/// This can be useful for memory management testing and performing reproducible filesystem benchmarks.
-/// Because writing to this file causes the benefits of caching to be lost,
-/// it can degrade overall system performance.
-pub fn drop_caches(drop: DropCache) -> ProcResult<()> {
-    write_value("/proc/sys/vm/drop_caches", drop)
-}
+procfs_value! {
+    /// Causes the kernel to drop clean caches, dentries, and inodes from memory,
+    /// causing that memory to become free.
+    ///
+    /// This can be useful for memory management testing and performing reproducible filesystem benchmarks.
+    /// Because writing to this file causes the benefits of caching to be lost,
+    /// it can degrade overall system performance.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use procfs::sys::vm::{drop_caches, DropCache};
+    ///
+    /// if let Ok(drop_caches) = drop_caches() {
+    ///     if drop_caches.writeable() {
+    ///         drop_caches.set(DropCache::Default).unwrap();
+    ///     }
+    /// }
+    /// ```
+    @writeonly
+    drop_caches: DropCache;
 
-/// The maximum number of memory map areas a process may have.
-///
-/// Memory map areas are used as a side-effect of calling malloc,
-/// directly by mmap, mprotect, and madvise, and also when loading shared libraries.
-///
-/// # Example
-///
-/// ```
-/// use procfs::sys::vm::max_map_count;
-///
-/// assert_ne!(max_map_count().unwrap(), 0);
-/// ```
-pub fn max_map_count() -> ProcResult<u64> {
-    read_value("/proc/sys/vm/max_map_count")
-}
+    /// The maximum number of memory map areas a process may have.
+    ///
+    /// Memory map areas are used as a side-effect of calling malloc,
+    /// directly by mmap, mprotect, and madvise, and also when loading shared libraries.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use procfs::sys::vm::max_map_count;
+    ///
+    /// assert_ne!(max_map_count().unwrap().get().unwrap(), 0);
+    /// ```
+    max_map_count: u64;
 
-/// Set the maximum number of memory map areas a process may have.
-///
-/// Memory map areas are used as a side-effect of calling malloc,
-/// directly by mmap, mprotect, and madvise, and also when loading shared libraries.
-pub fn set_max_map_count(count: u64) -> ProcResult<()> {
-    write_value("/proc/sys/vm/max_map_count", count)
+    /// If nonzero, this disables the new 32-bit memory-mapping layout;
+    /// the kernel will use the legacy (2.4) layout for all processes.
+    legacy_va_layout: isize;
 }

@@ -101,7 +101,6 @@
 //!         }
 //!     }
 //! }
-
 #[cfg(unix)]
 extern crate libc;
 #[macro_use]
@@ -136,9 +135,8 @@ use platform_specific_items::*;
 
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::fmt;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::mem;
 use std::path::Path;
 use std::str::FromStr;
@@ -220,28 +218,9 @@ macro_rules! from_str {
     };
 }
 
-pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
-    let mut f = File::open(path)?;
-    let mut buf = String::new();
-    f.read_to_string(&mut buf)?;
-    Ok(buf)
-}
-
-pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
-    let mut f = File::open(path)?;
-    f.write_all(buf.as_ref())?;
-    Ok(())
-}
-
-pub(crate) fn read_value<P: AsRef<Path>, T: FromStr<Err = E>, E: fmt::Debug>(
-    path: P,
-) -> ProcResult<T> {
-    read_file(path).map(|buf| buf.trim().parse().unwrap())
-}
-
-pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) -> ProcResult<()> {
-    write_file(path, value.to_string().as_bytes())
-}
+#[macro_use]
+mod value;
+pub use value::Value;
 
 mod process;
 pub use process::*;

@@ -6,7 +6,8 @@
 use std::cmp;
 use std::str::FromStr;
 
-use {read_value, ProcResult};
+use value::read_value;
+use ProcResult;
 
 /// Represents a kernel version, in major.minor.release version.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
