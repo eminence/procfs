@@ -804,19 +804,9 @@ impl NFSOperationStat {
         let major_timeouts = from_str!(c_ulong, expect!(s.next()));
         let bytes_sent = from_str!(c_ulonglong, expect!(s.next()));
         let bytes_recv = from_str!(c_ulonglong, expect!(s.next()));
-        // TODO: on my system, the following value overflows an i64!
         let cum_queue_time_ms = from_str!(u64, expect!(s.next()));
-        let cum_resp_time_ms = from_str!(i64, expect!(s.next()));
-        let cum_total_req_time_ms = from_str!(i64, expect!(s.next()));
-        if cum_queue_time_ms < 0 {
-            panic!("Got a negative duration on cum_queue_time, this unexpected. Please report this error.");
-        }
-        if cum_resp_time_ms < 0 {
-            panic!("Got a negative duration on cum_resp_time, this unexpected. Please report this error.");
-        }
-        if cum_total_req_time_ms < 0 {
-            panic!("Got a negative duration on cum_total_req_time, this unexpected. Please report this error.");
-        }
+        let cum_resp_time_ms = from_str!(u64, expect!(s.next()));
+        let cum_total_req_time_ms = from_str!(u64, expect!(s.next()));
 
         NFSOperationStat {
             operations: operations,
@@ -824,9 +814,9 @@ impl NFSOperationStat {
             major_timeouts: major_timeouts,
             bytes_sent: bytes_sent,
             bytes_recv: bytes_recv,
-            cum_queue_time: Duration::from_millis(cum_queue_time_ms as u64),
-            cum_resp_time: Duration::from_millis(cum_resp_time_ms as u64),
-            cum_total_req_time: Duration::from_millis(cum_total_req_time_ms as u64),
+            cum_queue_time: Duration::from_millis(cum_queue_time_ms),
+            cum_resp_time: Duration::from_millis(cum_resp_time_ms),
+            cum_total_req_time: Duration::from_millis(cum_total_req_time_ms),
         }
     }
 }
