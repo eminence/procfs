@@ -531,6 +531,9 @@ impl MountStat {
 }
 
 /// Only NFS mounts provide additional statistics in `MountStat` entries.
+//
+// Thank you to Chris Siebenmann for their helpful work in documenting these structures:
+// https://utcc.utoronto.ca/~cks/space/blog/linux/NFSMountstatsIndex
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct MountNFSStatistics {
@@ -1514,17 +1517,20 @@ mod tests {
     #[test]
     fn test_all() {
         for prc in all_processes() {
-            prc.stat.flags();
-            prc.stat.starttime();
-            prc.cmdline();
-            prc.environ();
-            prc.fd();
-            prc.io();
-            prc.maps();
-            prc.coredump_filter();
-            prc.autogroup();
-            prc.auxv();
-            prc.cgroups();
+            // note: this test doesn't unwrap, since some of this data requires root to access
+            // so permission denied errors are common
+            // TODO unwrap but allow for permission denied errors in this test
+            let _ = prc.stat.flags();
+            let _ = prc.stat.starttime();
+            let _ = prc.cmdline();
+            let _ = prc.environ();
+            let _ = prc.fd();
+            let _ = prc.io();
+            let _ = prc.maps();
+            let _ = prc.coredump_filter();
+            let _ = prc.autogroup();
+            let _ = prc.auxv();
+            let _ = prc.cgroups();
         }
     }
 
