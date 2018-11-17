@@ -137,18 +137,17 @@ bitflags! {
 //    }
 //}
 
-impl<'a, I, U> ProcFrom<I> for U
+
+fn from_iter<'a, I, U>(i: I) -> U
 where
-    I: IntoIterator<Item = &'a str>,
-    U: FromStr,
+I: IntoIterator<Item = &'a str>,
+U: FromStr,
 {
-    fn from(i: I) -> U {
-        let mut iter = i.into_iter();
-        let val = expect!(iter.next(), "Missing iterator next item");
-        match FromStr::from_str(val) {
-            Ok(u) => u,
-            Err(..) => panic!("Failed to convert".to_string()),
-        }
+    let mut iter = i.into_iter();
+    let val = expect!(iter.next(), "Missing iterator next item");
+    match FromStr::from_str(val) {
+        Ok(u) => u,
+        Err(..) => panic!("Failed to convert".to_string()),
     }
 }
 
@@ -1016,56 +1015,56 @@ impl Stat {
         let mut rest = rest.split(' ');
         let state = rest.next().unwrap().chars().next().unwrap();
 
-        let ppid = ProcFrom::from(&mut rest);
-        let pgrp = ProcFrom::from(&mut rest);
-        let session = ProcFrom::from(&mut rest);
-        let tty_nr = ProcFrom::from(&mut rest);
-        let tpgid = ProcFrom::from(&mut rest);
-        let flags = ProcFrom::from(&mut rest);
-        let minflt = ProcFrom::from(&mut rest);
-        let cminflt = ProcFrom::from(&mut rest);
-        let majflt = ProcFrom::from(&mut rest);
-        let cmajflt = ProcFrom::from(&mut rest);
-        let utime = ProcFrom::from(&mut rest);
-        let stime = ProcFrom::from(&mut rest);
-        let cutime = ProcFrom::from(&mut rest);
-        let cstime = ProcFrom::from(&mut rest);
-        let priority = ProcFrom::from(&mut rest);
-        let nice = ProcFrom::from(&mut rest);
-        let num_threads = ProcFrom::from(&mut rest);
-        let itrealvalue = ProcFrom::from(&mut rest);
-        let starttime = ProcFrom::from(&mut rest);
-        let vsize = ProcFrom::from(&mut rest);
-        let rss = ProcFrom::from(&mut rest);
-        let rsslim = ProcFrom::from(&mut rest);
-        let startcode = ProcFrom::from(&mut rest);
-        let endcode = ProcFrom::from(&mut rest);
-        let startstack = ProcFrom::from(&mut rest);
-        let kstkesp = ProcFrom::from(&mut rest);
-        let kstkeip = ProcFrom::from(&mut rest);
-        let signal = ProcFrom::from(&mut rest);
-        let blocked = ProcFrom::from(&mut rest);
-        let sigignore = ProcFrom::from(&mut rest);
-        let sigcatch = ProcFrom::from(&mut rest);
-        let wchan = ProcFrom::from(&mut rest);
-        let nswap = ProcFrom::from(&mut rest);
-        let cnswap = ProcFrom::from(&mut rest);
+        let ppid = from_iter(&mut rest);
+        let pgrp = from_iter(&mut rest);
+        let session = from_iter(&mut rest);
+        let tty_nr = from_iter(&mut rest);
+        let tpgid = from_iter(&mut rest);
+        let flags = from_iter(&mut rest);
+        let minflt = from_iter(&mut rest);
+        let cminflt = from_iter(&mut rest);
+        let majflt = from_iter(&mut rest);
+        let cmajflt = from_iter(&mut rest);
+        let utime = from_iter(&mut rest);
+        let stime = from_iter(&mut rest);
+        let cutime = from_iter(&mut rest);
+        let cstime = from_iter(&mut rest);
+        let priority = from_iter(&mut rest);
+        let nice = from_iter(&mut rest);
+        let num_threads = from_iter(&mut rest);
+        let itrealvalue = from_iter(&mut rest);
+        let starttime = from_iter(&mut rest);
+        let vsize = from_iter(&mut rest);
+        let rss = from_iter(&mut rest);
+        let rsslim = from_iter(&mut rest);
+        let startcode = from_iter(&mut rest);
+        let endcode = from_iter(&mut rest);
+        let startstack = from_iter(&mut rest);
+        let kstkesp = from_iter(&mut rest);
+        let kstkeip = from_iter(&mut rest);
+        let signal = from_iter(&mut rest);
+        let blocked = from_iter(&mut rest);
+        let sigignore = from_iter(&mut rest);
+        let sigcatch = from_iter(&mut rest);
+        let wchan = from_iter(&mut rest);
+        let nswap = from_iter(&mut rest);
+        let cnswap = from_iter(&mut rest);
 
-        let exit_signal = since_kernel!(2, 1, 22, ProcFrom::from(&mut rest));
-        let processor = since_kernel!(2, 2, 8, ProcFrom::from(&mut rest));
-        let rt_priority = since_kernel!(2, 5, 19, ProcFrom::from(&mut rest));
-        let policy = since_kernel!(2, 5, 19, ProcFrom::from(&mut rest));
-        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, ProcFrom::from(&mut rest));
-        let guest_time = since_kernel!(2, 6, 24, ProcFrom::from(&mut rest));
-        let cguest_time = since_kernel!(2, 6, 24, ProcFrom::from(&mut rest));
-        let start_data = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
-        let end_data = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
-        let start_brk = since_kernel!(3, 3, 0, ProcFrom::from(&mut rest));
-        let arg_start = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
-        let arg_end = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
-        let env_start = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
-        let env_end = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
-        let exit_code = since_kernel!(3, 5, 0, ProcFrom::from(&mut rest));
+        let exit_signal = since_kernel!(2, 1, 22, from_iter(&mut rest));
+        let processor = since_kernel!(2, 2, 8, from_iter(&mut rest));
+        let rt_priority = since_kernel!(2, 5, 19, from_iter(&mut rest));
+        let policy = since_kernel!(2, 5, 19, from_iter(&mut rest));
+        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, from_iter(&mut rest));
+        let guest_time = since_kernel!(2, 6, 24, from_iter(&mut rest));
+        let cguest_time = since_kernel!(2, 6, 24, from_iter(&mut rest));
+        let start_data = since_kernel!(3, 3, 0, from_iter(&mut rest));
+        let end_data = since_kernel!(3, 3, 0, from_iter(&mut rest));
+        let start_brk = since_kernel!(3, 3, 0, from_iter(&mut rest));
+        let arg_start = since_kernel!(3, 5, 0, from_iter(&mut rest));
+        let arg_end = since_kernel!(3, 5, 0, from_iter(&mut rest));
+        let env_start = since_kernel!(3, 5, 0, from_iter(&mut rest));
+        let env_end = since_kernel!(3, 5, 0, from_iter(&mut rest));
+        let exit_code = since_kernel!(3, 5, 0, from_iter(&mut rest));
 
         Some(Stat {
             pid,

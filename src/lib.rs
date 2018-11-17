@@ -437,9 +437,6 @@ impl From<std::io::Error> for ProcError {
 }
 
 
-trait ProcFrom<T> {
-    fn from(s: T) -> Self;
-}
 
 /// Load average figures.
 ///
