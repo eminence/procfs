@@ -519,8 +519,6 @@ impl MountStat {
                     fs,
                     statistics
                 });
-            } else {
-                println!("Skipping line {}", line);
             }
         }
 
