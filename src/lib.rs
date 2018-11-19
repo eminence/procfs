@@ -163,7 +163,6 @@ impl<T, R> IntoOption<T> for Result<T, R> {
     }
 }
 
-
 #[macro_use]
 macro_rules! expect {
     ($e:expr) => {
@@ -187,8 +186,8 @@ macro_rules! expect {
 
 #[macro_use]
 macro_rules! from_str {
-    ($t:tt, $e:expr) => {
-        {let e = $e;
+    ($t:tt, $e:expr) => {{
+        let e = $e;
         $t::from_str_radix(e, 10).unwrap_or_else(|_| {
             panic!(
                 "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
@@ -196,11 +195,10 @@ macro_rules! from_str {
                 e,
                 stringify!($t),
             )
-        })}
-
-    };
-    ($t:tt, $e:expr, $radix:expr) => {
-        {let e = $e;
+        })
+    }};
+    ($t:tt, $e:expr, $radix:expr) => {{
+        let e = $e;
         $t::from_str_radix(e, $radix).unwrap_or_else(|_| {
             panic!(
                 "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
@@ -208,10 +206,10 @@ macro_rules! from_str {
                 e,
                 stringify!($t)
             )
-        })}
-    };
-    ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {
-        {let e = $e;
+        })
+    }};
+    ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
+        let e = $e;
         $t::from_str_radix(e, $radix).unwrap_or_else(|_| {
             panic!(
                 "Failed to parse {} ({:?}) as a {} (pid {}). Please report this as a procfs bug.",
@@ -220,8 +218,8 @@ macro_rules! from_str {
                 stringify!($t),
                 $pid
             )
-        })}
-    };
+        })
+    }};
 }
 
 mod process;
@@ -421,7 +419,7 @@ pub enum ProcError {
     /// Any other IO error (rare).
     Io(std::io::Error),
     /// Any other non-IO error (very rare).
-    Other(String)
+    Other(String),
 }
 
 impl From<std::io::Error> for ProcError {
@@ -430,13 +428,10 @@ impl From<std::io::Error> for ProcError {
         match io.kind() {
             ErrorKind::PermissionDenied => ProcError::PermissionDenied,
             ErrorKind::NotFound => ProcError::NotFound,
-            _other => ProcError::Io(io)
+            _other => ProcError::Io(io),
         }
     }
-
 }
-
-
 
 /// Load average figures.
 ///
@@ -554,7 +549,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
         if unsafe { libc::uname(&mut kernel) != 0 } {
-            return Err(ProcError::Other(format!("Failed to call uname()")))
+            return Err(ProcError::Other("Failed to call uname()".to_owned()));
         }
 
         let filename = format!(
@@ -661,7 +656,7 @@ mod tests {
         // TRAVIS
         // we don't have access to the kernel_config on travis, so skip that test there
         match std::env::var("TRAVIS") {
-            Ok(ref s) if s == "true" => {return}
+            Ok(ref s) if s == "true" => return,
             _ => {}
         }
 

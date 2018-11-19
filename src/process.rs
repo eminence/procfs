@@ -137,11 +137,10 @@ bitflags! {
 //    }
 //}
 
-
 fn from_iter<'a, I, U>(i: I) -> U
 where
-I: IntoIterator<Item = &'a str>,
-U: FromStr,
+    I: IntoIterator<Item = &'a str>,
+    U: FromStr,
 {
     let mut iter = i.into_iter();
     let val = expect!(iter.next(), "Missing iterator next item");
@@ -509,7 +508,7 @@ pub struct MountStat {
 
 impl MountStat {
     pub fn from_reader<R: io::Read>(r: R) -> Vec<MountStat> {
-        use std::io::{BufReader, BufRead};
+        use std::io::{BufRead, BufReader};
         use std::path::PathBuf;
 
         let mut v = Vec::new();
@@ -523,24 +522,23 @@ impl MountStat {
                 let mut s = line.split_whitespace();
 
                 let device = Some(s.nth(1).unwrap().to_owned());
-                let mount_point = PathBuf::from(s.nth(2).unwrap()); 
+                let mount_point = PathBuf::from(s.nth(2).unwrap());
                 let fs = s.nth(2).unwrap().to_owned();
                 let statistics = match s.next() {
                     Some(stats) if stats.starts_with("statvers=") => {
                         Some(MountNFSStatistics::from_lines(&mut lines, &stats[9..]))
-                    },
-                    _ => None
+                    }
+                    _ => None,
                 };
 
                 v.push(MountStat {
                     device,
                     mount_point,
                     fs,
-                    statistics
+                    statistics,
                 });
             }
         }
-
 
         v
     }
@@ -590,7 +588,7 @@ impl MountNFSStatistics {
 
         let mut parsing_per_op = false;
 
-        let mut opts : Option<Vec<String>> = None;
+        let mut opts: Option<Vec<String>> = None;
         let mut age = None;
         let mut caps = None;
         let mut sec = None;
@@ -626,7 +624,6 @@ impl MountNFSStatistics {
                 let stats = NFSOperationStat::from_str(expect!(split.next()));
                 per_op.insert(name, stats);
             }
-
         }
 
         MountNFSStatistics {
@@ -637,7 +634,7 @@ impl MountNFSStatistics {
             sec: expect!(sec, "Failed to find sec field in nfs stats"),
             events: expect!(events, "Failed to find events section in nfs stats"),
             bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
-            per_op_stats: per_op
+            per_op_stats: per_op,
         }
     }
 
@@ -651,7 +648,6 @@ impl MountNFSStatistics {
         }
         None
     }
-
 }
 
 /// Represents NFS data from `/proc/<pid>/mountstats` under the section `events`.
@@ -828,11 +824,11 @@ impl NFSOperationStat {
         let cum_total_req_time_ms = from_str!(u64, expect!(s.next()));
 
         NFSOperationStat {
-            operations: operations,
-            transmissions: transmissions,
-            major_timeouts: major_timeouts,
-            bytes_sent: bytes_sent,
-            bytes_recv: bytes_recv,
+            operations,
+            transmissions,
+            major_timeouts,
+            bytes_sent,
+            bytes_recv,
             cum_queue_time: Duration::from_millis(cum_queue_time_ms),
             cum_resp_time: Duration::from_millis(cum_resp_time_ms),
             cum_total_req_time: Duration::from_millis(cum_total_req_time_ms),
@@ -841,8 +837,6 @@ impl NFSOperationStat {
 }
 
 pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
-
-
 
 #[derive(Debug, PartialEq)]
 pub enum MMapPath {
@@ -1229,16 +1223,16 @@ impl Process {
         let mut buf = String::new();
         let mut f = File::open(self.root.join("cmdline"))?;
         f.read_to_string(&mut buf)?;
-        Ok(
-            buf.split('\0')
-                .filter_map(|s| {
-                    if !s.is_empty() {
-                        Some(s.to_string())
-                    } else {
-                        None
-                    }
-                }).collect(),
-        )
+        Ok(buf
+            .split('\0')
+            .filter_map(|s| {
+                if !s.is_empty() {
+                    Some(s.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect())
     }
 
     /// Returns the process ID for this process.
@@ -1332,31 +1326,28 @@ impl Process {
 
         let reader = BufReader::new(file);
 
-        Ok(
-            reader
-                .lines()
-                .filter_map(|line| {
-                    let line = line.unwrap();
-                    let mut s = line.splitn(6, ' ');
-                    let address = expect!(s.next(), "maps::address");
-                    let perms = expect!(s.next(), "maps::perms");
-                    let offset = expect!(s.next(), "maps::offset");
-                    let dev = expect!(s.next(), "maps::dev");
-                    let inode = expect!(s.next(), "maps::inode");
-                    let path = expect!(s.next(), "maps::path");
+        Ok(reader
+            .lines()
+            .map(|line| {
+                let line = line.unwrap();
+                let mut s = line.splitn(6, ' ');
+                let address = expect!(s.next(), "maps::address");
+                let perms = expect!(s.next(), "maps::perms");
+                let offset = expect!(s.next(), "maps::offset");
+                let dev = expect!(s.next(), "maps::dev");
+                let inode = expect!(s.next(), "maps::inode");
+                let path = expect!(s.next(), "maps::path");
 
-                    let mmap = MemoryMap {
-                        address: split_into_num(address, '-', 16),
-                        perms: perms.to_string(),
-                        offset: from_str!(u64, offset, 16),
-                        dev: split_into_num(dev, ':', 16),
-                        inode: from_str!(u32, inode),
-                        pathname: MMapPath::from(path),
-                    };
-
-                    Some(mmap)
-                }).collect(),
-        )
+                MemoryMap {
+                    address: split_into_num(address, '-', 16),
+                    perms: perms.to_string(),
+                    offset: from_str!(u64, offset, 16),
+                    dev: split_into_num(dev, ':', 16),
+                    inode: from_str!(u32, inode),
+                    pathname: MMapPath::from(path),
+                }
+            })
+            .collect())
     }
 
     /// Gets a list of open file descriptors for a process
@@ -1433,7 +1424,7 @@ impl Process {
 
         Ok(map)
     }
-    
+
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
         let file = File::open(self.root.join("mountstats"))?;
@@ -1463,16 +1454,12 @@ mod tests {
     fn check_unwrap<T>(val: ProcResult<T>) {
         match val {
             Ok(t) => {}
-            Err(ProcError::PermissionDenied) if unsafe {libc::geteuid()} != 0 => {
+            Err(ProcError::PermissionDenied) if unsafe { libc::geteuid() } != 0 => {
                 // we are not root, and so a permission denied error is OK
-            },
-            Err(ProcError::NotFound) => {
             }
-            Err(err) => {
-                panic!("{:?}", err)
-            }
+            Err(ProcError::NotFound) => {}
+            Err(err) => panic!("{:?}", err),
         }
-
     }
 
     #[test]
@@ -1660,28 +1647,31 @@ mod tests {
 
     #[test]
     fn test_proc_mountstats() {
-        let simple = MountStat::from_reader("device /dev/md127 mounted on /boot with fstype ext2 
+        let simple = MountStat::from_reader(
+            "device /dev/md127 mounted on /boot with fstype ext2 
 device /dev/md124 mounted on /home with fstype ext4 
 device tmpfs mounted on /run/user/0 with fstype tmpfs 
-".as_bytes());
+"
+            .as_bytes(),
+        );
         let simple_parsed = vec![
             MountStat {
                 device: Some("/dev/md127".to_string()),
                 mount_point: PathBuf::from("/boot"),
                 fs: "ext2".to_string(),
-                statistics: None
+                statistics: None,
             },
             MountStat {
                 device: Some("/dev/md124".to_string()),
                 mount_point: PathBuf::from("/home"),
                 fs: "ext4".to_string(),
-                statistics: None
+                statistics: None,
             },
             MountStat {
                 device: Some("tmpfs".to_string()),
                 mount_point: PathBuf::from("/run/user/0"),
                 fs: "tmpfs".to_string(),
-                statistics: None
+                statistics: None,
             },
         ];
         assert_eq!(simple, simple_parsed);
@@ -1706,7 +1696,11 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         let nfs_v4 = &mountstats[0];
         match &nfs_v4.statistics {
             Some(stats) => {
-                assert_eq!("1.1".to_string(), stats.version, "mountstats version wrongly parsed.");
+                assert_eq!(
+                    "1.1".to_string(),
+                    stats.version,
+                    "mountstats version wrongly parsed."
+                );
                 assert_eq!(Duration::from_secs(3542), stats.age);
                 assert_eq!(1, stats.bytes.normal_read);
                 assert_eq!(114, stats.events.inode_revalidate);
@@ -1730,8 +1724,6 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 println!("  {:?}", nfs.server_caps().unwrap());
             }
         }
-
-
     }
 
 }

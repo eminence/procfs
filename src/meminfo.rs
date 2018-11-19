@@ -371,7 +371,7 @@ mod test {
         // TRAVIS
         // we don't have access to the kernel_config on travis, so skip that test there
         match ::std::env::var("TRAVIS") {
-            Ok(ref s) if s == "true" => {return}
+            Ok(ref s) if s == "true" => return,
             _ => {}
         }
 
