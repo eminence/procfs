@@ -479,12 +479,31 @@ pub struct Io {
 }
 
 /// Mount information from `/proc/<pid>/mountstats`.
+///
+/// # Example:
+///
+/// ```
+/// # use procfs::Process;
+/// let stats = Process::myself().unwrap().mountstats().unwrap();
+///
+/// for mount in stats {
+///     println!("{} mounted on {} wth type {}",
+///         mount.device.unwrap_or("??".to_owned()),
+///         mount.mount_point.display(),
+///         mount.fs
+///     );
+/// }
+/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct MountStat {
+    /// The name of the mounted device
     pub device: Option<String>,
+    /// The mountpoint within the filesystem tree
     pub mount_point: PathBuf,
+    /// The filesystem type
     pub fs: String,
+    /// If the mount is NFS, this will contain various NFS statistics
     pub statistics: Option<MountNFSStatistics>,
 }
 
@@ -1413,6 +1432,12 @@ impl Process {
         }
 
         Ok(map)
+    }
+    
+    /// Returns the [MountStat] data for this processes mount namespace.
+    pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
+        let file = File::open(self.root.join("mountstats"))?;
+        Ok(MountStat::from_reader(file))
     }
 }
 
