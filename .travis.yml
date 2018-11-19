@@ -1,4 +1,6 @@
 language: rust
+sudo: required
+dist: xenial
 rust:
   - stable
   - beta

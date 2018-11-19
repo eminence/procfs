@@ -1435,6 +1435,21 @@ pub fn all_processes() -> Vec<Process> {
 mod tests {
     use super::*;
 
+    fn check_unwrap<T>(val: ProcResult<T>) {
+        match val {
+            Ok(t) => {}
+            Err(ProcError::PermissionDenied) if unsafe {libc::geteuid()} != 0 => {
+                // we are not root, and so a permission denied error is OK
+            },
+            Err(ProcError::NotFound) => {
+            }
+            Err(err) => {
+                panic!("{:?}", err)
+            }
+        }
+
+    }
+
     #[test]
     fn test_self_proc() {
         let myself = Process::myself().unwrap();
@@ -1517,17 +1532,18 @@ mod tests {
             // note: this test doesn't unwrap, since some of this data requires root to access
             // so permission denied errors are common
             // TODO unwrap but allow for permission denied errors in this test
-            let _ = prc.stat.flags();
-            let _ = prc.stat.starttime();
-            let _ = prc.cmdline();
-            let _ = prc.environ();
-            let _ = prc.fd();
-            let _ = prc.io();
-            let _ = prc.maps();
-            let _ = prc.coredump_filter();
-            let _ = prc.autogroup();
-            let _ = prc.auxv();
-            let _ = prc.cgroups();
+
+            prc.stat.flags();
+            prc.stat.starttime();
+            check_unwrap(prc.cmdline());
+            check_unwrap(prc.environ());
+            check_unwrap(prc.fd());
+            check_unwrap(prc.io());
+            check_unwrap(prc.maps());
+            check_unwrap(prc.coredump_filter());
+            check_unwrap(prc.autogroup());
+            check_unwrap(prc.auxv());
+            check_unwrap(prc.cgroups());
         }
     }
 
