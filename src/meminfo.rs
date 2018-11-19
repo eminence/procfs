@@ -354,7 +354,9 @@ impl Meminfo {
         };
 
         if !map.is_empty() {
-            panic!("meminfo map is not empty: {:#?}", map);
+            if cfg!(test) {
+                panic!("meminfo map is not empty: {:#?}", map);
+            }
         }
 
         meminfo
