@@ -136,8 +136,9 @@ use platform_specific_items::*;
 
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::fmt;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::mem;
 use std::path::Path;
 use std::str::FromStr;
@@ -222,6 +223,29 @@ macro_rules! from_str {
     }};
 }
 
+pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
+    let mut f = File::open(path)?;
+    let mut buf = String::new();
+    f.read_to_string(&mut buf)?;
+    Ok(buf)
+}
+
+pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
+    let mut f = File::open(path)?;
+    f.write_all(buf.as_ref())?;
+    Ok(())
+}
+
+pub(crate) fn read_value<P: AsRef<Path>, T: FromStr<Err = E>, E: fmt::Debug>(
+    path: P,
+) -> ProcResult<T> {
+    read_file(path).map(|buf| buf.trim().parse().unwrap())
+}
+
+pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) -> ProcResult<()> {
+    write_file(path, value.to_string().as_bytes())
+}
+
 mod process;
 pub use process::*;
 
@@ -237,7 +261,8 @@ pub use cpuinfo::*;
 mod cgroups;
 pub use cgroups::*;
 
-use std::cmp;
+pub mod sys;
+pub use sys::kernel::Version as KernelVersion;
 
 lazy_static! {
     /// The boottime of the system.
@@ -318,91 +343,6 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     (a, b)
 }
 
-/// Represents a kernel version, in major.minor.release version.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct KernelVersion {
-    pub major: u8,
-    pub minor: u8,
-    pub patch: u8,
-}
-
-impl KernelVersion {
-    pub fn new(major: u8, minor: u8, patch: u8) -> KernelVersion {
-        KernelVersion {
-            major,
-            minor,
-            patch,
-        }
-    }
-
-    /// Returns the kernel version of the curretly running kernel.
-    ///
-    /// This is taken from `/proc/sys/kernel/osrelease`;
-    pub fn current() -> ProcResult<KernelVersion> {
-        let mut f = File::open("/proc/sys/kernel/osrelease")?;
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)?;
-
-        Ok(KernelVersion::from_str(&buf).unwrap())
-    }
-    /// Parses a kernel version string, in major.minor.release syntax.
-    ///
-    /// Note that any extra information (stuff after a dash) is ignored.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use procfs::KernelVersion;
-    /// let a = KernelVersion::from_str("3.16.0-6-amd64").unwrap();
-    /// let b = KernelVersion::new(3, 16, 0);
-    /// assert_eq!(a, b);
-    ///
-    /// ```
-    pub fn from_str(s: &str) -> Result<KernelVersion, &'static str> {
-        let mut s = s.split('-');
-        let kernel = s.next().unwrap();
-        let mut kernel_split = kernel.split('.');
-
-        let major = kernel_split
-            .next()
-            .ok_or("Missing major version component")?;
-        let minor = kernel_split
-            .next()
-            .ok_or("Missing minor version component")?;
-        let patch = kernel_split
-            .next()
-            .ok_or("Missing patch version component")?;
-
-        let major = major.parse().map_err(|_| "Failed to parse major version")?;
-        let minor = minor.parse().map_err(|_| "Failed to parse minor version")?;
-        let patch = patch.parse().map_err(|_| "Failed to parse patch version")?;
-
-        Ok(KernelVersion {
-            major,
-            minor,
-            patch,
-        })
-    }
-}
-
-impl cmp::Ord for KernelVersion {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        match self.major.cmp(&other.major) {
-            cmp::Ordering::Equal => match self.minor.cmp(&other.minor) {
-                cmp::Ordering::Equal => self.patch.cmp(&other.patch),
-                x => x,
-            },
-            x => x,
-        }
-    }
-}
-
-impl cmp::PartialOrd for KernelVersion {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
 pub type ProcResult<T> = Result<T, ProcError>;
 
 /// Error type for most procfs functions
@@ -432,6 +372,7 @@ impl From<std::io::Error> for ProcError {
         }
     }
 }
+
 
 /// Load average figures.
 ///
@@ -549,7 +490,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
         if unsafe { libc::uname(&mut kernel) != 0 } {
-            return Err(ProcError::Other("Failed to call uname()".to_owned()));
+            return Err(ProcError::Other(format!("Failed to call uname()")));
         }
 
         let filename = format!(
