@@ -930,7 +930,9 @@ impl Io {
         };
 
         if !map.is_empty() {
-            panic!("meminfo map is not empty: {:#?}", map);
+            if cfg!(test) {
+                panic!("io map is not empty: {:#?}", map);
+            }
         }
 
         Some(io)
