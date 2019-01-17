@@ -908,7 +908,7 @@ impl Io {
 
         for line in reader.lines() {
             let line = expect!(line, "Failed to read line");
-            if line.is_empty() {
+            if line.is_empty() || !line.contains(' ') {
                 continue;
             }
             let mut s = line.split_whitespace();
