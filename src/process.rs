@@ -958,7 +958,7 @@ pub enum FDTarget {
 impl FromStr for FDTarget {
     type Err = String;
     fn from_str(s: &str) -> Result<FDTarget, String> {
-        if s.contains(':') {
+        if !s.starts_with('/') && s.contains(':') {
             let mut s = s.split(':');
             let fd_type = s.next().unwrap();
             match fd_type {
