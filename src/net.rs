@@ -52,6 +52,16 @@ pub struct TcpNetEntry {
     pub inode: u32,
 }
 
+/// An entry in the UDP socket table
+#[derive(Debug)]
+pub struct UdpNetEntry {
+    pub local_address: SocketAddr,
+    pub remote_address: SocketAddr,
+    pub rx_queue: u32,
+    pub tx_queue: u32,
+    pub inode: u32,
+}
+
 /// Parses an address in the form 00010203:1234
 ///
 /// Also supports IPv6
@@ -132,6 +142,41 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
     Ok(vec)
 }
 
+fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>> {
+    let mut vec = Vec::new();
+
+    // first line is a header we need to skip
+    for line in reader.lines().skip(1) {
+        let line = line?;
+        let mut s = line.split_whitespace();
+        s.next();
+        let local_address = expect!(s.next(), "udp::local_address");
+        let rem_address = expect!(s.next(), "udp::rem_address");
+        s.next(); // skip state
+        let tx_rx_queue: Vec<u32> = expect!(s.next(), "udp::tx_queue:rx_queue")
+            .splitn(2, ':')
+            .map(|s| from_str!(u32, s, 16))
+            .collect();
+        let tx_queue = *expect!(tx_rx_queue.get(0), "udp::tx_queue");
+        let rx_queue = *expect!(tx_rx_queue.get(1), "udp::rx_queue");
+        s.next(); // skip tr and tm->when
+        s.next(); // skip retrnsmt
+        s.next(); // skip uid
+        s.next(); // skip timeout
+        let inode = expect!(s.next(), "udp::inode");
+
+        vec.push(UdpNetEntry {
+            local_address: parse_addressport_str(local_address),
+            remote_address: parse_addressport_str(rem_address),
+            rx_queue,
+            tx_queue,
+            inode: from_str!(u32, inode),
+        });
+    }
+
+    Ok(vec)
+}
+
 /// Reads the tcp socket table
 pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
     use std::fs::File;
@@ -146,6 +191,22 @@ pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
     let file = File::open("/proc/net/tcp6")?;
 
     read_tcp_table(BufReader::new(file))
+}
+
+/// Reads the udp socket table
+pub fn udp() -> ProcResult<Vec<UdpNetEntry>> {
+    use std::fs::File;
+    let file = File::open("/proc/net/udp")?;
+
+    read_udp_table(BufReader::new(file))
+}
+
+/// Reads the udp6 socket table
+pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
+    use std::fs::File;
+    let file = File::open("/proc/net/udp6")?;
+
+    read_udp_table(BufReader::new(file))
 }
 
 #[cfg(test)]
@@ -193,6 +254,20 @@ mod tests {
     #[test]
     fn test_tcp6() {
         for entry in tcp6().unwrap() {
+            println!("{:?}", entry);
+        }
+    }
+
+    #[test]
+    fn test_udp() {
+        for entry in udp().unwrap() {
+            println!("{:?}", entry);
+        }
+    }
+
+    #[test]
+    fn test_udp6() {
+        for entry in udp6().unwrap() {
             println!("{:?}", entry);
         }
     }
