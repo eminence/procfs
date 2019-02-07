@@ -336,20 +336,20 @@ pub struct Stat {
     /// The current EIP (instruction pointer).
     pub kstkeip: u64,
     /// The  bitmap of pending signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on real-time signals; use /proc/<pid>/status instead.
+    /// not provide information on real-time signals; use `/proc/<pid>/status` instead.
     pub signal: u64,
     /// The bitmap of blocked signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on  real-time signals; use /proc/<pid>/status instead.
+    /// not provide information on  real-time signals; use `/proc/<pid>/status` instead.
     pub blocked: u64,
     /// The  bitmap of ignored signals, displayed as a decimal number.  Obsolete, because it does
-    /// not provide information on real-time signals; use /proc/<pid>/status instead.
+    /// not provide information on real-time signals; use `/proc/<pid>/status` instead.
     pub sigignore: u64,
     /// The bitmap of caught signals, displayed as a decimal number.  Obsolete, because it does not
-    /// provide information  on  real-time signals; use /proc/<pid>/status instead.
+    /// provide information  on  real-time signals; use `/proc/<pid>/status` instead.
     pub sigcatch: u64,
     /// This  is  the  "channel"  in which the process is waiting.  It is the address of a location
     /// in the kernel where the process is sleeping.  The corresponding symbolic name can be found in
-    /// /proc/<pid>/wchan.
+    /// `/proc/<pid>/wchan`.
     pub wchan: u64,
     /// Number of pages swapped **(not maintained)**.
     pub nswap: u64,
@@ -846,8 +846,8 @@ pub enum MMapPath {
     Heap,
     /// The initial process's (also known as the main thread's) stack.
     Stack,
-    /// A thread's stack (where the <tid> is a thread ID).  It corresponds to the
-    /// /proc/<pid>/task/<tid>/ path.
+    /// A thread's stack (where the `<tid>` is a thread ID).  It corresponds to the
+    /// `/proc/<pid>/task/<tid>/` path.
     ///
     /// (since Linux 3.4)
     TStack(u32),
