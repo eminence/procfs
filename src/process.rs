@@ -1432,6 +1432,16 @@ impl Process {
         let file = File::open(self.root.join("mountstats"))?;
         Ok(MountStat::from_reader(file))
     }
+
+    /// Gets the symbolic name corresponding to the location in the kernel where the process is sleeping.
+    ///
+    /// (since Linux 2.6.0)
+    pub fn wchan(&self) -> ProcResult<String> {
+        let mut s = String::new();
+        let mut file = File::open(self.root.join("wchan"))?;
+        file.read_to_string(&mut s)?;
+        Ok(s)
+    }
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -1726,6 +1736,13 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 println!("  {:?}", nfs.server_caps().unwrap());
             }
         }
+    }
+
+    #[test]
+    fn test_proc_wchan() {
+        let myself = Process::myself().unwrap();
+        let wchan = myself.wchan().unwrap();
+        println!("{:?}", wchan);
     }
 
 }
