@@ -1173,6 +1173,366 @@ impl Stat {
     }
 }
 
+/// Status information about the process, based on the `/proc/<pid>/status` file.
+///
+/// To construct this structure, see [Process::status()].
+///
+/// Not all fields are available in every kernel.  These fields have `Option<T>` types.
+#[derive(Debug, Clone)]
+pub struct Status {
+    /// Command run by this process.
+    pub name: String,
+    /// Process umask, expressed in octal with a leading zero; see umask(2).  (Since Linux 4.7.)
+    pub umask: Option<u32>,
+    /// Current state of the process.
+    pub state: String,
+    /// Thread group ID (i.e., Process ID).
+    pub tgid: i32,
+    /// NUMA group ID (0 if none; since Linux 3.13).
+    pub ngid: Option<i32>,
+    /// Thread ID (see gettid(2)).
+    pub pid: i32,
+    /// PID of parent process.
+    pub ppid: i32,
+    /// PID of process tracing this process (0 if not being traced).
+    pub tracerpid: i32,
+    /// Real UID.
+    pub ruid: i32,
+    /// Effective UID.
+    pub euid: i32,
+    /// Saved set UID.
+    pub suid: i32,
+    /// Filesystem UID.
+    pub fuid: i32,
+    /// Real GID.
+    pub rgid: i32,
+    /// Effective GID.
+    pub egid: i32,
+    /// Saved set GID.
+    pub sgid: i32,
+    /// Filesystem GID.
+    pub fgid: i32,
+    /// Number of file descriptor slots currently allocated.
+    pub fdsize: u32,
+    /// Supplementary group list.
+    pub groups: Vec<i32>,
+    /// Thread group ID (i.e., PID) in each of the PID
+    /// namespaces of which [pid] is a member.  The leftmost entry
+    /// shows the value with respect to the PID namespace of the
+    /// reading process, followed by the value in successively
+    /// nested inner namespaces.  (Since Linux 4.1.)
+    pub nstgid: Option<Vec<i32>>,
+    /// Thread ID in each of the PID namespaces of which
+    /// [pid] is a member.  The fields are ordered as for NStgid.
+    /// (Since Linux 4.1.)
+    pub nspid: Option<Vec<i32>>,
+    /// Process group ID in each of the PID namespaces of
+    /// which [pid] is a member.  The fields are ordered as for NStgid.  (Since Linux 4.1.)
+    pub nspgid: Option<Vec<i32>>,
+    /// NSsid: descendant namespace session ID hierarchy Session ID
+    /// in each of the PID namespaces of which [pid] is a member.
+    /// The fields are ordered as for NStgid.  (Since Linux 4.1.)
+    pub nssid: Option<Vec<i32>>,
+    /// Peak virtual memory size.
+    pub vmpeak: u64,
+    /// Virtual memory size.
+    pub vmsize: u64,
+    /// Locked memory size (see mlock(3)).
+    pub vmlck: u64,
+    /// Pinned memory size (since Linux 3.2).  These are
+    /// pages that can't be moved because something needs to
+    /// directly access physical memory.
+    pub vmpin: Option<u64>,
+    /// Peak resident set size ("high water mark").
+    pub vmhwm: u64,
+    /// Resident set size.  Note that the value here is the
+    /// sum of RssAnon, RssFile, and RssShmem.
+    pub vmrss: u64,
+    /// Size of resident anonymous memory.  (since Linux 4.5).
+    pub rssanon: Option<u64>,
+    /// Size of resident file mappings.  (since Linux 4.5).
+    pub rssfile: Option<u64>,
+    /// Size of resident shared memory (includes System V
+    /// shared memory, mappings from tmpfs(5), and shared anonymous
+    /// mappings).  (since Linux 4.5).
+    pub rssshmem: Option<u64>,
+    /// Size of data.
+    pub vmdata: u64,
+    /// Size of stack.
+    pub vmstk: u64,
+    /// Size of text seg‐ments.
+    pub vmexe: u64,
+    /// Shared library code size.
+    pub vmlib: u64,
+    /// Page table entries size (since Linux 2.6.10).
+    pub vmpte: Option<u64>,
+    /// Size of second-level page tables (since Linux 4.0).
+    pub vmpmd: Option<u64>,
+    /// Swapped-out virtual memory size by anonymous private
+    /// pages; shmem swap usage is not included (since Linux 2.6.34).
+    pub vmswap: Option<u64>,
+    /// Size of hugetlb memory portions.  (since Linux 4.4).
+    pub hugetblpages: Option<u64>,
+    /// Number of threads in process containing this thread.
+    pub threads: u64,
+    /// This field contains two slash-separated numbers that
+    /// relate to queued signals for the real user ID of this
+    /// process.  The first of these is the number of currently
+    /// queued signals for this real user ID, and the second is the
+    /// resource limit on the number of queued signals for this
+    /// process (see the description of RLIMIT_SIGPENDING in
+    /// getrlimit(2)).
+    pub sigq: (u64, u64),
+    /// Number of signals pending for thread (see pthreads(7) and signal(7)).
+    pub sigpnd: u64,
+    /// Number of signals pending for process as a whole (see pthreads(7) and signal(7)).
+    pub shdpnd: u64,
+    /// Masks indicating signals being blocked (see signal(7)).
+    pub sigblk: u64,
+    /// Masks indicating signals being ignored (see signal(7)).
+    pub sigign: u64,
+    /// Masks indicating signals being caught (see signal(7)).
+    pub sigcgt: u64,
+    /// Masks of capabilities enabled in inheritable sets (see capabilities(7)).
+    pub capinh: u64,
+    /// Masks of capabilities enabled in permitted sets (see capabilities(7)).
+    pub capprm: u64,
+    /// Masks of capabilities enabled in effective sets (see capabilities(7)).
+    pub capeff: u64,
+    /// Capability Bounding set (since Linux 2.6.26, see capabilities(7)).
+    pub capbnd: Option<u64>,
+    /// Ambient capability set (since Linux 4.3, see capabilities(7)).
+    pub capamb: Option<u64>,
+    /// Value of the no_new_privs bit (since Linux 4.10, see prctl(2)).
+    pub nonewprivs: Option<u64>,
+    /// Seccomp mode of the process (since Linux 3.8, see
+    /// seccomp(2)).  0 means SECCOMP_MODE_DISABLED; 1 means SEC‐
+    /// COMP_MODE_STRICT; 2 means SECCOMP_MODE_FILTER.  This field
+    /// is provided only if the kernel was built with the CON‐
+    /// FIG_SECCOMP kernel configuration option enabled.
+    pub seccomp: Option<u32>,
+    /// Mask of CPUs on which this process may run (since Linux 2.6.24, see cpuset(7)).
+    pub cpus_allowed: Option<Vec<u32>>,
+    /// Same as previous, but in "list format" (since Linux 2.6.26, see cpuset(7)).
+    pub cpus_allowed_list: Option<Vec<(u32, u32)>>,
+    /// Mask of memory nodes allowed to this process (since Linux 2.6.24, see cpuset(7)).
+    pub mems_allowed: Option<Vec<u32>>,
+    /// Same as previous, but in "list format" (since Linux 2.6.26, see cpuset(7)).
+    pub mems_allowed_list: Option<Vec<(u32, u32)>>,
+    /// Number of voluntary context switches (since Linux 2.6.23).
+    pub voluntary_ctxt_switches: Option<u64>,
+    /// Number of involuntary context switches (since Linux 2.6.23).
+    pub nonvoluntary_ctxt_switches: Option<u64>,
+}
+
+impl Status {
+    pub fn from_reader<R: io::Read>(r: R) -> Option<Status> {
+        use std::collections::HashMap;
+        use std::io::{BufRead, BufReader};
+        let mut map = HashMap::new();
+        let reader = BufReader::new(r);
+
+        for line in reader.lines() {
+            let line = expect!(line, "Failed to read line");
+            if line.is_empty() {
+                continue;
+            }
+            let mut s = line.split(':');
+            let field = expect!(s.next(), "no field");
+            let value = expect!(s.next(), "no value").trim();
+
+            map.insert(field.to_string(), value.to_string());
+        }
+        let status = Status {
+            name: expect!(map.remove("Name")),
+            umask: since_kernel!(4, 7, 0, from_str!(u32, &expect!(map.remove("Umask")), 8)),
+            state: expect!(map.remove("State")),
+            tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
+            ngid: since_kernel!(3, 13, 0, from_str!(i32, &expect!(map.remove("Ngid")))),
+            pid: from_str!(i32, &expect!(map.remove("Pid"))),
+            ppid: from_str!(i32, &expect!(map.remove("PPid"))),
+            tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
+            ruid: Status::parse_uid_gid(&expect!(map.get("Uid")), 0),
+            euid: Status::parse_uid_gid(&expect!(map.get("Uid")), 1),
+            suid: Status::parse_uid_gid(&expect!(map.get("Uid")), 2),
+            fuid: Status::parse_uid_gid(&expect!(map.remove("Uid")), 3),
+            rgid: Status::parse_uid_gid(&expect!(map.get("Gid")), 0),
+            egid: Status::parse_uid_gid(&expect!(map.get("Gid")), 1),
+            sgid: Status::parse_uid_gid(&expect!(map.get("Gid")), 2),
+            fgid: Status::parse_uid_gid(&expect!(map.remove("Gid")), 3),
+            fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
+            groups: Status::parse_list(&expect!(map.remove("Groups"))),
+            nstgid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("Nstgid")))),
+            nspid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("Nspid")))),
+            nspgid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("Nspgid")))),
+            nssid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("Nssid")))),
+            vmpeak: Status::parse_with_kb(&expect!(map.remove("VmPeak"))),
+            vmsize: Status::parse_with_kb(&expect!(map.remove("VmSize"))),
+            vmlck: Status::parse_with_kb(&expect!(map.remove("VmLck"))),
+            vmpin: since_kernel!(
+                3,
+                2,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("VmPin")))
+            ),
+            vmhwm: Status::parse_with_kb(&expect!(map.remove("VmHWM"))),
+            vmrss: Status::parse_with_kb(&expect!(map.remove("VmRSS"))),
+            rssanon: since_kernel!(
+                4,
+                5,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("RssAnon")))
+            ),
+            rssfile: since_kernel!(
+                4,
+                5,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("RssFile")))
+            ),
+            rssshmem: since_kernel!(
+                4,
+                5,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("RssShmem")))
+            ),
+            vmdata: Status::parse_with_kb(&expect!(map.remove("VmData"))),
+            vmstk: Status::parse_with_kb(&expect!(map.remove("VmStk"))),
+            vmexe: Status::parse_with_kb(&expect!(map.remove("VmExe"))),
+            vmlib: Status::parse_with_kb(&expect!(map.remove("VmLib"))),
+            vmpte: since_kernel!(
+                2,
+                6,
+                10,
+                Status::parse_with_kb(&expect!(map.remove("VmPTE")))
+            ),
+            vmpmd: since_kernel!(
+                4,
+                0,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("VmPMD")))
+            ),
+            vmswap: since_kernel!(
+                2,
+                6,
+                34,
+                Status::parse_with_kb(&expect!(map.remove("VmSwap")))
+            ),
+            hugetblpages: since_kernel!(
+                4,
+                4,
+                0,
+                Status::parse_with_kb(&expect!(map.remove("HugetlbPages")))
+            ),
+            threads: from_str!(u64, &expect!(map.remove("Threads"))),
+            sigq: Status::parse_sigq(&expect!(map.remove("SigQ"))),
+            sigpnd: from_str!(u64, &expect!(map.remove("SigPnd")), 16),
+            shdpnd: from_str!(u64, &expect!(map.remove("ShdPnd")), 16),
+            sigblk: from_str!(u64, &expect!(map.remove("SigBlk")), 16),
+            sigign: from_str!(u64, &expect!(map.remove("SigIgn")), 16),
+            sigcgt: from_str!(u64, &expect!(map.remove("SigCgt")), 16),
+            capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
+            capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
+            capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
+            capbnd: since_kernel!(2, 6, 26, from_str!(u64, &expect!(map.remove("CapBnd")), 16)),
+            capamb: since_kernel!(4, 3, 0, from_str!(u64, &expect!(map.remove("CapAmb")), 16)),
+            nonewprivs: since_kernel!(4, 10, 0, from_str!(u64, &expect!(map.remove("NoNewPrivs")))),
+            seccomp: since_kernel!(3, 8, 0, from_str!(u32, &expect!(map.remove("Seccomp")))),
+            cpus_allowed: since_kernel!(
+                2,
+                6,
+                24,
+                Status::parse_allowed(&expect!(map.remove("Cpus_allowed")))
+            ),
+            cpus_allowed_list: since_kernel!(
+                2,
+                6,
+                26,
+                Status::parse_allowed_list(&expect!(map.remove("Cpus_allowed_list")))
+            ),
+            mems_allowed: since_kernel!(
+                2,
+                6,
+                24,
+                Status::parse_allowed(&expect!(map.remove("Mems_allowed")))
+            ),
+            mems_allowed_list: since_kernel!(
+                2,
+                6,
+                26,
+                Status::parse_allowed_list(&expect!(map.remove("Mems_allowed_list")))
+            ),
+            voluntary_ctxt_switches: since_kernel!(
+                2,
+                6,
+                23,
+                from_str!(u64, &expect!(map.remove("voluntary_ctxt_switches")))
+            ),
+            nonvoluntary_ctxt_switches: since_kernel!(
+                2,
+                6,
+                23,
+                from_str!(u64, &expect!(map.remove("nonvoluntary_ctxt_switches")))
+            ),
+        };
+
+        //if !map.is_empty() {
+        //    if cfg!(test) {
+        //        panic!("status map is not empty: {:#?}", map);
+        //    }
+        //}
+
+        Some(status)
+    }
+
+    fn parse_with_kb<T: FromStrRadix>(s: &str) -> T {
+        from_str!(T, &s.replace(" kB", ""))
+    }
+
+    fn parse_uid_gid(s: &str, i: usize) -> i32 {
+        from_str!(i32, expect!(s.split_whitespace().nth(i)))
+    }
+
+    fn parse_sigq(s: &str) -> (u64, u64) {
+        let mut iter = s.split('/');
+        let first = from_str!(u64, expect!(iter.next()));
+        let second = from_str!(u64, expect!(iter.next()));
+        (first, second)
+    }
+
+    fn parse_list<T: FromStrRadix>(s: &str) -> Vec<T> {
+        let mut ret = Vec::new();
+        for i in s.split_whitespace() {
+            ret.push(from_str!(T, i));
+        }
+        ret
+    }
+
+    fn parse_allowed(s: &str) -> Vec<u32> {
+        let mut ret = Vec::new();
+        for i in s.split(',') {
+            ret.push(from_str!(u32, i, 16));
+        }
+        ret
+    }
+
+    fn parse_allowed_list(s: &str) -> Vec<(u32, u32)> {
+        let mut ret = Vec::new();
+        for s in s.split(',') {
+            if s.contains('-') {
+                let mut s = s.split('-');
+                let beg = from_str!(u32, expect!(s.next()));
+                let end = from_str!(u32, expect!(s.next()));
+                ret.push((beg, end));
+            } else {
+                let beg = from_str!(u32, s);
+                let end = from_str!(u32, s);
+                ret.push((beg, end));
+            }
+        }
+        ret
+    }
+}
+
 /// Represents a process in `/proc/<pid>`.
 ///
 /// The `stat` structure is pre-populated because it's useful info, but other data is loaded on
@@ -1441,6 +1801,12 @@ impl Process {
         let mut file = File::open(self.root.join("wchan"))?;
         file.read_to_string(&mut s)?;
         Ok(s)
+    }
+
+    /// Return the `Status` for this process, based on the `/proc/[pid]/status` file.
+    pub fn status(&self) -> ProcResult<Status> {
+        let file = File::open(self.root.join("status"))?;
+        Ok(Status::from_reader(file).unwrap())
     }
 }
 
@@ -1743,6 +2109,13 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         let myself = Process::myself().unwrap();
         let wchan = myself.wchan().unwrap();
         println!("{:?}", wchan);
+    }
+
+    #[test]
+    fn test_proc_status() {
+        let myself = Process::myself().unwrap();
+        let status = myself.status().unwrap();
+        println!("{:?}", status);
     }
 
 }
