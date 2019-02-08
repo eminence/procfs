@@ -1233,45 +1233,45 @@ pub struct Status {
     /// in each of the PID namespaces of which [pid] is a member.
     /// The fields are ordered as for NStgid.  (Since Linux 4.1.)
     pub nssid: Option<Vec<i32>>,
-    /// Peak virtual memory size.
+    /// Peak virtual memory size by kB.
     pub vmpeak: u64,
-    /// Virtual memory size.
+    /// Virtual memory size by kB.
     pub vmsize: u64,
-    /// Locked memory size (see mlock(3)).
+    /// Locked memory size by kB (see mlock(3)).
     pub vmlck: u64,
-    /// Pinned memory size (since Linux 3.2).  These are
+    /// Pinned memory size by kB (since Linux 3.2).  These are
     /// pages that can't be moved because something needs to
     /// directly access physical memory.
     pub vmpin: Option<u64>,
-    /// Peak resident set size ("high water mark").
+    /// Peak resident set size by kB ("high water mark").
     pub vmhwm: u64,
-    /// Resident set size.  Note that the value here is the
+    /// Resident set size by kB.  Note that the value here is the
     /// sum of RssAnon, RssFile, and RssShmem.
     pub vmrss: u64,
-    /// Size of resident anonymous memory.  (since Linux 4.5).
+    /// Size of resident anonymous memory by kB.  (since Linux 4.5).
     pub rssanon: Option<u64>,
-    /// Size of resident file mappings.  (since Linux 4.5).
+    /// Size of resident file mappings by kB.  (since Linux 4.5).
     pub rssfile: Option<u64>,
-    /// Size of resident shared memory (includes System V
+    /// Size of resident shared memory by kB (includes System V
     /// shared memory, mappings from tmpfs(5), and shared anonymous
     /// mappings).  (since Linux 4.5).
     pub rssshmem: Option<u64>,
-    /// Size of data.
+    /// Size of data by kB.
     pub vmdata: u64,
-    /// Size of stack.
+    /// Size of stack by kB.
     pub vmstk: u64,
-    /// Size of text seg‐ments.
+    /// Size of text seg‐ments by kB.
     pub vmexe: u64,
-    /// Shared library code size.
+    /// Shared library code size by kB.
     pub vmlib: u64,
-    /// Page table entries size (since Linux 2.6.10).
+    /// Page table entries size by kB (since Linux 2.6.10).
     pub vmpte: Option<u64>,
-    /// Size of second-level page tables (since Linux 4.0).
+    /// Size of second-level page tables by kB (since Linux 4.0).
     pub vmpmd: Option<u64>,
     /// Swapped-out virtual memory size by anonymous private
-    /// pages; shmem swap usage is not included (since Linux 2.6.34).
+    /// pages by kB; shmem swap usage is not included (since Linux 2.6.34).
     pub vmswap: Option<u64>,
-    /// Size of hugetlb memory portions.  (since Linux 4.4).
+    /// Size of hugetlb memory portions by kB.  (since Linux 4.4).
     pub hugetblpages: Option<u64>,
     /// Number of threads in process containing this thread.
     pub threads: u64,
