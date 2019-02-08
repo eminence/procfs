@@ -1266,8 +1266,6 @@ pub struct Status {
     pub vmlib: u64,
     /// Page table entries size by kB (since Linux 2.6.10).
     pub vmpte: Option<u64>,
-    /// Size of second-level page tables by kB (since Linux 4.0).
-    pub vmpmd: Option<u64>,
     /// Swapped-out virtual memory size by anonymous private
     /// pages by kB; shmem swap usage is not included (since Linux 2.6.34).
     pub vmswap: Option<u64>,
@@ -1404,12 +1402,6 @@ impl Status {
                 6,
                 10,
                 Status::parse_with_kb(&expect!(map.remove("VmPTE")))
-            ),
-            vmpmd: since_kernel!(
-                4,
-                0,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("VmPMD")))
             ),
             vmswap: since_kernel!(
                 2,
