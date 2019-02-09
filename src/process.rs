@@ -2108,6 +2108,10 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         let myself = Process::myself().unwrap();
         let status = myself.status().unwrap();
         println!("{:?}", status);
+
+        assert_eq!(status.name, myself.stat.comm);
+        assert_eq!(status.pid, myself.stat.pid);
+        assert_eq!(status.ppid, myself.stat.ppid);
     }
 
 }
