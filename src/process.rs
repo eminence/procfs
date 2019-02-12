@@ -929,8 +929,8 @@ impl Io {
             cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
         };
 
-        if !map.is_empty() {
-            if cfg!(test) {
+        if cfg!(test) {
+            if !map.is_empty() {
                 panic!("io map is not empty: {:#?}", map);
             }
         }
@@ -1467,11 +1467,13 @@ impl Status {
             ),
         };
 
-        //if !map.is_empty() {
-        //    if cfg!(test) {
-        //        panic!("status map is not empty: {:#?}", map);
-        //    }
-        //}
+        if cfg!(test) {
+            if !map.is_empty() {
+                // This isn't an error because different kernels may put different data here, and distros
+                // may backport these changes into older kernels.  Too hard to keep track of
+                eprintln!("Warning: status map is not empty: {:#?}", map);
+            }
+        }
 
         Some(status)
     }
