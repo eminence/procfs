@@ -1234,20 +1234,20 @@ pub struct Status {
     /// The fields are ordered as for NStgid.  (Since Linux 4.1.)
     pub nssid: Option<Vec<i32>>,
     /// Peak virtual memory size by kB.
-    pub vmpeak: u64,
+    pub vmpeak: Option<u64>,
     /// Virtual memory size by kB.
-    pub vmsize: u64,
+    pub vmsize: Option<u64>,
     /// Locked memory size by kB (see mlock(3)).
-    pub vmlck: u64,
+    pub vmlck: Option<u64>,
     /// Pinned memory size by kB (since Linux 3.2).  These are
     /// pages that can't be moved because something needs to
     /// directly access physical memory.
     pub vmpin: Option<u64>,
     /// Peak resident set size by kB ("high water mark").
-    pub vmhwm: u64,
+    pub vmhwm: Option<u64>,
     /// Resident set size by kB.  Note that the value here is the
     /// sum of RssAnon, RssFile, and RssShmem.
-    pub vmrss: u64,
+    pub vmrss: Option<u64>,
     /// Size of resident anonymous memory by kB.  (since Linux 4.5).
     pub rssanon: Option<u64>,
     /// Size of resident file mappings by kB.  (since Linux 4.5).
@@ -1257,13 +1257,13 @@ pub struct Status {
     /// mappings).  (since Linux 4.5).
     pub rssshmem: Option<u64>,
     /// Size of data by kB.
-    pub vmdata: u64,
+    pub vmdata: Option<u64>,
     /// Size of stack by kB.
-    pub vmstk: u64,
+    pub vmstk: Option<u64>,
     /// Size of text seg‐ments by kB.
-    pub vmexe: u64,
+    pub vmexe: Option<u64>,
     /// Shared library code size by kB.
-    pub vmlib: u64,
+    pub vmlib: Option<u64>,
     /// Page table entries size by kB (since Linux 2.6.10).
     pub vmpte: Option<u64>,
     /// Swapped-out virtual memory size by anonymous private
@@ -1364,57 +1364,22 @@ impl Status {
             nspid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSpid")))),
             nspgid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSpgid")))),
             nssid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSsid")))),
-            vmpeak: Status::parse_with_kb(&expect!(map.remove("VmPeak"))),
-            vmsize: Status::parse_with_kb(&expect!(map.remove("VmSize"))),
-            vmlck: Status::parse_with_kb(&expect!(map.remove("VmLck"))),
-            vmpin: since_kernel!(
-                3,
-                2,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("VmPin")))
-            ),
-            vmhwm: Status::parse_with_kb(&expect!(map.remove("VmHWM"))),
-            vmrss: Status::parse_with_kb(&expect!(map.remove("VmRSS"))),
-            rssanon: since_kernel!(
-                4,
-                5,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("RssAnon")))
-            ),
-            rssfile: since_kernel!(
-                4,
-                5,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("RssFile")))
-            ),
-            rssshmem: since_kernel!(
-                4,
-                5,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("RssShmem")))
-            ),
-            vmdata: Status::parse_with_kb(&expect!(map.remove("VmData"))),
-            vmstk: Status::parse_with_kb(&expect!(map.remove("VmStk"))),
-            vmexe: Status::parse_with_kb(&expect!(map.remove("VmExe"))),
-            vmlib: Status::parse_with_kb(&expect!(map.remove("VmLib"))),
-            vmpte: since_kernel!(
-                2,
-                6,
-                10,
-                Status::parse_with_kb(&expect!(map.remove("VmPTE")))
-            ),
-            vmswap: since_kernel!(
-                2,
-                6,
-                34,
-                Status::parse_with_kb(&expect!(map.remove("VmSwap")))
-            ),
-            hugetblpages: since_kernel!(
-                4,
-                4,
-                0,
-                Status::parse_with_kb(&expect!(map.remove("HugetlbPages")))
-            ),
+            vmpeak: Status::parse_with_kb(map.remove("VmPeak")),
+            vmsize: Status::parse_with_kb(map.remove("VmSize")),
+            vmlck: Status::parse_with_kb(map.remove("VmLck")),
+            vmpin: Status::parse_with_kb(map.remove("VmPin")),
+            vmhwm: Status::parse_with_kb(map.remove("VmHWM")),
+            vmrss: Status::parse_with_kb(map.remove("VmRSS")),
+            rssanon: Status::parse_with_kb(map.remove("RssAnon")),
+            rssfile: Status::parse_with_kb(map.remove("RssFile")),
+            rssshmem: Status::parse_with_kb(map.remove("RssShmem")),
+            vmdata: Status::parse_with_kb(map.remove("VmData")),
+            vmstk: Status::parse_with_kb(map.remove("VmStk")),
+            vmexe: Status::parse_with_kb(map.remove("VmExe")),
+            vmlib: Status::parse_with_kb(map.remove("VmLib")),
+            vmpte: Status::parse_with_kb(map.remove("VmPTE")),
+            vmswap: Status::parse_with_kb(map.remove("VmSwap")),
+            hugetblpages: Status::parse_with_kb(map.remove("HugetlbPages")),
             threads: from_str!(u64, &expect!(map.remove("Threads"))),
             sigq: Status::parse_sigq(&expect!(map.remove("SigQ"))),
             sigpnd: from_str!(u64, &expect!(map.remove("SigPnd")), 16),
@@ -1478,8 +1443,12 @@ impl Status {
         Some(status)
     }
 
-    fn parse_with_kb<T: FromStrRadix>(s: &str) -> T {
-        from_str!(T, &s.replace(" kB", ""))
+    fn parse_with_kb<T: FromStrRadix>(s: Option<String>) -> Option<T> {
+        if let Some(s) = s {
+            Some(from_str!(T, &s.replace(" kB", "")))
+        } else {
+            None
+        }
     }
 
     fn parse_uid_gid(s: &str, i: usize) -> i32 {
@@ -2114,6 +2083,31 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         assert_eq!(status.name, myself.stat.comm);
         assert_eq!(status.pid, myself.stat.pid);
         assert_eq!(status.ppid, myself.stat.ppid);
+    }
+
+    #[test]
+    fn test_proc_status_for_kthreadd() {
+        let kthreadd = Process::new(2).unwrap();
+        let status = kthreadd.status().unwrap();
+        println!("{:?}", status);
+
+        assert_eq!(status.pid, 2);
+        assert_eq!(status.vmpeak, None);
+        assert_eq!(status.vmsize, None);
+        assert_eq!(status.vmlck, None);
+        assert_eq!(status.vmpin, None);
+        assert_eq!(status.vmhwm, None);
+        assert_eq!(status.vmrss, None);
+        assert_eq!(status.rssanon, None);
+        assert_eq!(status.rssfile, None);
+        assert_eq!(status.rssshmem, None);
+        assert_eq!(status.vmdata, None);
+        assert_eq!(status.vmstk, None);
+        assert_eq!(status.vmexe, None);
+        assert_eq!(status.vmlib, None);
+        assert_eq!(status.vmpte, None);
+        assert_eq!(status.vmswap, None);
+        assert_eq!(status.hugetblpages, None);
     }
 
 }
