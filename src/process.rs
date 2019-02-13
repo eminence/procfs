@@ -1897,6 +1897,8 @@ mod tests {
             check_unwrap(prc.autogroup());
             check_unwrap(prc.auxv());
             check_unwrap(prc.cgroups());
+            check_unwrap(prc.wchan());
+            check_unwrap(prc.status());
         }
     }
 
