@@ -1,6 +1,6 @@
 [package]
 name = "procfs"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Andrew Chin <achin@eminence32.net>"]
 repository = "https://github.com/eminence/procfs"
 description = "Interface to the linux procfs pseudo-filesystem"
