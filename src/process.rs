@@ -1343,10 +1343,10 @@ impl Status {
         }
         let status = Status {
             name: expect!(map.remove("Name")),
-            umask: since_kernel!(4, 7, 0, from_str!(u32, &expect!(map.remove("Umask")), 8)),
+            umask: map.remove("Umask").map(|x| from_str!(u32, &x, 8)),
             state: expect!(map.remove("State")),
             tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
-            ngid: since_kernel!(3, 13, 0, from_str!(i32, &expect!(map.remove("Ngid")))),
+            ngid: map.remove("Ngid").map(|x| from_str!(i32, &x)),
             pid: from_str!(i32, &expect!(map.remove("Pid"))),
             ppid: from_str!(i32, &expect!(map.remove("PPid"))),
             tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
@@ -1360,10 +1360,10 @@ impl Status {
             fgid: Status::parse_uid_gid(&expect!(map.remove("Gid")), 3),
             fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
             groups: Status::parse_list(&expect!(map.remove("Groups"))),
-            nstgid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NStgid")))),
-            nspid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSpid")))),
-            nspgid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSpgid")))),
-            nssid: since_kernel!(4, 1, 0, Status::parse_list(&expect!(map.remove("NSsid")))),
+            nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)),
+            nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)),
+            nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)),
+            nssid: map.remove("NSsid").map(|x| Status::parse_list(&x)),
             vmpeak: Status::parse_with_kb(map.remove("VmPeak")),
             vmsize: Status::parse_with_kb(map.remove("VmSize")),
             vmlck: Status::parse_with_kb(map.remove("VmLck")),
@@ -1390,46 +1390,28 @@ impl Status {
             capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
             capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
             capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
-            capbnd: since_kernel!(2, 6, 26, from_str!(u64, &expect!(map.remove("CapBnd")), 16)),
-            capamb: since_kernel!(4, 3, 0, from_str!(u64, &expect!(map.remove("CapAmb")), 16)),
-            nonewprivs: since_kernel!(4, 10, 0, from_str!(u64, &expect!(map.remove("NoNewPrivs")))),
-            seccomp: since_kernel!(3, 8, 0, from_str!(u32, &expect!(map.remove("Seccomp")))),
-            cpus_allowed: since_kernel!(
-                2,
-                6,
-                24,
-                Status::parse_allowed(&expect!(map.remove("Cpus_allowed")))
-            ),
-            cpus_allowed_list: since_kernel!(
-                2,
-                6,
-                26,
-                Status::parse_allowed_list(&expect!(map.remove("Cpus_allowed_list")))
-            ),
-            mems_allowed: since_kernel!(
-                2,
-                6,
-                24,
-                Status::parse_allowed(&expect!(map.remove("Mems_allowed")))
-            ),
-            mems_allowed_list: since_kernel!(
-                2,
-                6,
-                26,
-                Status::parse_allowed_list(&expect!(map.remove("Mems_allowed_list")))
-            ),
-            voluntary_ctxt_switches: since_kernel!(
-                2,
-                6,
-                23,
-                from_str!(u64, &expect!(map.remove("voluntary_ctxt_switches")))
-            ),
-            nonvoluntary_ctxt_switches: since_kernel!(
-                2,
-                6,
-                23,
-                from_str!(u64, &expect!(map.remove("nonvoluntary_ctxt_switches")))
-            ),
+            capbnd: map.remove("CapBnd").map(|x| from_str!(u64, &x, 16)),
+            capamb: map.remove("CapAmb").map(|x| from_str!(u64, &x, 16)),
+            nonewprivs: map.remove("NoNewPrivs").map(|x| from_str!(u64, &x)),
+            seccomp: map.remove("Seccomp").map(|x| from_str!(u32, &x)),
+            cpus_allowed: map
+                .remove("Cpus_allowed")
+                .map(|x| Status::parse_allowed(&x)),
+            cpus_allowed_list: map
+                .remove("Cpus_allowed_list")
+                .map(|x| Status::parse_allowed_list(&x)),
+            mems_allowed: map
+                .remove("Mems_allowed")
+                .map(|x| Status::parse_allowed(&x)),
+            mems_allowed_list: map
+                .remove("Mems_allowed_list")
+                .map(|x| Status::parse_allowed_list(&x)),
+            voluntary_ctxt_switches: map
+                .remove("voluntary_ctxt_switches")
+                .map(|x| from_str!(u64, &x)),
+            nonvoluntary_ctxt_switches: map
+                .remove("nonvoluntary_ctxt_switches")
+                .map(|x| from_str!(u64, &x)),
         };
 
         if cfg!(test) {
