@@ -1178,6 +1178,10 @@ impl Stat {
 /// To construct this structure, see [Process::status()].
 ///
 /// Not all fields are available in every kernel.  These fields have `Option<T>` types.
+/// In general, the current kernel version will tell you what fields you can expect, but this
+/// isn't totally reliable, since some kernels might backport certain fields, or fields might
+/// only be present if certain kernel configuration options are enabled.  Be prepared to
+/// handle `None` values.
 #[derive(Debug, Clone)]
 pub struct Status {
     /// Command run by this process.
