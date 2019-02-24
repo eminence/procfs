@@ -1313,6 +1313,8 @@ pub struct Status {
     /// is provided only if the kernel was built with the CON‐
     /// FIG_SECCOMP kernel configuration option enabled.
     pub seccomp: Option<u32>,
+    /// Speculative store bypass mitigation status.
+    pub speculation_store_bypass: Option<String>,
     /// Mask of CPUs on which this process may run (since Linux 2.6.24, see cpuset(7)).
     pub cpus_allowed: Option<Vec<u32>>,
     /// Same as previous, but in "list format" (since Linux 2.6.26, see cpuset(7)).
@@ -1398,6 +1400,7 @@ impl Status {
             capamb: map.remove("CapAmb").map(|x| from_str!(u64, &x, 16)),
             nonewprivs: map.remove("NoNewPrivs").map(|x| from_str!(u64, &x)),
             seccomp: map.remove("Seccomp").map(|x| from_str!(u32, &x)),
+            speculation_store_bypass: map.remove("Speculation_Store_Bypass"),
             cpus_allowed: map
                 .remove("Cpus_allowed")
                 .map(|x| Status::parse_allowed(&x)),
