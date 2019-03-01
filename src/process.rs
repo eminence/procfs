@@ -1638,34 +1638,39 @@ impl Process {
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
+        fn from_line(line: &str) -> Option<MemoryMap> {
+            let mut s = line.splitn(6, ' ');
+            let address = s.next()?;
+            let perms = s.next()?;
+            let offset = s.next()?;
+            let dev = s.next()?;
+            let inode = s.next()?;
+            let path = s.next()?;
+
+            Some(MemoryMap {
+                address: split_into_num(address, '-', 16),
+                perms: perms.to_string(),
+                offset: from_str!(u64, offset, 16),
+                dev: split_into_num(dev, ':', 16),
+                inode: from_str!(u64, inode),
+                pathname: MMapPath::from(path),
+            })
+        }
+
         use std::io::{BufRead, BufReader};
 
         let file = File::open(self.root.join("maps"))?;
 
         let reader = BufReader::new(file);
 
-        Ok(reader
-            .lines()
-            .map(|line| {
-                let line = line.unwrap();
-                let mut s = line.splitn(6, ' ');
-                let address = expect!(s.next(), "maps::address");
-                let perms = expect!(s.next(), "maps::perms");
-                let offset = expect!(s.next(), "maps::offset");
-                let dev = expect!(s.next(), "maps::dev");
-                let inode = expect!(s.next(), "maps::inode");
-                let path = expect!(s.next(), "maps::path");
+        let mut vec = Vec::new();
 
-                MemoryMap {
-                    address: split_into_num(address, '-', 16),
-                    perms: perms.to_string(),
-                    offset: from_str!(u64, offset, 16),
-                    dev: split_into_num(dev, ':', 16),
-                    inode: from_str!(u64, inode),
-                    pathname: MMapPath::from(path),
-                }
-            })
-            .collect())
+        for line in reader.lines() {
+            let line = line.map_err(|_| ProcError::Incomplete)?;
+            vec.push(from_line(&line).ok_or(ProcError::Incomplete)?);
+        }
+
+        Ok(vec)
     }
 
     /// Gets a list of open file descriptors for a process
