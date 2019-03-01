@@ -137,15 +137,15 @@ bitflags! {
 //    }
 //}
 
-fn from_iter<'a, I, U>(i: I) -> U
+fn from_iter<'a, I, U>(i: I) -> Option<U>
 where
     I: IntoIterator<Item = &'a str>,
     U: FromStr,
 {
     let mut iter = i.into_iter();
-    let val = expect!(iter.next(), "Missing iterator next item");
+    let val = iter.next()?;
     match FromStr::from_str(val) {
-        Ok(u) => u,
+        Ok(u) => Some(u),
         Err(..) => panic!("Failed to convert".to_string()),
     }
 }
@@ -907,26 +907,26 @@ impl Io {
         let reader = BufReader::new(r);
 
         for line in reader.lines() {
-            let line = expect!(line, "Failed to read line");
+            let line = line.ok()?;
             if line.is_empty() || !line.contains(' ') {
                 continue;
             }
             let mut s = line.split_whitespace();
-            let field = expect!(s.next(), "no field");
-            let value = expect!(s.next(), "no value");
+            let field = s.next()?;
+            let value = s.next()?;
 
             let value = from_str!(u64, value);
 
             map.insert(field[..field.len() - 1].to_string(), value);
         }
         let io = Io {
-            rchar: expect!(map.remove("rchar")),
-            wchar: expect!(map.remove("wchar")),
-            syscr: expect!(map.remove("syscr")),
-            syscw: expect!(map.remove("syscw")),
-            read_bytes: expect!(map.remove("read_bytes")),
-            write_bytes: expect!(map.remove("write_bytes")),
-            cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
+            rchar: map.remove("rchar")?,
+            wchar: map.remove("wchar")?,
+            syscr: map.remove("syscr")?,
+            syscw: map.remove("syscw")?,
+            read_bytes: map.remove("read_bytes")?,
+            write_bytes: map.remove("write_bytes")?,
+            cancelled_write_bytes: map.remove("cancelled_write_bytes")?,
         };
 
         if cfg!(test) {
@@ -1026,58 +1026,58 @@ impl Stat {
         let pid = FromStr::from_str(pid_s).unwrap();
 
         let mut rest = rest.split(' ');
-        let state = rest.next().unwrap().chars().next().unwrap();
+        let state = rest.next()?.chars().next()?;
 
-        let ppid = from_iter(&mut rest);
-        let pgrp = from_iter(&mut rest);
-        let session = from_iter(&mut rest);
-        let tty_nr = from_iter(&mut rest);
-        let tpgid = from_iter(&mut rest);
-        let flags = from_iter(&mut rest);
-        let minflt = from_iter(&mut rest);
-        let cminflt = from_iter(&mut rest);
-        let majflt = from_iter(&mut rest);
-        let cmajflt = from_iter(&mut rest);
-        let utime = from_iter(&mut rest);
-        let stime = from_iter(&mut rest);
-        let cutime = from_iter(&mut rest);
-        let cstime = from_iter(&mut rest);
-        let priority = from_iter(&mut rest);
-        let nice = from_iter(&mut rest);
-        let num_threads = from_iter(&mut rest);
-        let itrealvalue = from_iter(&mut rest);
-        let starttime = from_iter(&mut rest);
-        let vsize = from_iter(&mut rest);
-        let rss = from_iter(&mut rest);
-        let rsslim = from_iter(&mut rest);
-        let startcode = from_iter(&mut rest);
-        let endcode = from_iter(&mut rest);
-        let startstack = from_iter(&mut rest);
-        let kstkesp = from_iter(&mut rest);
-        let kstkeip = from_iter(&mut rest);
-        let signal = from_iter(&mut rest);
-        let blocked = from_iter(&mut rest);
-        let sigignore = from_iter(&mut rest);
-        let sigcatch = from_iter(&mut rest);
-        let wchan = from_iter(&mut rest);
-        let nswap = from_iter(&mut rest);
-        let cnswap = from_iter(&mut rest);
+        let ppid = from_iter(&mut rest)?;
+        let pgrp = from_iter(&mut rest)?;
+        let session = from_iter(&mut rest)?;
+        let tty_nr = from_iter(&mut rest)?;
+        let tpgid = from_iter(&mut rest)?;
+        let flags = from_iter(&mut rest)?;
+        let minflt = from_iter(&mut rest)?;
+        let cminflt = from_iter(&mut rest)?;
+        let majflt = from_iter(&mut rest)?;
+        let cmajflt = from_iter(&mut rest)?;
+        let utime = from_iter(&mut rest)?;
+        let stime = from_iter(&mut rest)?;
+        let cutime = from_iter(&mut rest)?;
+        let cstime = from_iter(&mut rest)?;
+        let priority = from_iter(&mut rest)?;
+        let nice = from_iter(&mut rest)?;
+        let num_threads = from_iter(&mut rest)?;
+        let itrealvalue = from_iter(&mut rest)?;
+        let starttime = from_iter(&mut rest)?;
+        let vsize = from_iter(&mut rest)?;
+        let rss = from_iter(&mut rest)?;
+        let rsslim = from_iter(&mut rest)?;
+        let startcode = from_iter(&mut rest)?;
+        let endcode = from_iter(&mut rest)?;
+        let startstack = from_iter(&mut rest)?;
+        let kstkesp = from_iter(&mut rest)?;
+        let kstkeip = from_iter(&mut rest)?;
+        let signal = from_iter(&mut rest)?;
+        let blocked = from_iter(&mut rest)?;
+        let sigignore = from_iter(&mut rest)?;
+        let sigcatch = from_iter(&mut rest)?;
+        let wchan = from_iter(&mut rest)?;
+        let nswap = from_iter(&mut rest)?;
+        let cnswap = from_iter(&mut rest)?;
 
-        let exit_signal = since_kernel!(2, 1, 22, from_iter(&mut rest));
-        let processor = since_kernel!(2, 2, 8, from_iter(&mut rest));
-        let rt_priority = since_kernel!(2, 5, 19, from_iter(&mut rest));
-        let policy = since_kernel!(2, 5, 19, from_iter(&mut rest));
-        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, from_iter(&mut rest));
-        let guest_time = since_kernel!(2, 6, 24, from_iter(&mut rest));
-        let cguest_time = since_kernel!(2, 6, 24, from_iter(&mut rest));
-        let start_data = since_kernel!(3, 3, 0, from_iter(&mut rest));
-        let end_data = since_kernel!(3, 3, 0, from_iter(&mut rest));
-        let start_brk = since_kernel!(3, 3, 0, from_iter(&mut rest));
-        let arg_start = since_kernel!(3, 5, 0, from_iter(&mut rest));
-        let arg_end = since_kernel!(3, 5, 0, from_iter(&mut rest));
-        let env_start = since_kernel!(3, 5, 0, from_iter(&mut rest));
-        let env_end = since_kernel!(3, 5, 0, from_iter(&mut rest));
-        let exit_code = since_kernel!(3, 5, 0, from_iter(&mut rest));
+        let exit_signal = since_kernel!(2, 1, 22, from_iter(&mut rest)?);
+        let processor = since_kernel!(2, 2, 8, from_iter(&mut rest)?);
+        let rt_priority = since_kernel!(2, 5, 19, from_iter(&mut rest)?);
+        let policy = since_kernel!(2, 5, 19, from_iter(&mut rest)?);
+        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, from_iter(&mut rest)?);
+        let guest_time = since_kernel!(2, 6, 24, from_iter(&mut rest)?);
+        let cguest_time = since_kernel!(2, 6, 24, from_iter(&mut rest)?);
+        let start_data = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
+        let end_data = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
+        let start_brk = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
+        let arg_start = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
+        let arg_end = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
+        let env_start = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
+        let env_end = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
+        let exit_code = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
 
         Some(Stat {
             pid,
@@ -1337,35 +1337,35 @@ impl Status {
         let reader = BufReader::new(r);
 
         for line in reader.lines() {
-            let line = expect!(line, "Failed to read line");
+            let line = line.ok()?;
             if line.is_empty() {
                 continue;
             }
             let mut s = line.split(':');
-            let field = expect!(s.next(), "no field");
-            let value = expect!(s.next(), "no value").trim();
+            let field = s.next()?;
+            let value = s.next()?.trim();
 
             map.insert(field.to_string(), value.to_string());
         }
         let status = Status {
-            name: expect!(map.remove("Name")),
+            name: map.remove("Name")?,
             umask: map.remove("Umask").map(|x| from_str!(u32, &x, 8)),
-            state: expect!(map.remove("State")),
-            tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
+            state: map.remove("State")?,
+            tgid: from_str!(i32, &map.remove("Tgid")?),
             ngid: map.remove("Ngid").map(|x| from_str!(i32, &x)),
-            pid: from_str!(i32, &expect!(map.remove("Pid"))),
-            ppid: from_str!(i32, &expect!(map.remove("PPid"))),
-            tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
-            ruid: Status::parse_uid_gid(&expect!(map.get("Uid")), 0),
-            euid: Status::parse_uid_gid(&expect!(map.get("Uid")), 1),
-            suid: Status::parse_uid_gid(&expect!(map.get("Uid")), 2),
-            fuid: Status::parse_uid_gid(&expect!(map.remove("Uid")), 3),
-            rgid: Status::parse_uid_gid(&expect!(map.get("Gid")), 0),
-            egid: Status::parse_uid_gid(&expect!(map.get("Gid")), 1),
-            sgid: Status::parse_uid_gid(&expect!(map.get("Gid")), 2),
-            fgid: Status::parse_uid_gid(&expect!(map.remove("Gid")), 3),
-            fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
-            groups: Status::parse_list(&expect!(map.remove("Groups"))),
+            pid: from_str!(i32, &map.remove("Pid")?),
+            ppid: from_str!(i32, &map.remove("PPid")?),
+            tracerpid: from_str!(i32, &map.remove("TracerPid")?),
+            ruid: Status::parse_uid_gid(&map.get("Uid")?, 0)?,
+            euid: Status::parse_uid_gid(&map.get("Uid")?, 1)?,
+            suid: Status::parse_uid_gid(&map.get("Uid")?, 2)?,
+            fuid: Status::parse_uid_gid(&map.remove("Uid")?, 3)?,
+            rgid: Status::parse_uid_gid(&map.get("Gid")?, 0)?,
+            egid: Status::parse_uid_gid(&map.get("Gid")?, 1)?,
+            sgid: Status::parse_uid_gid(&map.get("Gid")?, 2)?,
+            fgid: Status::parse_uid_gid(&map.remove("Gid")?, 3)?,
+            fdsize: from_str!(u32, &map.remove("FDSize")?),
+            groups: Status::parse_list(&map.remove("Groups")?),
             nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)),
             nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)),
             nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)),
@@ -1386,16 +1386,16 @@ impl Status {
             vmpte: Status::parse_with_kb(map.remove("VmPTE")),
             vmswap: Status::parse_with_kb(map.remove("VmSwap")),
             hugetblpages: Status::parse_with_kb(map.remove("HugetlbPages")),
-            threads: from_str!(u64, &expect!(map.remove("Threads"))),
-            sigq: Status::parse_sigq(&expect!(map.remove("SigQ"))),
-            sigpnd: from_str!(u64, &expect!(map.remove("SigPnd")), 16),
-            shdpnd: from_str!(u64, &expect!(map.remove("ShdPnd")), 16),
-            sigblk: from_str!(u64, &expect!(map.remove("SigBlk")), 16),
-            sigign: from_str!(u64, &expect!(map.remove("SigIgn")), 16),
-            sigcgt: from_str!(u64, &expect!(map.remove("SigCgt")), 16),
-            capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
-            capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
-            capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
+            threads: from_str!(u64, &map.remove("Threads")?),
+            sigq: Status::parse_sigq(&map.remove("SigQ")?)?,
+            sigpnd: from_str!(u64, &map.remove("SigPnd")?, 16),
+            shdpnd: from_str!(u64, &map.remove("ShdPnd")?, 16),
+            sigblk: from_str!(u64, &map.remove("SigBlk")?, 16),
+            sigign: from_str!(u64, &map.remove("SigIgn")?, 16),
+            sigcgt: from_str!(u64, &map.remove("SigCgt")?, 16),
+            capinh: from_str!(u64, &map.remove("CapInh")?, 16),
+            capprm: from_str!(u64, &map.remove("CapPrm")?, 16),
+            capeff: from_str!(u64, &map.remove("CapEff")?, 16),
             capbnd: map.remove("CapBnd").map(|x| from_str!(u64, &x, 16)),
             capamb: map.remove("CapAmb").map(|x| from_str!(u64, &x, 16)),
             nonewprivs: map.remove("NoNewPrivs").map(|x| from_str!(u64, &x)),
@@ -1440,15 +1440,15 @@ impl Status {
         }
     }
 
-    fn parse_uid_gid(s: &str, i: usize) -> i32 {
-        from_str!(i32, expect!(s.split_whitespace().nth(i)))
+    fn parse_uid_gid(s: &str, i: usize) -> Option<i32> {
+        Some(from_str!(i32, s.split_whitespace().nth(i)?))
     }
 
-    fn parse_sigq(s: &str) -> (u64, u64) {
+    fn parse_sigq(s: &str) -> Option<(u64, u64)> {
         let mut iter = s.split('/');
-        let first = from_str!(u64, expect!(iter.next()));
-        let second = from_str!(u64, expect!(iter.next()));
-        (first, second)
+        let first = from_str!(u64, iter.next()?);
+        let second = from_str!(u64, iter.next()?);
+        Some((first, second))
     }
 
     fn parse_list<T: FromStrRadix>(s: &str) -> Vec<T> {
@@ -1473,8 +1473,10 @@ impl Status {
             if s.contains('-') {
                 let mut s = s.split('-');
                 let beg = from_str!(u32, expect!(s.next()));
-                let end = from_str!(u32, expect!(s.next()));
-                ret.push((beg, end));
+                if let Some(x) = s.next() {
+                    let end = from_str!(u32, x);
+                    ret.push((beg, end));
+                }
             } else {
                 let beg = from_str!(u32, s);
                 let end = from_str!(u32, s);
@@ -1504,7 +1506,8 @@ impl Process {
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
-        let stat = Stat::from_reader(File::open(root.join("stat"))?).unwrap();
+        let stat =
+            Stat::from_reader(File::open(root.join("stat"))?).ok_or(ProcError::Incomplete)?;
 
         let md = std::fs::metadata(&root)?;
 
@@ -1520,7 +1523,8 @@ impl Process {
     /// This is done by using the `/proc/self` symlink
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
-        let stat = Stat::from_reader(File::open(root.join("stat"))?).unwrap();
+        let stat =
+            Stat::from_reader(File::open(root.join("stat"))?).ok_or(ProcError::Incomplete)?;
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
@@ -1628,7 +1632,7 @@ impl Process {
     /// (since kernel 2.6.20)
     pub fn io(&self) -> ProcResult<Io> {
         let file = File::open(self.root.join("io"))?;
-        Ok(Io::from_reader(file).unwrap())
+        Io::from_reader(file).ok_or(ProcError::Incomplete)
     }
 
     /// Return a list of the currently mapped memory regions and their access permissions, based on
@@ -1758,7 +1762,7 @@ impl Process {
     /// Return the `Status` for this process, based on the `/proc/[pid]/status` file.
     pub fn status(&self) -> ProcResult<Status> {
         let file = File::open(self.root.join("status"))?;
-        Ok(Status::from_reader(file).unwrap())
+        Status::from_reader(file).ok_or(ProcError::Incomplete)
     }
 }
 
