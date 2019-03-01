@@ -507,7 +507,7 @@ pub struct MountStat {
 }
 
 impl MountStat {
-    pub fn from_reader<R: io::Read>(r: R) -> Vec<MountStat> {
+    pub fn from_reader<R: io::Read>(r: R) -> Option<Vec<MountStat>> {
         use std::io::{BufRead, BufReader};
         use std::path::PathBuf;
 
@@ -521,9 +521,9 @@ impl MountStat {
                 // device proc mounted on /proc with fstype proc
                 let mut s = line.split_whitespace();
 
-                let device = Some(s.nth(1).unwrap().to_owned());
-                let mount_point = PathBuf::from(s.nth(2).unwrap());
-                let fs = s.nth(2).unwrap().to_owned();
+                let device = Some(s.nth(1)?.to_owned());
+                let mount_point = PathBuf::from(s.nth(2)?);
+                let fs = s.nth(2)?.to_owned();
                 let statistics = match s.next() {
                     Some(stats) if stats.starts_with("statvers=") => {
                         Some(MountNFSStatistics::from_lines(&mut lines, &stats[9..]))
@@ -540,7 +540,7 @@ impl MountStat {
             }
         }
 
-        v
+        Some(v)
     }
 }
 
@@ -1751,7 +1751,7 @@ impl Process {
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
         let file = File::open(self.root.join("mountstats"))?;
-        Ok(MountStat::from_reader(file))
+        MountStat::from_reader(file).ok_or(ProcError::Incomplete)
     }
 
     /// Gets the symbolic name corresponding to the location in the kernel where the process is sleeping.
@@ -1994,7 +1994,8 @@ device /dev/md124 mounted on /home with fstype ext4
 device tmpfs mounted on /run/user/0 with fstype tmpfs 
 "
             .as_bytes(),
-        );
+        )
+        .unwrap();
         let simple_parsed = vec![
             MountStat {
                 device: Some("/dev/md127".to_string()),
@@ -2033,7 +2034,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
               WRITE: 0 0 0 0 0 0 0 0 
              COMMIT: 0 0 0 0 0 0 0 0 
                OPEN: 1 1 0 320 420 0 124 124 
-        ".as_bytes());
+        ".as_bytes()).unwrap();
         let nfs_v4 = &mountstats[0];
         match &nfs_v4.statistics {
             Some(stats) => {
@@ -2058,7 +2059,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         // thera are no assertions, but we still want to check for parsing errors (which can
         // cause panics)
 
-        let stats = MountStat::from_reader(File::open("/proc/self/mountstats").unwrap());
+        let stats = MountStat::from_reader(File::open("/proc/self/mountstats").unwrap()).unwrap();
         for stat in stats {
             println!("{:#?}", stat);
             if let Some(nfs) = stat.statistics {
