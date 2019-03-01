@@ -895,7 +895,7 @@ pub struct MemoryMap {
     ///
     /// 0 indicates that no inode is associated with the memory region, as would be the case with
     /// BSS (uninitialized data).
-    pub inode: u32,
+    pub inode: u64,
     pub pathname: MMapPath,
 }
 
@@ -1657,7 +1657,7 @@ impl Process {
                     perms: perms.to_string(),
                     offset: from_str!(u64, offset, 16),
                     dev: split_into_num(dev, ':', 16),
-                    inode: from_str!(u32, inode),
+                    inode: from_str!(u64, inode),
                     pathname: MMapPath::from(path),
                 }
             })
