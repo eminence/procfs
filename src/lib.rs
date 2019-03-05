@@ -356,6 +356,8 @@ pub enum ProcError {
     /// This might mean that the process no longer exists, or that your kernel doesn't support the
     /// feature you are trying to use.
     NotFound,
+    /// This might mean that a procfs file has incomplete contents.
+    Incomplete,
     /// Any other IO error (rare).
     Io(std::io::Error),
     /// Any other non-IO error (very rare).
@@ -372,7 +374,6 @@ impl From<std::io::Error> for ProcError {
         }
     }
 }
-
 
 /// Load average figures.
 ///
