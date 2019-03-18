@@ -3,7 +3,7 @@ extern crate procfs;
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let pid = i32::from_str_radix(&args.next().unwrap(), 10).unwrap();
+    let pid = i32::from_str_radix(&args.next().expect("no proc ID arg specified"), 10).unwrap();
 
     println!("Info for pid={}", pid);
     let prc = procfs::Process::new(pid).unwrap();
