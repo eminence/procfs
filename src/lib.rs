@@ -140,6 +140,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::mem;
+use std::os::raw::c_char;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -497,7 +498,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         let filename = format!(
             "{}-{}",
             BOOT_CONFIG,
-            unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const i8) }.to_string_lossy()
+            unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const c_char) }.to_string_lossy()
         );
 
         if Path::new(&filename).exists() {
