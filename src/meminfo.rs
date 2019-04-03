@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{convert_to_kibibytes, ProcResult};
+use super::{convert_to_kibibytes, ProcResult, FileWrapper};
 
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
@@ -259,7 +259,7 @@ impl Meminfo {
     pub fn new() -> ProcResult<Meminfo> {
         use std::fs::File;
 
-        let f = File::open("/proc/meminfo")?;
+        let f = FileWrapper::open("/proc/meminfo")?;
 
         Ok(Meminfo::from_reader(f))
     }

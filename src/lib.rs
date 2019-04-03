@@ -138,10 +138,10 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::mem;
 use std::os::raw::c_char;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use chrono::{DateTime, Local};
@@ -225,7 +225,7 @@ macro_rules! from_str {
 }
 
 pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
-    let mut f = File::open(path)?;
+    let mut f = FileWrapper::open(path)?;
     let mut buf = String::new();
     f.read_to_string(&mut buf)?;
     Ok(buf)
@@ -344,23 +344,97 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     (a, b)
 }
 
+
+/// This is used to hold both an IO error as well as the path of the file that originated the error
+#[derive(Debug)]
+struct IoErrorWrapper {
+    path: PathBuf,
+    inner: Option<Box<dyn std::error::Error + Send + Sync>>
+}
+
+impl std::error::Error for IoErrorWrapper { }
+impl fmt::Display for IoErrorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        if let Some(inner) = &self.inner {
+            write!(f, "IO Error({}): {}", self.path.display(), inner)
+        } else {
+            write!(f, "IO Error({})", self.path.display())
+        }
+    }
+}
+
+/// A wrapper around a `File` that remembers the name of the path
+struct FileWrapper {
+    inner: File,
+    path: PathBuf
+}
+
+
+impl FileWrapper {
+    fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
+        let p = path.as_ref();
+        match File::open(&p) {
+            Ok(f) => Ok(FileWrapper{ inner: f, path: p.to_owned()}),
+            Err(e) => {
+                let kind = e.kind();
+                Err(io::Error::new(kind, IoErrorWrapper { path: p.to_owned(), inner: e.into_inner()}))
+            }
+        }
+    }
+}
+
+
+macro_rules! wrap_io_error {
+    ($path:expr, $expr:expr) => {
+        match $expr {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let kind = e.kind();
+                Err(io::Error::new(kind, IoErrorWrapper { path: $path.clone(), inner: e.into_inner() }))
+            }
+        }
+    }
+}
+
+impl Read for FileWrapper {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        wrap_io_error!(self.path, self.inner.read(buf))    
+    }
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> { 
+        wrap_io_error!(self.path, self.inner.read_to_end(buf))
+    }
+    fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> { 
+        wrap_io_error!(self.path, self.inner.read_to_string(buf))
+    }
+    fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
+        wrap_io_error!(self.path, self.inner.read_exact(buf))
+    }
+
+
+}
+
+
+
 pub type ProcResult<T> = Result<T, ProcError>;
 
-/// Error type for most procfs functions
+/// Error type for most procfs functions.
+///
+/// Most of the variants have an `Option<PathBuf>` component.  If the error root cause was related
+/// to some operation on a file, the path of this file will be stored in this component.
 #[derive(Debug)]
 pub enum ProcError {
     /// A standard permission denied error.
     ///
     /// This will be a common error, since some files in the procfs filesystem are only readable by
     /// the root user.
-    PermissionDenied,
+    PermissionDenied(Option<PathBuf>),
     /// This might mean that the process no longer exists, or that your kernel doesn't support the
     /// feature you are trying to use.
-    NotFound,
+    NotFound(Option<PathBuf>),
     /// This might mean that a procfs file has incomplete contents.
-    Incomplete,
+    Incomplete(Option<PathBuf>),
     /// Any other IO error (rare).
-    Io(std::io::Error),
+    Io(std::io::Error, Option<PathBuf>),
     /// Any other non-IO error (very rare).
     Other(String),
 }
@@ -368,13 +442,44 @@ pub enum ProcError {
 impl From<std::io::Error> for ProcError {
     fn from(io: std::io::Error) -> Self {
         use std::io::ErrorKind;
-        match io.kind() {
-            ErrorKind::PermissionDenied => ProcError::PermissionDenied,
-            ErrorKind::NotFound => ProcError::NotFound,
-            _other => ProcError::Io(io),
+        let kind = io.kind();
+        let path: Option<PathBuf> = io.get_ref().and_then(|inner| {
+            if let Some(ref inner) = inner.downcast_ref::<IoErrorWrapper>() {
+               Some(inner.path.clone())
+            } else {
+                None
+            }
+        });
+        match kind {
+            ErrorKind::PermissionDenied => ProcError::PermissionDenied(path),
+            ErrorKind::NotFound => ProcError::NotFound(path),
+            _other => ProcError::Io(io, path),
         }
     }
 }
+
+
+impl std::fmt::Display for ProcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            // Variants with paths:
+            ProcError::PermissionDenied(Some(p)) => write!(f, "Permission Denied: {}", p.display()),
+            ProcError::NotFound(Some(p)) => write!(f, "File not found: {}", p.display()),
+            ProcError::Incomplete(Some(p)) => write!(f, "Data incomplete: {}", p.display()),
+            ProcError::Io(inner, Some(p)) => write!(f, "Unexpected IO error({}): {}", p.display(), inner),
+            // Variants without paths: 
+            ProcError::PermissionDenied(None) => write!(f, "Permission Denied"),
+            ProcError::NotFound(None) => write!(f, "File not found"),
+            ProcError::Incomplete(None) => write!(f, "Data incomplete"),
+            ProcError::Io(inner, None) => write!(f, "Unexpected IO error: {}", inner),
+
+            ProcError::Other(s) => write!(f, "Uknown error {}", s),
+
+        }
+    }
+}
+
+impl std::error::Error for ProcError { }
 
 /// Load average figures.
 ///
@@ -401,7 +506,7 @@ impl LoadAverage {
     pub fn new() -> ProcResult<LoadAverage> {
         use std::fs::File;
 
-        let mut f = File::open("/proc/loadavg")?;
+        let mut f = FileWrapper::open("/proc/loadavg")?;
         let mut s = String::new();
         f.read_to_string(&mut s)?;
         let mut s = s.split_whitespace();
@@ -448,7 +553,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
     let now = Local::now();
 
-    let mut f = File::open("/proc/uptime")?;
+    let mut f = FileWrapper::open("/proc/uptime")?;
     let mut buf = String::new();
     f.read_to_string(&mut buf)?;
 
@@ -485,7 +590,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use std::io::{BufRead, BufReader};
 
     let reader: Box<BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
-        let file = File::open(PROC_CONFIG_GZ)?;
+        let file = FileWrapper::open(PROC_CONFIG_GZ)?;
         let decoder = Decoder::new(file)?;
         Box::new(BufReader::new(decoder))
     } else {
@@ -502,10 +607,10 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         );
 
         if Path::new(&filename).exists() {
-            let file = File::open(filename)?;
+            let file = FileWrapper::open(filename)?;
             Box::new(BufReader::new(file))
         } else {
-            let file = File::open(BOOT_CONFIG)?;
+            let file = FileWrapper::open(BOOT_CONFIG)?;
             Box::new(BufReader::new(file))
         }
     };
@@ -538,6 +643,7 @@ pub fn meminfo() -> ProcResult<Meminfo> {
 
 #[cfg(test)]
 mod tests {
+    extern crate failure;
     use super::*;
 
     #[test]
@@ -605,5 +711,53 @@ mod tests {
 
         let config = kernel_config().unwrap();
         println!("{:#?}", config);
+    }
+
+
+    #[test]
+    fn test_file_io_errors() {
+
+        fn inner<P: AsRef<Path>>(p: P) -> Result<(), ProcError> {
+            let mut file = FileWrapper::open(p)?;
+
+            let mut buf = [0; 128];
+            file.read_exact(&mut buf[0..128])?;
+
+
+
+            Ok(())
+        }
+
+
+        let err = inner("/this_should_not_exist").unwrap_err();
+        println!("{}", err);
+
+        match err {
+            ProcError::NotFound(Some(p)) => {
+                assert_eq!(p, Path::new("/this_should_not_exist"));
+            },
+            x => panic!("Unexpected return value: {:?}", x)
+        }
+
+        match inner("/proc/loadavg") {
+           Err(ProcError::Io(_, Some(p))) => {
+                assert_eq!(p, Path::new("/proc/loadavg"));
+            },
+            x => panic!("Unexpected return value: {:?}", x)
+
+        }
+    }
+
+
+    /// Test that our error type can be easily used with the `failure` crate
+    #[test]
+    fn test_failure() {
+
+        fn inner() -> Result<(), failure::Error> {
+            let _load = LoadAverage::new()?;
+            Ok(())
+        }
+        inner();
+
     }
 }

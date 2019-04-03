@@ -1506,8 +1506,9 @@ impl Process {
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
+        let path = root.join("stat");
         let stat =
-            Stat::from_reader(File::open(root.join("stat"))?).ok_or(ProcError::Incomplete)?;
+            Stat::from_reader(FileWrapper::open(&path)?).ok_or(ProcError::Incomplete(Some(path)))?;
 
         let md = std::fs::metadata(&root)?;
 
@@ -1523,8 +1524,9 @@ impl Process {
     /// This is done by using the `/proc/self` symlink
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
+        let path = root.join("stat");
         let stat =
-            Stat::from_reader(File::open(root.join("stat"))?).ok_or(ProcError::Incomplete)?;
+            Stat::from_reader(FileWrapper::open(&path)?).ok_or(ProcError::Incomplete(Some(path)))?;
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
@@ -1539,7 +1541,7 @@ impl Process {
     ///
     pub fn cmdline(&self) -> ProcResult<Vec<String>> {
         let mut buf = String::new();
-        let mut f = File::open(self.root.join("cmdline"))?;
+        let mut f = FileWrapper::open(self.root.join("cmdline"))?;
         f.read_to_string(&mut buf)?;
         Ok(buf
             .split('\0')
@@ -1596,7 +1598,7 @@ impl Process {
 
         let mut map = HashMap::new();
 
-        let mut file = File::open(self.root.join("environ"))?;
+        let mut file = FileWrapper::open(self.root.join("environ"))?;
         let mut buf = Vec::new();
         file.read_to_end(&mut buf)?;
 
@@ -1631,8 +1633,9 @@ impl Process {
     ///
     /// (since kernel 2.6.20)
     pub fn io(&self) -> ProcResult<Io> {
-        let file = File::open(self.root.join("io"))?;
-        Io::from_reader(file).ok_or(ProcError::Incomplete)
+        let path = self.root.join("io");
+        let file = FileWrapper::open(&path)?;
+        Io::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
     }
 
     /// Return a list of the currently mapped memory regions and their access permissions, based on
@@ -1659,15 +1662,16 @@ impl Process {
 
         use std::io::{BufRead, BufReader};
 
-        let file = File::open(self.root.join("maps"))?;
+        let path = self.root.join("maps");
+        let file = FileWrapper::open(&path)?;
 
         let reader = BufReader::new(file);
 
         let mut vec = Vec::new();
 
         for line in reader.lines() {
-            let line = line.map_err(|_| ProcError::Incomplete)?;
-            vec.push(from_line(&line).ok_or(ProcError::Incomplete)?);
+            let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
+            vec.push(from_line(&line).ok_or(ProcError::Incomplete(Some(path.clone())))?);
         }
 
         Ok(vec)
@@ -1706,7 +1710,7 @@ impl Process {
     /// found.  If it returns `Ok(None)` then the process has no coredump_filter
     pub fn coredump_filter(&self) -> ProcResult<Option<CoredumpFlags>> {
         use std::fs::File;
-        let mut file = File::open(self.root.join("coredump_filter"))?;
+        let mut file = FileWrapper::open(self.root.join("coredump_filter"))?;
         let mut s = String::new();
         file.read_to_string(&mut s)?;
         if s.trim().is_empty() {
@@ -1722,7 +1726,7 @@ impl Process {
     /// (since Linux 2.6.38 and requires CONFIG_SCHED_AUTOGROUP)
     pub fn autogroup(&self) -> ProcResult<String> {
         let mut s = String::new();
-        let mut file = File::open(self.root.join("autogroup"))?;
+        let mut file = FileWrapper::open(self.root.join("autogroup"))?;
         file.read_to_string(&mut s)?;
         Ok(s)
     }
@@ -1733,7 +1737,7 @@ impl Process {
     pub fn auxv(&self) -> ProcResult<HashMap<u32, u32>> {
         use byteorder::{NativeEndian, ReadBytesExt};
 
-        let mut file = File::open(self.root.join("auxv"))?;
+        let mut file = FileWrapper::open(self.root.join("auxv"))?;
         let mut map = HashMap::new();
 
         loop {
@@ -1750,8 +1754,9 @@ impl Process {
 
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
-        let file = File::open(self.root.join("mountstats"))?;
-        MountStat::from_reader(file).ok_or(ProcError::Incomplete)
+        let path = self.root.join("mountstats");
+        let file = FileWrapper::open(&path)?;
+        MountStat::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
     }
 
     /// Gets the symbolic name corresponding to the location in the kernel where the process is sleeping.
@@ -1759,15 +1764,16 @@ impl Process {
     /// (since Linux 2.6.0)
     pub fn wchan(&self) -> ProcResult<String> {
         let mut s = String::new();
-        let mut file = File::open(self.root.join("wchan"))?;
+        let mut file = FileWrapper::open(self.root.join("wchan"))?;
         file.read_to_string(&mut s)?;
         Ok(s)
     }
 
     /// Return the `Status` for this process, based on the `/proc/[pid]/status` file.
     pub fn status(&self) -> ProcResult<Status> {
-        let file = File::open(self.root.join("status"))?;
-        Status::from_reader(file).ok_or(ProcError::Incomplete)
+        let path = self.root.join("status");
+        let file = FileWrapper::open(&path)?;
+        Status::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
     }
 }
 
@@ -1792,11 +1798,11 @@ mod tests {
 
     fn check_unwrap<T>(val: ProcResult<T>) {
         match val {
-            Ok(t) => {}
-            Err(ProcError::PermissionDenied) if unsafe { libc::geteuid() } != 0 => {
+            Ok(_t) => {}
+            Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
                 // we are not root, and so a permission denied error is OK
             }
-            Err(ProcError::NotFound) => {}
+            Err(ProcError::NotFound(path)) => panic!("{:?} not found", path),
             Err(err) => panic!("{:?}", err),
         }
     }
@@ -2059,7 +2065,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         // thera are no assertions, but we still want to check for parsing errors (which can
         // cause panics)
 
-        let stats = MountStat::from_reader(File::open("/proc/self/mountstats").unwrap()).unwrap();
+        let stats = MountStat::from_reader(FileWrapper::open("/proc/self/mountstats").unwrap()).unwrap();
         for stat in stats {
             println!("{:#?}", stat);
             if let Some(nfs) = stat.statistics {
