@@ -2,7 +2,6 @@ use super::*;
 
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::fs::File;
 use std::io::{self, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
@@ -1507,8 +1506,8 @@ impl Process {
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let path = root.join("stat");
-        let stat =
-            Stat::from_reader(FileWrapper::open(&path)?).ok_or(ProcError::Incomplete(Some(path)))?;
+        let stat = Stat::from_reader(FileWrapper::open(&path)?)
+            .ok_or(ProcError::Incomplete(Some(path)))?;
 
         let md = std::fs::metadata(&root)?;
 
@@ -1525,8 +1524,8 @@ impl Process {
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
         let path = root.join("stat");
-        let stat =
-            Stat::from_reader(FileWrapper::open(&path)?).ok_or(ProcError::Incomplete(Some(path)))?;
+        let stat = Stat::from_reader(FileWrapper::open(&path)?)
+            .ok_or(ProcError::Incomplete(Some(path)))?;
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
@@ -1593,7 +1592,6 @@ impl Process {
     /// `/proc/pid/environ` file.
     pub fn environ(&self) -> ProcResult<HashMap<OsString, OsString>> {
         use std::ffi::OsStr;
-        use std::fs::File;
         use std::os::unix::ffi::OsStrExt;
 
         let mut map = HashMap::new();
@@ -1709,7 +1707,6 @@ impl Process {
     /// This function will return `Err(ProcError::NotFound)` if the `coredump_filter` file can't be
     /// found.  If it returns `Ok(None)` then the process has no coredump_filter
     pub fn coredump_filter(&self) -> ProcResult<Option<CoredumpFlags>> {
-        use std::fs::File;
         let mut file = FileWrapper::open(self.root.join("coredump_filter"))?;
         let mut s = String::new();
         file.read_to_string(&mut s)?;
@@ -2065,7 +2062,8 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         // thera are no assertions, but we still want to check for parsing errors (which can
         // cause panics)
 
-        let stats = MountStat::from_reader(FileWrapper::open("/proc/self/mountstats").unwrap()).unwrap();
+        let stats =
+            MountStat::from_reader(FileWrapper::open("/proc/self/mountstats").unwrap()).unwrap();
         for stat in stats {
             println!("{:#?}", stat);
             if let Some(nfs) = stat.statistics {

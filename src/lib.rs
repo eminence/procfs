@@ -344,15 +344,14 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
     (a, b)
 }
 
-
 /// This is used to hold both an IO error as well as the path of the file that originated the error
 #[derive(Debug)]
 struct IoErrorWrapper {
     path: PathBuf,
-    inner: Option<Box<dyn std::error::Error + Send + Sync>>
+    inner: Option<Box<dyn std::error::Error + Send + Sync>>,
 }
 
-impl std::error::Error for IoErrorWrapper { }
+impl std::error::Error for IoErrorWrapper {}
 impl fmt::Display for IoErrorWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if let Some(inner) = &self.inner {
@@ -366,23 +365,30 @@ impl fmt::Display for IoErrorWrapper {
 /// A wrapper around a `File` that remembers the name of the path
 struct FileWrapper {
     inner: File,
-    path: PathBuf
+    path: PathBuf,
 }
-
 
 impl FileWrapper {
     fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
         let p = path.as_ref();
         match File::open(&p) {
-            Ok(f) => Ok(FileWrapper{ inner: f, path: p.to_owned()}),
+            Ok(f) => Ok(FileWrapper {
+                inner: f,
+                path: p.to_owned(),
+            }),
             Err(e) => {
                 let kind = e.kind();
-                Err(io::Error::new(kind, IoErrorWrapper { path: p.to_owned(), inner: e.into_inner()}))
+                Err(io::Error::new(
+                    kind,
+                    IoErrorWrapper {
+                        path: p.to_owned(),
+                        inner: e.into_inner(),
+                    },
+                ))
             }
         }
     }
 }
-
 
 macro_rules! wrap_io_error {
     ($path:expr, $expr:expr) => {
@@ -390,30 +396,32 @@ macro_rules! wrap_io_error {
             Ok(v) => Ok(v),
             Err(e) => {
                 let kind = e.kind();
-                Err(io::Error::new(kind, IoErrorWrapper { path: $path.clone(), inner: e.into_inner() }))
+                Err(io::Error::new(
+                    kind,
+                    IoErrorWrapper {
+                        path: $path.clone(),
+                        inner: e.into_inner(),
+                    },
+                ))
             }
         }
-    }
+    };
 }
 
 impl Read for FileWrapper {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        wrap_io_error!(self.path, self.inner.read(buf))    
+        wrap_io_error!(self.path, self.inner.read(buf))
     }
-    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> { 
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
         wrap_io_error!(self.path, self.inner.read_to_end(buf))
     }
-    fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> { 
+    fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
         wrap_io_error!(self.path, self.inner.read_to_string(buf))
     }
     fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
         wrap_io_error!(self.path, self.inner.read_exact(buf))
     }
-
-
 }
-
-
 
 pub type ProcResult<T> = Result<T, ProcError>;
 
@@ -445,7 +453,7 @@ impl From<std::io::Error> for ProcError {
         let kind = io.kind();
         let path: Option<PathBuf> = io.get_ref().and_then(|inner| {
             if let Some(ref inner) = inner.downcast_ref::<IoErrorWrapper>() {
-               Some(inner.path.clone())
+                Some(inner.path.clone())
             } else {
                 None
             }
@@ -458,7 +466,6 @@ impl From<std::io::Error> for ProcError {
     }
 }
 
-
 impl std::fmt::Display for ProcError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
@@ -466,20 +473,21 @@ impl std::fmt::Display for ProcError {
             ProcError::PermissionDenied(Some(p)) => write!(f, "Permission Denied: {}", p.display()),
             ProcError::NotFound(Some(p)) => write!(f, "File not found: {}", p.display()),
             ProcError::Incomplete(Some(p)) => write!(f, "Data incomplete: {}", p.display()),
-            ProcError::Io(inner, Some(p)) => write!(f, "Unexpected IO error({}): {}", p.display(), inner),
-            // Variants without paths: 
+            ProcError::Io(inner, Some(p)) => {
+                write!(f, "Unexpected IO error({}): {}", p.display(), inner)
+            }
+            // Variants without paths:
             ProcError::PermissionDenied(None) => write!(f, "Permission Denied"),
             ProcError::NotFound(None) => write!(f, "File not found"),
             ProcError::Incomplete(None) => write!(f, "Data incomplete"),
             ProcError::Io(inner, None) => write!(f, "Unexpected IO error: {}", inner),
 
             ProcError::Other(s) => write!(f, "Uknown error {}", s),
-
         }
     }
 }
 
-impl std::error::Error for ProcError { }
+impl std::error::Error for ProcError {}
 
 /// Load average figures.
 ///
@@ -504,8 +512,6 @@ pub struct LoadAverage {
 impl LoadAverage {
     /// Reads load average info from `/proc/loadavg`
     pub fn new() -> ProcResult<LoadAverage> {
-        use std::fs::File;
-
         let mut f = FileWrapper::open("/proc/loadavg")?;
         let mut s = String::new();
         f.read_to_string(&mut s)?;
@@ -597,7 +603,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
         if unsafe { libc::uname(&mut kernel) != 0 } {
-            return Err(ProcError::Other(format!("Failed to call uname()")));
+            return Err(ProcError::Other("Failed to call uname()".to_string()));
         }
 
         let filename = format!(
@@ -713,21 +719,16 @@ mod tests {
         println!("{:#?}", config);
     }
 
-
     #[test]
     fn test_file_io_errors() {
-
         fn inner<P: AsRef<Path>>(p: P) -> Result<(), ProcError> {
             let mut file = FileWrapper::open(p)?;
 
             let mut buf = [0; 128];
             file.read_exact(&mut buf[0..128])?;
 
-
-
             Ok(())
         }
-
 
         let err = inner("/this_should_not_exist").unwrap_err();
         println!("{}", err);
@@ -735,29 +736,35 @@ mod tests {
         match err {
             ProcError::NotFound(Some(p)) => {
                 assert_eq!(p, Path::new("/this_should_not_exist"));
-            },
-            x => panic!("Unexpected return value: {:?}", x)
+            }
+            x => panic!("Unexpected return value: {:?}", x),
         }
 
         match inner("/proc/loadavg") {
-           Err(ProcError::Io(_, Some(p))) => {
+            Err(ProcError::Io(_, Some(p))) => {
                 assert_eq!(p, Path::new("/proc/loadavg"));
-            },
-            x => panic!("Unexpected return value: {:?}", x)
-
+            }
+            x => panic!("Unexpected return value: {:?}", x),
         }
     }
-
 
     /// Test that our error type can be easily used with the `failure` crate
     #[test]
     fn test_failure() {
-
         fn inner() -> Result<(), failure::Error> {
             let _load = LoadAverage::new()?;
             Ok(())
         }
-        inner();
+        let _ = inner();
 
+        fn inner2() -> Result<(), failure::Error> {
+            let proc = Process::new(1)?;
+            let _io = proc.maps()?;
+            Ok(())
+        }
+
+        let _ = inner2();
+        // Unwrapping this failure should produce a message that looks like:
+        // thread 'tests::test_failure' panicked at 'called `Result::unwrap()` on an `Err` value: PermissionDenied(Some("/proc/1/maps"))', src/libcore/result.rs:997:5
     }
 }
