@@ -1,6 +1,6 @@
 [package]
 name = "procfs"
-version = "0.4.7"
+version = "0.5.0"
 authors = ["Andrew Chin <achin@eminence32.net>"]
 repository = "https://github.com/eminence/procfs"
 description = "Interface to the linux procfs pseudo-filesystem"
@@ -19,4 +19,4 @@ hex = "0.3"
 libflate = "0.1"
 
 [dev-dependencies]
-failure = "*"
+failure = "0.1.5"
