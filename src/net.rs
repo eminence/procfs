@@ -1,5 +1,6 @@
 use ProcResult;
 
+use crate::FileWrapper;
 use byteorder::{ByteOrder, NetworkEndian};
 use hex;
 use std::io::{BufRead, BufReader, Read};
@@ -179,32 +180,28 @@ fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>>
 
 /// Reads the tcp socket table
 pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
-    use std::fs::File;
-    let file = File::open("/proc/net/tcp")?;
+    let file = FileWrapper::open("/proc/net/tcp")?;
 
     read_tcp_table(BufReader::new(file))
 }
 
 /// Reads the tcp6 socket table
 pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
-    use std::fs::File;
-    let file = File::open("/proc/net/tcp6")?;
+    let file = FileWrapper::open("/proc/net/tcp6")?;
 
     read_tcp_table(BufReader::new(file))
 }
 
 /// Reads the udp socket table
 pub fn udp() -> ProcResult<Vec<UdpNetEntry>> {
-    use std::fs::File;
-    let file = File::open("/proc/net/udp")?;
+    let file = FileWrapper::open("/proc/net/udp")?;
 
     read_udp_table(BufReader::new(file))
 }
 
 /// Reads the udp6 socket table
 pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
-    use std::fs::File;
-    let file = File::open("/proc/net/udp6")?;
+    let file = FileWrapper::open("/proc/net/udp6")?;
 
     read_udp_table(BufReader::new(file))
 }

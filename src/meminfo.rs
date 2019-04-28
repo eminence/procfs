@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{convert_to_kibibytes, ProcResult};
+use super::{convert_to_kibibytes, FileWrapper, ProcResult};
 
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
@@ -257,9 +257,7 @@ impl Meminfo {
     /// This may panic if expected fields are missing.  This can happen when running on kernels
     /// older than 2.6.0.
     pub fn new() -> ProcResult<Meminfo> {
-        use std::fs::File;
-
-        let f = File::open("/proc/meminfo")?;
+        let f = FileWrapper::open("/proc/meminfo")?;
 
         Ok(Meminfo::from_reader(f))
     }
