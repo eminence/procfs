@@ -837,7 +837,7 @@ impl NFSOperationStat {
 
 pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum MMapPath {
     /// The file that is backing the mapping.
     Path(PathBuf),
@@ -881,7 +881,7 @@ impl MMapPath {
 /// Represents an entry in a `/proc/<pid>/maps` file.
 ///
 /// To construct this structure, see [Process::maps()].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
