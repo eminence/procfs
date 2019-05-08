@@ -852,6 +852,10 @@ pub enum MMapPath {
     TStack(u32),
     /// The virtual dynamically linked shared object.
     Vdso,
+    /// Shared kernel variables
+    Vvar,
+    /// obsolete virtual syscalls, succeeded by vdso
+    Vsyscall,
     /// An anonymous mapping as obtained via mmap(2).
     Anonymous,
     /// Some other pseudo-path
@@ -865,6 +869,8 @@ impl MMapPath {
             "[heap]" => MMapPath::Heap,
             "[stack]" => MMapPath::Stack,
             "[vdso]" => MMapPath::Vdso,
+            "[vvar]" => MMapPath::Vvar,
+            "[vsyscall]" => MMapPath::Vsyscall,
             x if x.starts_with("[stack:") => {
                 let mut s = x[1..x.len() - 1].split(':');
                 let tid = from_str!(u32, s.nth(1).unwrap());
