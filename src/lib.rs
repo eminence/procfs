@@ -132,7 +132,7 @@ mod platform_specific_items {
     pub const _SC_PAGESIZE: i32 = 30;
 }
 
-use platform_specific_items::*;
+use crate::platform_specific_items::*;
 
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -168,7 +168,7 @@ impl<T, R> IntoOption<T> for Result<T, R> {
 #[macro_use]
 macro_rules! expect {
     ($e:expr) => {
-        ::IntoOption::into_option($e).unwrap_or_else(|| {
+        crate::IntoOption::into_option($e).unwrap_or_else(|| {
             panic!(
                 "Failed to unwrap {}. Please report this as a procfs bug.",
                 stringify!($e)
@@ -176,7 +176,7 @@ macro_rules! expect {
         })
     };
     ($e:expr, $msg:expr) => {
-        ::IntoOption::into_option($e).unwrap_or_else(|| {
+        crate::IntoOption::into_option($e).unwrap_or_else(|| {
             panic!(
                 "Failed to unwrap {} ({}). Please report this as a procfs bug.",
                 stringify!($e),
@@ -248,22 +248,22 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
 }
 
 mod process;
-pub use process::*;
+pub use crate::process::*;
 
 mod meminfo;
-pub use meminfo::*;
+pub use crate::meminfo::*;
 
 mod net;
-pub use net::*;
+pub use crate::net::*;
 
 mod cpuinfo;
-pub use cpuinfo::*;
+pub use crate::cpuinfo::*;
 
 mod cgroups;
-pub use cgroups::*;
+pub use crate::cgroups::*;
 
 pub mod sys;
-pub use sys::kernel::Version as KernelVersion;
+pub use crate::sys::kernel::Version as KernelVersion;
 
 lazy_static! {
     /// The boottime of the system.

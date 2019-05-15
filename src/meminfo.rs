@@ -364,7 +364,7 @@ impl Meminfo {
 #[cfg(test)]
 mod test {
     use super::*;
-    use {kernel_config, KernelVersion};
+    use crate::{kernel_config, KernelVersion};
 
     #[test]
     fn test_meminfo() {

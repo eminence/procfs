@@ -7,7 +7,7 @@
 use std::fmt;
 use std::str;
 
-use {read_value, write_value, ProcResult};
+use crate::{read_value, write_value, ProcResult};
 
 /// The amount of free memory in the system that should be reserved for users with the capability cap_sys_admin.
 ///
