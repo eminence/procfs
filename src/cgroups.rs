@@ -1,4 +1,4 @@
-use ProcResult;
+use crate::ProcResult;
 
 use super::Process;
 

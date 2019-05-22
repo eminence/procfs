@@ -1,4 +1,4 @@
-use ProcResult;
+use crate::ProcResult;
 
 use crate::FileWrapper;
 use byteorder::{ByteOrder, NetworkEndian};
