@@ -499,7 +499,7 @@ pub struct LoadAverage {
     pub one: f32,
     /// The five-minute load average
     pub five: f32,
-    /// THe fifteen-minute load average
+    /// The fifteen-minute load average
     pub fifteen: f32,
     /// The number of currently runnable kernel scheduling  entities  (processes,  threads).
     pub cur: u32,
