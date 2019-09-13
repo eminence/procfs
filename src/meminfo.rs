@@ -247,6 +247,19 @@ pub struct Meminfo {
     pub direct_map_2M: Option<u64>,
     /// (x86 with CONFIG_X86_64 and CONFIG_X86_DIRECT_GBPAGES enabled.  Since Linux 2.6.27)
     pub direct_map_1G: Option<u64>,
+
+    /// needs documentation
+    pub hugetlb: Option<u64>,
+
+    /// Memory allocated to the percpu alloctor used to back percpu allocations.
+    ///
+    /// This stat excludes the cost of metadata.
+    pub per_cpu: Option<u64>,
+
+    /// Kernel allocations that the kernel will attempt to reclaim under memory pressure.
+    ///
+    /// Includes s_reclaimable, and other direct allocations with a shrinker.
+    pub k_reclaimable: Option<u64>,
 }
 
 impl Meminfo {
@@ -349,6 +362,9 @@ impl Meminfo {
             direct_map_4M: map.remove("DirectMap4M"),
             direct_map_2M: map.remove("DirectMap2M"),
             direct_map_1G: map.remove("DirectMap1G"),
+            k_reclaimable: map.remove("KReclaimable"),
+            per_cpu: map.remove("Percpu"),
+            hugetlb: map.remove("Hugetlb"),
         };
 
         if !map.is_empty() {
