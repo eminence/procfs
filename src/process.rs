@@ -1,6 +1,5 @@
 use super::*;
 
-use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, Read};
 #[cfg(unix)]
@@ -100,7 +99,7 @@ bitflags! {
 bitflags! {
     pub struct NFSServerCaps: u32 {
 
-        const NFS_CAP_READDIRPLUS = (1 << 0);
+        const NFS_CAP_READDIRPLUS = 1;
         const NFS_CAP_HARDLINKS = (1 << 1);
         const NFS_CAP_SYMLINKS = (1 << 2);
         const NFS_CAP_ACLS = (1 << 3);
@@ -508,10 +507,8 @@ pub struct MountStat {
 impl MountStat {
     pub fn from_reader<R: io::Read>(r: R) -> Option<Vec<MountStat>> {
         use std::io::{BufRead, BufReader};
-        use std::path::PathBuf;
 
         let mut v = Vec::new();
-
         let bufread = BufReader::new(r);
         let mut lines = bufread.lines();
         while let Some(Ok(line)) = lines.next() {
@@ -583,8 +580,6 @@ pub struct MountNFSStatistics {
 impl MountNFSStatistics {
     // Keep reading lines until we get to a blank line
     fn from_lines<B: io::BufRead>(r: &mut io::Lines<B>, statsver: &str) -> MountNFSStatistics {
-        use std::iter::Iterator;
-
         let mut parsing_per_op = false;
 
         let mut opts: Option<Vec<String>> = None;
@@ -906,7 +901,6 @@ pub struct MemoryMap {
 
 impl Io {
     pub fn from_reader<R: io::Read>(r: R) -> Option<Io> {
-        use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
@@ -934,10 +928,8 @@ impl Io {
             cancelled_write_bytes: map.remove("cancelled_write_bytes")?,
         };
 
-        if cfg!(test) {
-            if !map.is_empty() {
-                panic!("io map is not empty: {:#?}", map);
-            }
+        if cfg!(test) && !map.is_empty() {
+            panic!("io map is not empty: {:#?}", map);
         }
 
         Some(io)
@@ -1015,6 +1007,7 @@ macro_rules! since_kernel {
 }
 
 impl Stat {
+    #[allow(clippy::cognitive_complexity)]
     pub fn from_reader<R: io::Read>(mut r: R) -> Option<Stat> {
         // read in entire thing, this is only going to be 1 line
         let mut buf = String::new();
@@ -1336,7 +1329,6 @@ pub struct Status {
 
 impl Status {
     pub fn from_reader<R: io::Read>(r: R) -> Option<Status> {
-        use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
@@ -1426,12 +1418,10 @@ impl Status {
                 .map(|x| from_str!(u64, &x)),
         };
 
-        if cfg!(test) {
-            if !map.is_empty() {
-                // This isn't an error because different kernels may put different data here, and distros
-                // may backport these changes into older kernels.  Too hard to keep track of
-                eprintln!("Warning: status map is not empty: {:#?}", map);
-            }
+        if cfg!(test) && !map.is_empty() {
+            // This isn't an error because different kernels may put different data here, and distros
+            // may backport these changes into older kernels.  Too hard to keep track of
+            eprintln!("Warning: status map is not empty: {:#?}", map);
         }
 
         Some(status)
@@ -1675,7 +1665,7 @@ impl Process {
 
         for line in reader.lines() {
             let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
-            vec.push(from_line(&line).ok_or(ProcError::Incomplete(Some(path.clone())))?);
+            vec.push(from_line(&line).ok_or_else(|| ProcError::Incomplete(Some(path.clone())))?);
         }
 
         Ok(vec)
@@ -1810,6 +1800,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     #[test]
     fn test_self_proc() {
         let myself = Process::myself().unwrap();
@@ -1948,7 +1939,7 @@ mod tests {
         let kernel = KernelVersion::current().unwrap();
         let io = myself.io();
         println!("{:?}", io);
-        if let Ok(_) = io {
+        if io.is_ok() {
             assert!(kernel >= KernelVersion::new(2, 6, 20));
         }
     }
@@ -2058,7 +2049,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 assert!(stats.server_caps().is_some());
             }
             None => {
-                assert!(false, "Failed to retrieve nfs statistics");
+                panic!("Failed to retrieve nfs statistics");
             }
         }
     }
@@ -2120,5 +2111,4 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         assert_eq!(status.vmswap, None);
         assert_eq!(status.hugetblpages, None);
     }
-
 }

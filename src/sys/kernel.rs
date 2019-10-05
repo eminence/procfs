@@ -31,6 +31,7 @@ impl Version {
     pub fn current() -> ProcResult<Self> {
         read_value("/proc/sys/kernel/osrelease")
     }
+
     /// Parses a kernel version string, in major.minor.release syntax.
     ///
     /// Note that any extra information (stuff after a dash) is ignored.
@@ -44,6 +45,7 @@ impl Version {
     /// assert_eq!(a, b);
     ///
     /// ```
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Self, &'static str> {
         let pos = s.find(|c: char| c != '.' && !c.is_ascii_digit());
         let kernel = if let Some(pos) = pos {

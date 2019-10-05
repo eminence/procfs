@@ -296,19 +296,6 @@ lazy_static! {
     };
 }
 
-fn convert_to_bytes(num: u64, unit: &str) -> u64 {
-    match unit {
-        "B" => num,
-        "KiB" | "kiB" => num * 1024,
-        "kB" | "KB" => num * 1000,
-        "MiB" | "miB" => num * 1024 * 1024,
-        "MB" | "mB" => num * 1000 * 1000,
-        "GiB" | "giB" => num * 1024 * 1024 * 1024,
-        "GB" | "gB" => num * 1000 * 1000 * 1000,
-        unknown => panic!("Unknown unit type {}", unknown),
-    }
-}
-
 fn convert_to_kibibytes(num: u64, unit: &str) -> u64 {
     match unit {
         "B" => num,
@@ -549,7 +536,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_CLK_TCK) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x.into()),
+            x => Ok(x),
         }
     } else {
         panic!("Not supported on non-unix platforms")
@@ -577,7 +564,7 @@ pub fn page_size() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_PAGESIZE) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x.into()),
+            x => Ok(x),
         }
     } else {
         panic!("Not supported on non-unix platforms")
@@ -598,7 +585,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use libflate::gzip::Decoder;
     use std::io::{BufRead, BufReader};
 
-    let reader: Box<BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
+    let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
         let file = FileWrapper::open(PROC_CONFIG_GZ)?;
         let decoder = Decoder::new(file)?;
         Box::new(BufReader::new(decoder))

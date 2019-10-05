@@ -1,3 +1,5 @@
+#![allow(clippy::print_literal)]
+
 extern crate procfs;
 
 use procfs::{FDTarget, Process};
@@ -23,10 +25,12 @@ fn main() {
     // get the tcp table
     let tcp = procfs::tcp().unwrap();
     let tcp6 = procfs::tcp6().unwrap();
+
     println!(
         "{:<26} {:<26} {:<15} {:<8} {}",
         "Local address", "Remote address", "State", "Inode", "PID/Program name"
     );
+
     for entry in tcp.into_iter().chain(tcp6) {
         // find the process (if any) that has an open FD to this entry's inode
         let local_address = format!("{}", entry.local_address);
