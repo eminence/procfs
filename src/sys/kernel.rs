@@ -45,8 +45,13 @@ impl Version {
     ///
     /// ```
     pub fn from_str(s: &str) -> Result<Self, &'static str> {
-        let mut s = s.split('-');
-        let kernel = s.next().unwrap();
+        let pos = s.find(|c: char| c != '.' && !c.is_ascii_digit());
+        let kernel = if let Some(pos) = pos {
+            let (s, _) = s.split_at(pos);
+            s
+        } else {
+            s
+        };
         let mut kernel_split = kernel.split('.');
 
         let major = kernel_split
@@ -107,5 +112,25 @@ impl cmp::Ord for Version {
 impl cmp::PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(&other))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version() {
+        let a = Version::from_str("3.16.0-6-amd64").unwrap();
+        let b = Version::new(3, 16, 0);
+        assert_eq!(a, b);
+
+        let a = Version::from_str("3.16.0").unwrap();
+        let b = Version::new(3, 16, 0);
+        assert_eq!(a, b);
+
+        let a = Version::from_str("3.16.0_1").unwrap();
+        let b = Version::new(3, 16, 0);
+        assert_eq!(a, b);
     }
 }
