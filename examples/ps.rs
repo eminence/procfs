@@ -1,3 +1,5 @@
+#![allow(clippy::print_literal)]
+
 extern crate procfs;
 
 /// A very basic clone of `ps` on Linux, in the simple no-argument mode.

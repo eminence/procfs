@@ -367,10 +367,8 @@ impl Meminfo {
             hugetlb: map.remove("Hugetlb"),
         };
 
-        if !map.is_empty() {
-            if cfg!(test) {
-                panic!("meminfo map is not empty: {:#?}", map);
-            }
+        if cfg!(test) && !map.is_empty() {
+            panic!("meminfo map is not empty: {:#?}", map);
         }
 
         meminfo
@@ -382,6 +380,7 @@ mod test {
     use super::*;
     use crate::{kernel_config, KernelVersion};
 
+    #[allow(clippy::cognitive_complexity)]
     #[test]
     fn test_meminfo() {
         // TRAVIS

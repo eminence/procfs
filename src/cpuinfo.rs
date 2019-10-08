@@ -145,5 +145,4 @@ mod tests {
 
         //assert_eq!(info.num_cores(), 8);
     }
-
 }
