@@ -265,6 +265,9 @@ pub use crate::cgroups::*;
 pub mod sys;
 pub use crate::sys::kernel::Version as KernelVersion;
 
+mod pressure;
+pub use crate::pressure::*;
+
 lazy_static! {
     /// The boottime of the system.
     ///
