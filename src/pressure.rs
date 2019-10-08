@@ -2,33 +2,57 @@
 //! `/proc/pressure/memory` and `/proc/pressure/io`
 //! may not be available on kernels older than 4.20.0
 //! For reference: https://lwn.net/Articles/759781/
+//!
+//! See also: https://www.kernel.org/doc/Documentation/accounting/psi.txt
 
 use crate::{ProcError, ProcResult};
 use std::collections::HashMap;
 
+/// Pressure stall information for either CPU, memory, or IO.
+///
+/// See also: https://www.kernel.org/doc/Documentation/accounting/psi.txt
 #[derive(Debug)]
 pub struct PressureRecord {
-    avg10: f32,
-    avg60: f32,
-    avg300: f32,
-    total: u64,
+    /// 10 second window
+    ///
+    /// The percentage of time, over a 10 second window, that either some or all tasks were stalled
+    /// waiting for a resource.
+    pub avg10: f32,
+    /// 60 second window
+    ///
+    /// The percentage of time, over a 60 second window, that either some or all tasks were stalled
+    /// waiting for a resource.
+    pub avg60: f32,
+    /// 300 second window
+    ///
+    /// The percentage of time, over a 300 second window, that either some or all tasks were stalled
+    /// waiting for a resource.
+    pub avg300: f32,
+    /// Total stall time (in microseconds).
+    pub total: u64,
 }
 
 #[derive(Debug)]
 pub struct CpuPressure {
-    some: PressureRecord,
+    pub some: PressureRecord,
 }
 
 #[derive(Debug)]
 pub struct MemoryPressure {
-    some: PressureRecord,
-    full: PressureRecord,
+    /// This record indicates the share of time in which at least some tasks are stalled
+    pub some: PressureRecord,
+    /// This record indicates this share of time in which all non-idle tasks are stalled
+    /// simultaneously.
+    pub full: PressureRecord,
 }
 
 #[derive(Debug)]
 pub struct IoPressure {
-    some: PressureRecord,
-    full: PressureRecord,
+    /// This record indicates the share of time in which at least some tasks are stalled
+    pub some: PressureRecord,
+    /// This record indicates this share of time in which all non-idle tasks are stalled
+    /// simultaneously.
+    pub full: PressureRecord,
 }
 
 fn get_f32(map: &HashMap<&str, &str>, value: &str) -> ProcResult<f32> {
@@ -70,6 +94,7 @@ fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
     })
 }
 
+/// Get CPU pressure information
 pub fn cpu_pressure() -> ProcResult<CpuPressure> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
@@ -100,12 +125,14 @@ fn get_pressure(pressure_file: &str) -> ProcResult<(PressureRecord, PressureReco
     Ok((parse_pressure_record(&some)?, parse_pressure_record(&full)?))
 }
 
+/// Get memory pressure information
 pub fn memory_pressure() -> ProcResult<MemoryPressure> {
     let (some, full) = get_pressure("memory")?;
 
     Ok(MemoryPressure { some, full })
 }
 
+/// Get IO pressure information
 pub fn io_pressure() -> ProcResult<IoPressure> {
     let (some, full) = get_pressure("io")?;
 
