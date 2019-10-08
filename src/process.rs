@@ -228,6 +228,9 @@ pub struct Stat {
     /// The filename of the executable, in parentheses.
     ///
     /// This is visible whether or not the executable is swapped out.
+    ///
+    /// Note that if the actual comm field contains invalid UTF-8 characters, they will be replaced
+    /// here by the U+FFFD replacement character.
     pub comm: String,
     /// Process State.
     ///
@@ -1010,9 +1013,11 @@ impl Stat {
     #[allow(clippy::cognitive_complexity)]
     pub fn from_reader<R: io::Read>(mut r: R) -> Option<Stat> {
         // read in entire thing, this is only going to be 1 line
-        let mut buf = String::new();
-        r.read_to_string(&mut buf).ok()?;
-        let buf = buf.trim();
+        let mut buf = Vec::with_capacity(512);
+        r.read_to_end(&mut buf).ok()?;
+
+        let line = String::from_utf8_lossy(&buf);
+        let buf = line.trim();
 
         // find the first opening paren, and split off the first part (pid)
         let start_paren = buf.find('(')?;
