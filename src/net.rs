@@ -66,16 +66,14 @@ pub struct UdpNetEntry {
 /// Parses an address in the form 00010203:1234
 ///
 /// Also supports IPv6
-///
-/// Panics if unparsable
-fn parse_addressport_str(s: &str) -> SocketAddr {
+fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
     let mut las = s.split(':');
     let ip_part = expect!(las.next(), "ip_part");
     let port = expect!(las.next(), "port");
     let port = from_str!(u16, port, 16);
 
     if ip_part.len() == 8 {
-        let bytes = hex::decode(&ip_part).unwrap();
+        let bytes = expect!(hex::decode(&ip_part));
         let ip_u32 = NetworkEndian::read_u32(&bytes);
 
         let ip = Ipv4Addr::new(
@@ -85,9 +83,9 @@ fn parse_addressport_str(s: &str) -> SocketAddr {
             ((ip_u32 & 0xff << 24) >> 24) as u8,
         );
 
-        SocketAddr::V4(SocketAddrV4::new(ip, port))
+        Ok(SocketAddr::V4(SocketAddrV4::new(ip, port)))
     } else if ip_part.len() == 32 {
-        let bytes = hex::decode(&ip_part).unwrap();
+        let bytes = expect!(hex::decode(&ip_part));
         let ip_u128 = NetworkEndian::read_u128(&bytes);
 
         let ip = Ipv6Addr::new(
@@ -101,9 +99,9 @@ fn parse_addressport_str(s: &str) -> SocketAddr {
             ((ip_u128 & 0xffff << 112) >> 112) as u16,
         );
 
-        SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0))
+        Ok(SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
     } else {
-        panic!("Unable to parse {:?} as an address:port", s)
+        Err(build_internal_error!(format!("Unable to parse {:?} as an address:port", s)))
     }
 }
 
@@ -118,12 +116,9 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         let local_address = expect!(s.next(), "tcp::local_address");
         let rem_address = expect!(s.next(), "tcp::rem_address");
         let state = expect!(s.next(), "tcp::st");
-        let tx_rx_queue: Vec<u32> = expect!(s.next(), "tcp::tx_queue:rx_queue")
-            .splitn(2, ':')
-            .map(|s| from_str!(u32, s, 16))
-            .collect();
-        let tx_queue = *expect!(tx_rx_queue.get(0), "tcp::tx_queue");
-        let rx_queue = *expect!(tx_rx_queue.get(1), "tcp::rx_queue");
+        let mut tx_rx_queue = expect!(s.next(), "tcp::tx_queue:rx_queue").splitn(2, ':');
+        let tx_queue = from_str!(u32, expect!(tx_rx_queue.next(), "tcp::tx_queue"), 16);
+        let rx_queue = from_str!(u32, expect!(tx_rx_queue.next(), "tcp::rx_queue"), 16);
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
         s.next(); // skip uid
@@ -131,11 +126,11 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
         let inode = expect!(s.next(), "tcp::inode");
 
         vec.push(TcpNetEntry {
-            local_address: parse_addressport_str(local_address),
-            remote_address: parse_addressport_str(rem_address),
+            local_address: parse_addressport_str(local_address)?,
+            remote_address: parse_addressport_str(rem_address)?,
             rx_queue,
             tx_queue,
-            state: TcpState::from_u8(from_str!(u8, state, 16)).unwrap(),
+            state: expect!(TcpState::from_u8(from_str!(u8, state, 16))),
             inode: from_str!(u32, inode),
         });
     }
@@ -154,12 +149,9 @@ fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>>
         let local_address = expect!(s.next(), "udp::local_address");
         let rem_address = expect!(s.next(), "udp::rem_address");
         s.next(); // skip state
-        let tx_rx_queue: Vec<u32> = expect!(s.next(), "udp::tx_queue:rx_queue")
-            .splitn(2, ':')
-            .map(|s| from_str!(u32, s, 16))
-            .collect();
-        let tx_queue = *expect!(tx_rx_queue.get(0), "udp::tx_queue");
-        let rx_queue = *expect!(tx_rx_queue.get(1), "udp::rx_queue");
+        let mut tx_rx_queue = expect!(s.next(), "udp::tx_queue:rx_queue").splitn(2, ':');
+        let tx_queue: u32 = from_str!(u32, expect!(tx_rx_queue.next(), "udp::tx_queue"), 16);
+        let rx_queue: u32 = from_str!(u32, expect!(tx_rx_queue.next(), "udp::rx_queue"), 16);
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
         s.next(); // skip uid
@@ -167,8 +159,8 @@ fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>>
         let inode = expect!(s.next(), "udp::inode");
 
         vec.push(UdpNetEntry {
-            local_address: parse_addressport_str(local_address),
-            remote_address: parse_addressport_str(rem_address),
+            local_address: parse_addressport_str(local_address)?,
+            remote_address: parse_addressport_str(rem_address)?,
             rx_queue,
             tx_queue,
             inode: from_str!(u32, inode),
@@ -215,14 +207,14 @@ mod tests {
     fn test_parse_ipaddr() {
         use std::str::FromStr;
 
-        let addr = parse_addressport_str("0100007F:1234");
+        let addr = parse_addressport_str("0100007F:1234").unwrap();
         assert_eq!(addr.port(), 0x1234);
         match addr.ip() {
             IpAddr::V4(addr) => assert_eq!(addr, Ipv4Addr::new(127, 0, 0, 1)),
             _ => panic!("Not IPv4"),
         }
 
-        let addr = parse_addressport_str("5014002A18080140000000000E200000:0050");
+        let addr = parse_addressport_str("5014002A18080140000000000E200000:0050").unwrap();
         assert_eq!(addr.port(), 80);
         match addr.ip() {
             IpAddr::V6(addr) => {

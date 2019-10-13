@@ -82,7 +82,7 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
         if let Ok(line) = line {
             if !line.is_empty() {
                 let mut s = line.split(':');
-                let key = s.next().unwrap();
+                let key = expect!(s.next());
                 if let Some(value) = s.next() {
                     let key = key.trim().to_owned();
                     let value = value.trim().to_owned();

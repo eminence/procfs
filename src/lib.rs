@@ -22,8 +22,11 @@
 //!
 //! # Panicing
 //!
-//! This crate is not panic-free.  It will panic if it encounters data in some unexpected format;
-//! this represents a bug in this crate, and should be [reported](https://github.com/eminence/procfs).
+//! While previous versions of the library could panic, this current version aims to be panic-free
+//! in a many situations as possible.  Whenever the procfs crate encounters a bug in its own
+//! parsing code, it will return a `[ProcError::InternalError]` error.  This should be considered a
+//! bug and should be [reported](https://github.com/eminence/procfs).  If you encounter a panic,
+//! please report that as well.
 //!
 //! # Examples
 //!
@@ -43,7 +46,7 @@
 //!     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 //!
 //!     let tty = format!("pty/{}", me.stat.tty_nr().1);
-//!     for prc in procfs::all_processes() {
+//!     for prc in procfs::all_processes().unwrap() {
 //!         if prc.stat.tty_nr == me.stat.tty_nr {
 //!             // total_time is in seconds
 //!             let total_time =
@@ -70,7 +73,7 @@
 //! use std::collections::HashMap;
 //!
 //! fn main() {
-//!     let all_procs = procfs::all_processes();
+//!     let all_procs = procfs::all_processes().unwrap();
 //!
 //!     // build up a map between socket inodes and processes:
 //!     let mut map: HashMap<u32, &Process> = HashMap::new();
@@ -165,8 +168,57 @@ impl<T, R> IntoOption<T> for Result<T, R> {
     }
 }
 
+pub(crate) trait IntoResult<T, E> {
+    fn into(t: Self) -> Result<T, E>;
+}
+
+
+macro_rules! build_internal_error {
+    ($err: expr) => {
+        crate::ProcError::InternalError(crate::InternalError {
+            msg: format!("Internal Unwrap Error: {}", $err),
+            file: file!(),
+            line: line!(),
+            #[cfg(feature="backtrace")]
+            backtrace: backtrace::Backtrace::new(),
+        })
+    };
+    ($err: expr, $msg: expr) => {
+        crate::ProcError::InternalError(crate::InternalError {
+            msg: format!("Internal Unwrap Error: {}: {}", $msg, $err),
+            file: file!(),
+            line: line!(),
+            #[cfg(feature="backtrace")]
+            backtrace: backtrace::Backtrace::new(),
+        })
+    };
+}
+
+// custom NoneError, since std::option::NoneError is nightly-only
+// See https://github.com/rust-lang/rust/issues/42327
+struct NoneError;
+
+impl std::fmt::Display for NoneError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { 
+        write!(f, "NoneError")
+    }
+
+}
+
+impl<T> IntoResult<T, NoneError> for Option<T> {
+    fn into(t: Option<T>) -> Result<T, NoneError> {
+        t.ok_or(NoneError)
+    }
+}
+
+impl<T, E> IntoResult<T, E> for Result<T, E> {
+    fn into(t: Result<T, E>) -> Result<T, E> {
+        t
+    }
+}
+
 #[macro_use]
-macro_rules! expect {
+macro_rules! proc_panic {
     ($e:expr) => {
         crate::IntoOption::into_option($e).unwrap_or_else(|| {
             panic!(
@@ -186,41 +238,48 @@ macro_rules! expect {
     };
 }
 
+macro_rules! expect {
+    ($e:expr) => {
+        match crate::IntoResult::into($e) {
+            Ok(v) => v,
+            Err(e) => return ProcResult::Err(build_internal_error!(e))
+        }
+    };
+    ($e:expr, $msg:expr) => {
+        match crate::IntoResult::into($e) {
+            Ok(v) => v,
+            Err(e) => return ProcResult::Err(build_internal_error!(e, $msg))
+        }
+    };
+}
+
 #[macro_use]
 macro_rules! from_str {
     ($t:tt, $e:expr) => {{
         let e = $e;
-        $t::from_str_radix(e, 10).unwrap_or_else(|_| {
-            panic!(
-                "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
+        expect!($t::from_str_radix(e, 10), format!("Failed to parse {} ({:?}) as a {}", 
                 stringify!($e),
                 e,
                 stringify!($t),
-            )
-        })
+        ))
+            
     }};
     ($t:tt, $e:expr, $radix:expr) => {{
         let e = $e;
-        $t::from_str_radix(e, $radix).unwrap_or_else(|_| {
-            panic!(
-                "Failed to parse {} ({:?}) as a {}. Please report this as a procfs bug.",
+        expect!($t::from_str_radix(e, $radix), format!("Failed to parse {} ({:?}) as a {}",
                 stringify!($e),
                 e,
                 stringify!($t)
-            )
-        })
+        ))
     }};
     ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
         let e = $e;
-        $t::from_str_radix(e, $radix).unwrap_or_else(|_| {
-            panic!(
-                "Failed to parse {} ({:?}) as a {} (pid {}). Please report this as a procfs bug.",
+        expect!($t::from_str_radix(e, $radix), format!("Failed to parse {} ({:?}) as a {} (pid {})",
                 stringify!($e),
                 e,
                 stringify!($t),
                 $pid
-            )
-        })
+            ))
     }};
 }
 
@@ -237,10 +296,14 @@ pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> Pro
     Ok(())
 }
 
-pub(crate) fn read_value<P: AsRef<Path>, T: FromStr<Err = E>, E: fmt::Debug>(
-    path: P,
-) -> ProcResult<T> {
-    read_file(path).map(|buf| buf.trim().parse().unwrap())
+pub(crate) fn read_value<P, T, E>(path: P) -> ProcResult<T> 
+    where P: AsRef<Path>,
+          T: FromStr<Err = E>,
+          ProcError: From<E>
+{
+    let val = read_file(path)?;
+    Ok(<T as FromStr>::from_str(val.trim())?)
+    //Ok(val.trim().parse()?)
 }
 
 pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) -> ProcResult<()> {
@@ -296,13 +359,13 @@ lazy_static! {
     };
 }
 
-fn convert_to_kibibytes(num: u64, unit: &str) -> u64 {
+fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
     match unit {
-        "B" => num,
-        "KiB" | "kiB" | "kB" | "KB" => num * 1024,
-        "MiB" | "miB" | "MB" | "mB" => num * 1024 * 1024,
-        "GiB" | "giB" | "GB" | "gB" => num * 1024 * 1024 * 1024,
-        unknown => panic!("Unknown unit type {}", unknown),
+        "B" => Ok(num),
+        "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
+        "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
+        "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
+        unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
     }
 }
 
@@ -321,17 +384,11 @@ impl FromStrRadix for i32 {
     }
 }
 
-fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> (T, T) {
+fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> ProcResult<(T, T)> {
     let mut s = s.split(sep);
-    let a = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
-        Ok(v) => v,
-        _ => panic!(),
-    };
-    let b = match FromStrRadix::from_str_radix(s.next().unwrap(), radix) {
-        Ok(v) => v,
-        _ => panic!(),
-    };
-    (a, b)
+    let a = expect!(FromStrRadix::from_str_radix(expect!(s.next()), radix));
+    let b = expect!(FromStrRadix::from_str_radix(expect!(s.next()), radix));
+    Ok((a, b))
 }
 
 /// This is used to hold both an IO error as well as the path of the file that originated the error
@@ -435,7 +492,41 @@ pub enum ProcError {
     Io(std::io::Error, Option<PathBuf>),
     /// Any other non-IO error (very rare).
     Other(String),
+    /// This error indicates that some unexpected error occurred.  This is a bug.
+    ///
+    /// If you ever encounter this error, consider it a bug in the procfs crate and please report
+    /// it on github.
+    InternalError(InternalError),
 }
+
+/// An internal error in the procfs crate
+///
+/// If you encounter this error, consider it a bug and please report it on
+/// [github](https://github.com/eminence/procfs).
+///
+#[cfg_attr(not(feature="backtrace"), doc="If you compile with the optional `backtrace` feature, you can gain access to a stack trace of where the error happened.")]
+pub struct InternalError {
+    pub msg: String,
+    pub file: &'static str,
+    pub line: u32,
+    #[cfg(feature="backtrace")]
+    pub backtrace: backtrace::Backtrace
+}
+
+impl std::fmt::Debug for InternalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "bug at {}:{} (please report this procfs bug)\n{}", self.file, self.line, self.msg)
+    }
+    
+}
+
+impl std::fmt::Display for InternalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "bug at {}:{} (please report this procfs bug)\n{}", self.file, self.line, self.msg)
+    }
+
+}
+
 
 impl From<std::io::Error> for ProcError {
     fn from(io: std::io::Error) -> Self {
@@ -456,6 +547,18 @@ impl From<std::io::Error> for ProcError {
     }
 }
 
+impl From<&'static str> for ProcError {
+    fn from(val: &'static str) -> Self {
+        ProcError::Other(val.to_owned())
+    }
+}
+
+impl From<std::num::ParseIntError> for ProcError {
+    fn from(val: std::num::ParseIntError) -> Self {
+        ProcError::Other(format!("ParseIntError: {}", val))
+    }
+}
+
 impl std::fmt::Display for ProcError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
@@ -473,6 +576,7 @@ impl std::fmt::Display for ProcError {
             ProcError::Io(inner, None) => write!(f, "Unexpected IO error: {}", inner),
 
             ProcError::Other(s) => write!(f, "Uknown error {}", s),
+            ProcError::InternalError(e) => write!(f, "Internal error: {}", e),
         }
     }
 }
@@ -507,15 +611,15 @@ impl LoadAverage {
         f.read_to_string(&mut s)?;
         let mut s = s.split_whitespace();
 
-        let one = f32::from_str(s.next().unwrap()).unwrap();
-        let five = f32::from_str(s.next().unwrap()).unwrap();
-        let fifteen = f32::from_str(s.next().unwrap()).unwrap();
-        let curmax = s.next().unwrap();
-        let latest_pid = u32::from_str(s.next().unwrap()).unwrap();
+        let one = expect!(f32::from_str(expect!(s.next())));
+        let five = expect!(f32::from_str(expect!(s.next())));
+        let fifteen = expect!(f32::from_str(expect!(s.next())));
+        let curmax = expect!(s.next());
+        let latest_pid = expect!(u32::from_str(expect!(s.next())));
 
         let mut s = curmax.split('/');
-        let cur = u32::from_str(s.next().unwrap()).unwrap();
-        let max = u32::from_str(s.next().unwrap()).unwrap();
+        let cur = expect!(u32::from_str(expect!(s.next())));
+        let max = expect!(u32::from_str(expect!(s.next())));
 
         Ok(LoadAverage {
             one,
@@ -553,7 +657,7 @@ pub fn boot_time() -> ProcResult<DateTime<Local>> {
     let mut buf = String::new();
     f.read_to_string(&mut buf)?;
 
-    let uptime_seconds = f32::from_str(buf.split_whitespace().next().unwrap()).unwrap();
+    let uptime_seconds = expect!(f32::from_str(expect!(buf.split_whitespace().next())));
     Ok(now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64))
 }
 
@@ -684,16 +788,22 @@ mod tests {
     }
 
     #[test]
-    fn test_from_str() {
+    fn test_from_str() -> ProcResult<()> {
         assert_eq!(from_str!(u8, "12"), 12);
         assert_eq!(from_str!(u8, "A", 16), 10);
+        Ok(())
     }
 
     #[test]
-    #[should_panic]
-    fn test_from_str_panic() {
-        let s = "four";
-        from_str!(u8, s);
+    fn test_from_str_fail() {
+        fn inner() -> ProcResult<()> {
+            let s = "four";
+            from_str!(u8, s);
+            unreachable!()
+        }
+
+        assert!(inner().is_err())
+
     }
 
     #[test]
@@ -757,4 +867,43 @@ mod tests {
         // Unwrapping this failure should produce a message that looks like:
         // thread 'tests::test_failure' panicked at 'called `Result::unwrap()` on an `Err` value: PermissionDenied(Some("/proc/1/maps"))', src/libcore/result.rs:997:5
     }
+
+
+    #[test]
+    fn test_nopanic() {
+        fn _inner() -> ProcResult<bool> {
+            let x: Option<bool> = None;
+            let y: bool = expect!(x);
+            Ok(y)
+        }
+
+        let r = _inner();
+        println!("{:?}", r);
+        assert!(r.is_err());
+
+        fn _inner2() -> ProcResult<bool> {
+            let _f: std::fs::File = expect!(std::fs::File::open("/doesnotexist"));
+            Ok(true)
+        }
+
+        let r = _inner2();
+        println!("{:?}", r);
+        assert!(r.is_err());
+
+
+    }
+
+    #[cfg(feature="backtrace")]
+    #[test]
+    fn test_backtrace() {
+        fn _inner() -> ProcResult<bool> {
+            let _f: std::fs::File = expect!(std::fs::File::open("/doesnotexist"));
+            Ok(true)
+        }
+
+        let r = _inner();
+        println!("{:?}", r);
+
+    }
+
 }

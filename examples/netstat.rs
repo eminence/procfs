@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 fn main() {
     // get all processes
-    let all_procs = procfs::all_processes();
+    let all_procs = procfs::all_processes().unwrap();
 
     // build up a map between socket inodes and processes:
     let mut map: HashMap<u32, &Process> = HashMap::new();

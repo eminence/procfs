@@ -10,6 +10,9 @@ categories = ["os::unix-apis", "filesystem"]
 license = "MIT OR Apache-2.0"
 edition = "2018"
 
+[features]
+default = []
+
 [dependencies]
 libc = "0.2"
 bitflags = "1"
@@ -18,6 +21,7 @@ chrono = "0.4"
 byteorder = {version="1", features=["i128"]}
 hex = "0.3"
 libflate = "0.1"
+backtrace = { version = "0.3", optional = true }
 
 [dev-dependencies]
 failure = "0.1.5"
