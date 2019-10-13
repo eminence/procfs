@@ -1773,6 +1773,17 @@ impl Process {
         let file = FileWrapper::open(&path)?;
         Status::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
     }
+
+    /// Gets the process' login uid.
+    ///
+    /// (since Linux 4.18.0, depends on Audit framework enabled in kernel)
+    pub fn loginuid(&self) -> ProcResult<i32> {
+        let mut uid = String::new();
+        let path = self.root.join("loginuid");
+        let mut file = FileWrapper::open(&path)?;
+        file.read_to_string(&mut uid)?;
+        Status::parse_uid_gid(&uid, 0).ok_or(ProcError::Incomplete(Some(path)))
+    }
 }
 
 pub fn all_processes() -> Vec<Process> {
@@ -2079,6 +2090,13 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         let myself = Process::myself().unwrap();
         let wchan = myself.wchan().unwrap();
         println!("{:?}", wchan);
+    }
+
+    #[test]
+    fn test_proc_loginuid() {
+        let myself = Process::myself().unwrap();
+        let loginuid = myself.loginuid().unwrap();
+        println!("{:?}", loginuid);
     }
 
     #[test]
