@@ -1774,9 +1774,7 @@ impl Process {
         Status::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
     }
 
-    /// Gets the process' login uid.
-    ///
-    /// (since Linux 4.18.0, depends on Audit framework enabled in kernel)
+    /// Gets the process' login uid. May not be available.
     pub fn loginuid(&self) -> ProcResult<i32> {
         let mut uid = String::new();
         let path = self.root.join("loginuid");
@@ -2094,6 +2092,10 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
 
     #[test]
     fn test_proc_loginuid() {
+        if !Path::new("/proc/self/loginuid").exists() {
+            return;
+        }
+
         let myself = Process::myself().unwrap();
         let loginuid = myself.loginuid().unwrap();
         println!("{:?}", loginuid);
