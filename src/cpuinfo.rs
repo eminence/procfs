@@ -58,7 +58,7 @@ impl CpuInfo {
     }
     pub fn physical_id(&self, cpu_num: usize) -> Option<u32> {
         self.get_info(cpu_num)
-            .and_then(|mut m| m.remove("vendor_id"))
+            .and_then(|mut m| m.remove("physical id"))
             .and_then(|s| u32::from_str_radix(s, 10).ok())
     }
     pub fn flags(&self, cpu_num: usize) -> Option<Vec<&str>> {
@@ -142,6 +142,12 @@ mod tests {
     fn test_cpuinfo() {
         let info = cpuinfo().unwrap();
         println!("{:#?}", info.flags(0));
+        for num in 0..info.num_cores() {
+            info.model_name(num).unwrap();
+            info.vendor_id(num).unwrap();
+            info.physical_id(num).unwrap();
+
+        }
 
         //assert_eq!(info.num_cores(), 8);
     }
