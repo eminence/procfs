@@ -737,9 +737,6 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     Ok(map)
 }
 
-pub fn meminfo() -> ProcResult<Meminfo> {
-    Meminfo::new()
-}
 
 #[cfg(test)]
 mod tests {
