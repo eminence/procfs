@@ -1325,6 +1325,19 @@ pub struct Status {
     pub voluntary_ctxt_switches: Option<u64>,
     /// Number of involuntary context switches (since Linux 2.6.23).
     pub nonvoluntary_ctxt_switches: Option<u64>,
+
+    /// Contains true if the process is currently dumping core.
+    ///
+    /// This information can be used by a monitoring process to avoid killing a processing that is
+    /// currently dumping core, which could result in a corrupted core dump file.
+    ///
+    /// (Since Linux 4.15)
+    pub core_dumping: Option<bool>,
+
+    /// Contains true if the process is allowed to use THP
+    ///
+    /// (Since Linux 5.0)
+    pub thp_enabled: Option<bool>,
 }
 
 impl Status {
@@ -1417,6 +1430,8 @@ impl Status {
             nonvoluntary_ctxt_switches: map
                 .remove("nonvoluntary_ctxt_switches")
                 .map(|x| Ok(from_str!(u64, &x))).transpose()?,
+            core_dumping: map.remove("CoreDumping").map(|x| x == "1"),
+            thp_enabled: map.remove("THP_enabled").map(|x| x == "1"),
         };
 
         if cfg!(test) && !map.is_empty() {
