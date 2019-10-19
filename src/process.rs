@@ -1813,13 +1813,18 @@ pub fn all_processes() -> ProcResult<Vec<Process>> {
 mod tests {
     use super::*;
 
-    fn check_unwrap<T>(val: ProcResult<T>) {
+    fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) {
         match val {
             Ok(_t) => {}
             Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
                 // we are not root, and so a permission denied error is OK
             }
-            Err(ProcError::NotFound(path)) => panic!("{:?} not found", path),
+            Err(ProcError::NotFound(path)) => {
+                // a common reason for this error is that the process isn't running anymore
+                if prc.is_alive() {
+                    panic!("{:?} not found", path)
+                }
+            },
             Err(err) => panic!("{:?}", err),
         }
     }
@@ -1908,19 +1913,20 @@ mod tests {
             // so permission denied errors are common
             // TODO unwrap but allow for permission denied errors in this test
 
+            println!("{} {}", prc.pid(), prc.stat.comm);
             prc.stat.flags();
             prc.stat.starttime();
-            check_unwrap(prc.cmdline());
-            check_unwrap(prc.environ());
-            check_unwrap(prc.fd());
-            check_unwrap(prc.io());
-            check_unwrap(prc.maps());
-            check_unwrap(prc.coredump_filter());
-            check_unwrap(prc.autogroup());
-            check_unwrap(prc.auxv());
-            check_unwrap(prc.cgroups());
-            check_unwrap(prc.wchan());
-            check_unwrap(prc.status());
+            check_unwrap(&prc, prc.cmdline());
+            check_unwrap(&prc, prc.environ());
+            check_unwrap(&prc, prc.fd());
+            check_unwrap(&prc, prc.io());
+            check_unwrap(&prc, prc.maps());
+            check_unwrap(&prc, prc.coredump_filter());
+            check_unwrap(&prc, prc.autogroup());
+            check_unwrap(&prc, prc.auxv());
+            check_unwrap(&prc, prc.cgroups());
+            check_unwrap(&prc, prc.wchan());
+            check_unwrap(&prc, prc.status());
         }
     }
 

@@ -118,3 +118,16 @@ pub fn max_map_count() -> ProcResult<u64> {
 pub fn set_max_map_count(count: u64) -> ProcResult<()> {
     write_value("/proc/sys/vm/max_map_count", count)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        admin_reserve_kbytes().unwrap();
+        max_map_count().unwrap();
+
+
+    }
+}

@@ -744,8 +744,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_kernel_const() {
+    fn test_statics() {
+        println!("{:?}", *BOOTTIME);
+        println!("{:?}", *TICKS_PER_SECOND);
         println!("{:?}", *KERNEL);
+        println!("{:?}", *PAGESIZE);
     }
 
     #[test]
