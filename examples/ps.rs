@@ -12,7 +12,7 @@ fn main() {
     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 
     let tty = format!("pty/{}", me.stat.tty_nr().1);
-    for prc in procfs::all_processes() {
+    for prc in procfs::all_processes().unwrap() {
         if prc.stat.tty_nr == me.stat.tty_nr {
             // total_time is in seconds
             let total_time = (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);

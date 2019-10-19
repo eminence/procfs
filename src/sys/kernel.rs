@@ -135,4 +135,10 @@ mod tests {
         let b = Version::new(3, 16, 0);
         assert_eq!(a, b);
     }
+
+
+    #[test]
+    fn test_current() {
+        let _ = Version::current().unwrap();
+    }
 }

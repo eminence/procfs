@@ -263,19 +263,14 @@ pub struct Meminfo {
 }
 
 impl Meminfo {
-    /// Reads and parses the `/proc/meminfo`, returning `None` if there are problems.
-    ///
-    /// # Panics
-    ///
-    /// This may panic if expected fields are missing.  This can happen when running on kernels
-    /// older than 2.6.0.
+    /// Reads and parses the `/proc/meminfo`, returning an error if there are problems.
     pub fn new() -> ProcResult<Meminfo> {
         let f = FileWrapper::open("/proc/meminfo")?;
 
-        Ok(Meminfo::from_reader(f))
+        Meminfo::from_reader(f)
     }
 
-    fn from_reader<R: io::Read>(r: R) -> Meminfo {
+    fn from_reader<R: io::Read>(r: R) -> ProcResult<Meminfo> {
         use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
 
@@ -295,7 +290,7 @@ impl Meminfo {
             let value = from_str!(u64, value);
 
             let value = if let Some(unit) = unit {
-                convert_to_kibibytes(value, unit)
+                convert_to_kibibytes(value, unit)?
             } else {
                 value
             };
@@ -371,7 +366,7 @@ impl Meminfo {
             panic!("meminfo map is not empty: {:#?}", map);
         }
 
-        meminfo
+        Ok(meminfo)
     }
 }
 

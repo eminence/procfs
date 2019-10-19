@@ -135,16 +135,16 @@ bitflags! {
 //    }
 //}
 
-fn from_iter<'a, I, U>(i: I) -> Option<U>
+fn from_iter<'a, I, U>(i: I) -> ProcResult<U>
 where
     I: IntoIterator<Item = &'a str>,
     U: FromStr,
 {
     let mut iter = i.into_iter();
-    let val = iter.next()?;
+    let val = expect!(iter.next());
     match FromStr::from_str(val) {
-        Ok(u) => Some(u),
-        Err(..) => panic!("Failed to convert".to_string()),
+        Ok(u) => Ok(u),
+        Err(..) => Err(build_internal_error!("Failed to convert"))
     }
 }
 
@@ -204,9 +204,9 @@ impl ProcState {
 }
 
 impl FromStr for ProcState {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<ProcState, &'static str> {
-        ProcState::from_char(expect!(s.chars().next(), "empty string")).ok_or("Failed to convert")
+    type Err = ProcError;
+    fn from_str(s: &str) -> Result<ProcState, ProcError> {
+        ProcState::from_char(expect!(s.chars().next(), "empty string")).ok_or_else(|| build_internal_error!("failed to convert"))
     }
 }
 
@@ -508,7 +508,7 @@ pub struct MountStat {
 }
 
 impl MountStat {
-    pub fn from_reader<R: io::Read>(r: R) -> Option<Vec<MountStat>> {
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Vec<MountStat>> {
         use std::io::{BufRead, BufReader};
 
         let mut v = Vec::new();
@@ -520,12 +520,12 @@ impl MountStat {
                 // device proc mounted on /proc with fstype proc
                 let mut s = line.split_whitespace();
 
-                let device = Some(s.nth(1)?.to_owned());
-                let mount_point = PathBuf::from(s.nth(2)?);
-                let fs = s.nth(2)?.to_owned();
+                let device = Some(expect!(s.nth(1)).to_owned());
+                let mount_point = PathBuf::from(expect!(s.nth(2)));
+                let fs = expect!(s.nth(2)).to_owned();
                 let statistics = match s.next() {
                     Some(stats) if stats.starts_with("statvers=") => {
-                        Some(MountNFSStatistics::from_lines(&mut lines, &stats[9..]))
+                        Some(MountNFSStatistics::from_lines(&mut lines, &stats[9..])?)
                     }
                     _ => None,
                 };
@@ -539,7 +539,7 @@ impl MountStat {
             }
         }
 
-        Some(v)
+        Ok(v)
     }
 }
 
@@ -582,7 +582,7 @@ pub struct MountNFSStatistics {
 
 impl MountNFSStatistics {
     // Keep reading lines until we get to a blank line
-    fn from_lines<B: io::BufRead>(r: &mut io::Lines<B>, statsver: &str) -> MountNFSStatistics {
+    fn from_lines<B: io::BufRead>(r: &mut io::Lines<B>, statsver: &str) -> ProcResult<MountNFSStatistics> {
         let mut parsing_per_op = false;
 
         let mut opts: Option<Vec<String>> = None;
@@ -608,9 +608,9 @@ impl MountNFSStatistics {
                 } else if line.starts_with("sec:") {
                     sec = Some(line[4..].trim().split(',').map(|s| s.to_string()).collect());
                 } else if line.starts_with("bytes:") {
-                    bytes = Some(NFSByteCounter::from_str(&line[6..].trim()));
+                    bytes = Some(NFSByteCounter::from_str(&line[6..].trim())?);
                 } else if line.starts_with("events:") {
-                    events = Some(NFSEventCounter::from_str(&line[7..].trim()));
+                    events = Some(NFSEventCounter::from_str(&line[7..].trim())?);
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;
@@ -618,12 +618,12 @@ impl MountNFSStatistics {
             } else {
                 let mut split = line.split(':');
                 let name = expect!(split.next()).to_string();
-                let stats = NFSOperationStat::from_str(expect!(split.next()));
+                let stats = NFSOperationStat::from_str(expect!(split.next()))?;
                 per_op.insert(name, stats);
             }
         }
 
-        MountNFSStatistics {
+        Ok(MountNFSStatistics {
             version: statsver.to_string(),
             opts: expect!(opts, "Failed to find opts field in nfs stats"),
             age: expect!(age, "Failed to find age field in nfs stats"),
@@ -632,18 +632,18 @@ impl MountNFSStatistics {
             events: expect!(events, "Failed to find events section in nfs stats"),
             bytes: expect!(bytes, "Failed to find bytes section in nfs stats"),
             per_op_stats: per_op,
-        }
+        })
     }
 
     /// Attempts to parse the caps= value from the [caps] field.
-    pub fn server_caps(&self) -> Option<NFSServerCaps> {
+    pub fn server_caps(&self) -> ProcResult<Option<NFSServerCaps>> {
         for data in &self.caps {
             if data.starts_with("caps=0x") {
                 let val = from_str!(u32, &data[7..], 16);
-                return NFSServerCaps::from_bits(val);
+                return Ok(NFSServerCaps::from_bits(val));
             }
         }
-        None
+        Ok(None)
     }
 }
 
@@ -685,10 +685,10 @@ pub struct NFSEventCounter {
 }
 
 impl NFSEventCounter {
-    fn from_str(s: &str) -> NFSEventCounter {
+    fn from_str(s: &str) -> ProcResult<NFSEventCounter> {
         use libc::c_ulong;
         let mut s = s.split_whitespace();
-        NFSEventCounter {
+        Ok(NFSEventCounter {
             inode_revalidate: from_str!(c_ulong, expect!(s.next())),
             deny_try_revalidate: from_str!(c_ulong, expect!(s.next())),
             data_invalidate: from_str!(c_ulong, expect!(s.next())),
@@ -716,7 +716,7 @@ impl NFSEventCounter {
             delay: from_str!(c_ulong, expect!(s.next())),
             pnfs_read: from_str!(c_ulong, expect!(s.next())),
             pnfs_write: from_str!(c_ulong, expect!(s.next())),
-        }
+        })
     }
 }
 
@@ -739,10 +739,10 @@ pub struct NFSByteCounter {
 }
 
 impl NFSByteCounter {
-    fn from_str(s: &str) -> NFSByteCounter {
+    fn from_str(s: &str) -> ProcResult<NFSByteCounter> {
         use libc::c_ulonglong;
         let mut s = s.split_whitespace();
-        NFSByteCounter {
+        Ok(NFSByteCounter {
             normal_read: from_str!(c_ulonglong, expect!(s.next())),
             normal_write: from_str!(c_ulonglong, expect!(s.next())),
             direct_read: from_str!(c_ulonglong, expect!(s.next())),
@@ -751,7 +751,7 @@ impl NFSByteCounter {
             server_write: from_str!(c_ulonglong, expect!(s.next())),
             pages_read: from_str!(c_ulonglong, expect!(s.next())),
             pages_write: from_str!(c_ulonglong, expect!(s.next())),
-        }
+        })
     }
 }
 
@@ -807,7 +807,7 @@ pub struct NFSOperationStat {
 }
 
 impl NFSOperationStat {
-    fn from_str(s: &str) -> NFSOperationStat {
+    fn from_str(s: &str) -> ProcResult<NFSOperationStat> {
         use libc::{c_ulong, c_ulonglong};
         let mut s = s.split_whitespace();
 
@@ -820,7 +820,7 @@ impl NFSOperationStat {
         let cum_resp_time_ms = from_str!(u64, expect!(s.next()));
         let cum_total_req_time_ms = from_str!(u64, expect!(s.next()));
 
-        NFSOperationStat {
+        Ok(NFSOperationStat {
             operations,
             transmissions,
             major_timeouts,
@@ -829,7 +829,7 @@ impl NFSOperationStat {
             cum_queue_time: Duration::from_millis(cum_queue_time_ms),
             cum_resp_time: Duration::from_millis(cum_resp_time_ms),
             cum_total_req_time: Duration::from_millis(cum_total_req_time_ms),
-        }
+        })
     }
 }
 
@@ -861,8 +861,8 @@ pub enum MMapPath {
 }
 
 impl MMapPath {
-    fn from(path: &str) -> MMapPath {
-        match path.trim() {
+    fn from(path: &str) -> ProcResult<MMapPath> {
+        Ok(match path.trim() {
             "" => MMapPath::Anonymous,
             "[heap]" => MMapPath::Heap,
             "[stack]" => MMapPath::Stack,
@@ -871,14 +871,14 @@ impl MMapPath {
             "[vsyscall]" => MMapPath::Vsyscall,
             x if x.starts_with("[stack:") => {
                 let mut s = x[1..x.len() - 1].split(':');
-                let tid = from_str!(u32, s.nth(1).unwrap());
+                let tid = from_str!(u32, expect!(s.nth(1)));
                 MMapPath::TStack(tid)
             }
             x if x.starts_with('[') && x.ends_with(']') => {
                 MMapPath::Other(x[1..x.len() - 1].to_string())
             }
             x => MMapPath::Path(PathBuf::from(x)),
-        }
+        })
     }
 }
 
@@ -903,39 +903,39 @@ pub struct MemoryMap {
 }
 
 impl Io {
-    pub fn from_reader<R: io::Read>(r: R) -> Option<Io> {
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Io> {
         use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
 
         for line in reader.lines() {
-            let line = line.ok()?;
+            let line = line?;
             if line.is_empty() || !line.contains(' ') {
                 continue;
             }
             let mut s = line.split_whitespace();
-            let field = s.next()?;
-            let value = s.next()?;
+            let field = expect!(s.next());
+            let value = expect!(s.next());
 
             let value = from_str!(u64, value);
 
             map.insert(field[..field.len() - 1].to_string(), value);
         }
         let io = Io {
-            rchar: map.remove("rchar")?,
-            wchar: map.remove("wchar")?,
-            syscr: map.remove("syscr")?,
-            syscw: map.remove("syscw")?,
-            read_bytes: map.remove("read_bytes")?,
-            write_bytes: map.remove("write_bytes")?,
-            cancelled_write_bytes: map.remove("cancelled_write_bytes")?,
+            rchar: expect!(map.remove("rchar")),
+            wchar: expect!(map.remove("wchar")),
+            syscr: expect!(map.remove("syscr")),
+            syscw: expect!(map.remove("syscw")),
+            read_bytes: expect!(map.remove("read_bytes")),
+            write_bytes: expect!(map.remove("write_bytes")),
+            cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
         };
 
         if cfg!(test) && !map.is_empty() {
             panic!("io map is not empty: {:#?}", map);
         }
 
-        Some(io)
+        Ok(io)
     }
 }
 
@@ -956,25 +956,25 @@ pub enum FDTarget {
 }
 
 impl FromStr for FDTarget {
-    type Err = String;
-    fn from_str(s: &str) -> Result<FDTarget, String> {
+    type Err = ProcError;
+    fn from_str(s: &str) -> Result<FDTarget, ProcError> {
         if !s.starts_with('/') && s.contains(':') {
             let mut s = s.split(':');
-            let fd_type = s.next().unwrap();
+            let fd_type = expect!(s.next());
             match fd_type {
                 "socket" => {
                     let inode = expect!(s.next(), "socket inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
+                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
                     Ok(FDTarget::Socket(inode))
                 }
                 "net" => {
                     let inode = expect!(s.next(), "net inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
+                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
                     Ok(FDTarget::Net(inode))
                 }
                 "pipe" => {
                     let inode = expect!(s.next(), "pipe inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
+                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
                     Ok(FDTarget::Pipe(inode))
                 }
                 "anon_inode" => Ok(FDTarget::AnonInode(
@@ -983,7 +983,7 @@ impl FromStr for FDTarget {
                 "/memfd" => Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string())),
                 x => {
                     let inode = expect!(s.next(), "other inode");
-                    let inode = u32::from_str_radix(&inode[1..inode.len() - 1], 10).unwrap();
+                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
             }
@@ -1011,78 +1011,78 @@ macro_rules! since_kernel {
 
 impl Stat {
     #[allow(clippy::cognitive_complexity)]
-    pub fn from_reader<R: io::Read>(mut r: R) -> Option<Stat> {
+    pub fn from_reader<R: io::Read>(mut r: R) -> ProcResult<Stat> {
         // read in entire thing, this is only going to be 1 line
         let mut buf = Vec::with_capacity(512);
-        r.read_to_end(&mut buf).ok()?;
+        r.read_to_end(&mut buf)?;
 
         let line = String::from_utf8_lossy(&buf);
         let buf = line.trim();
 
         // find the first opening paren, and split off the first part (pid)
-        let start_paren = buf.find('(')?;
-        let end_paren = buf.rfind(')')?;
+        let start_paren = expect!(buf.find('('));
+        let end_paren = expect!(buf.rfind(')'));
         let pid_s = &buf[..start_paren - 1];
         let comm = buf[start_paren + 1..end_paren].to_string();
         let rest = &buf[end_paren + 2..];
 
-        let pid = FromStr::from_str(pid_s).unwrap();
+        let pid = expect!(FromStr::from_str(pid_s));
 
         let mut rest = rest.split(' ');
-        let state = rest.next()?.chars().next()?;
+        let state = expect!(expect!(rest.next()).chars().next());
 
-        let ppid = from_iter(&mut rest)?;
-        let pgrp = from_iter(&mut rest)?;
-        let session = from_iter(&mut rest)?;
-        let tty_nr = from_iter(&mut rest)?;
-        let tpgid = from_iter(&mut rest)?;
-        let flags = from_iter(&mut rest)?;
-        let minflt = from_iter(&mut rest)?;
-        let cminflt = from_iter(&mut rest)?;
-        let majflt = from_iter(&mut rest)?;
-        let cmajflt = from_iter(&mut rest)?;
-        let utime = from_iter(&mut rest)?;
-        let stime = from_iter(&mut rest)?;
-        let cutime = from_iter(&mut rest)?;
-        let cstime = from_iter(&mut rest)?;
-        let priority = from_iter(&mut rest)?;
-        let nice = from_iter(&mut rest)?;
-        let num_threads = from_iter(&mut rest)?;
-        let itrealvalue = from_iter(&mut rest)?;
-        let starttime = from_iter(&mut rest)?;
-        let vsize = from_iter(&mut rest)?;
-        let rss = from_iter(&mut rest)?;
-        let rsslim = from_iter(&mut rest)?;
-        let startcode = from_iter(&mut rest)?;
-        let endcode = from_iter(&mut rest)?;
-        let startstack = from_iter(&mut rest)?;
-        let kstkesp = from_iter(&mut rest)?;
-        let kstkeip = from_iter(&mut rest)?;
-        let signal = from_iter(&mut rest)?;
-        let blocked = from_iter(&mut rest)?;
-        let sigignore = from_iter(&mut rest)?;
-        let sigcatch = from_iter(&mut rest)?;
-        let wchan = from_iter(&mut rest)?;
-        let nswap = from_iter(&mut rest)?;
-        let cnswap = from_iter(&mut rest)?;
+        let ppid = expect!(from_iter(&mut rest));
+        let pgrp = expect!(from_iter(&mut rest));
+        let session = expect!(from_iter(&mut rest));
+        let tty_nr = expect!(from_iter(&mut rest));
+        let tpgid = expect!(from_iter(&mut rest));
+        let flags = expect!(from_iter(&mut rest));
+        let minflt = expect!(from_iter(&mut rest));
+        let cminflt = expect!(from_iter(&mut rest));
+        let majflt = expect!(from_iter(&mut rest));
+        let cmajflt = expect!(from_iter(&mut rest));
+        let utime = expect!(from_iter(&mut rest));
+        let stime = expect!(from_iter(&mut rest));
+        let cutime = expect!(from_iter(&mut rest));
+        let cstime = expect!(from_iter(&mut rest));
+        let priority = expect!(from_iter(&mut rest));
+        let nice = expect!(from_iter(&mut rest));
+        let num_threads = expect!(from_iter(&mut rest));
+        let itrealvalue = expect!(from_iter(&mut rest));
+        let starttime = expect!(from_iter(&mut rest));
+        let vsize = expect!(from_iter(&mut rest));
+        let rss = expect!(from_iter(&mut rest));
+        let rsslim = expect!(from_iter(&mut rest));
+        let startcode = expect!(from_iter(&mut rest));
+        let endcode = expect!(from_iter(&mut rest));
+        let startstack = expect!(from_iter(&mut rest));
+        let kstkesp = expect!(from_iter(&mut rest));
+        let kstkeip = expect!(from_iter(&mut rest));
+        let signal = expect!(from_iter(&mut rest));
+        let blocked = expect!(from_iter(&mut rest));
+        let sigignore = expect!(from_iter(&mut rest));
+        let sigcatch = expect!(from_iter(&mut rest));
+        let wchan = expect!(from_iter(&mut rest));
+        let nswap = expect!(from_iter(&mut rest));
+        let cnswap = expect!(from_iter(&mut rest));
 
-        let exit_signal = since_kernel!(2, 1, 22, from_iter(&mut rest)?);
-        let processor = since_kernel!(2, 2, 8, from_iter(&mut rest)?);
-        let rt_priority = since_kernel!(2, 5, 19, from_iter(&mut rest)?);
-        let policy = since_kernel!(2, 5, 19, from_iter(&mut rest)?);
-        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, from_iter(&mut rest)?);
-        let guest_time = since_kernel!(2, 6, 24, from_iter(&mut rest)?);
-        let cguest_time = since_kernel!(2, 6, 24, from_iter(&mut rest)?);
-        let start_data = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
-        let end_data = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
-        let start_brk = since_kernel!(3, 3, 0, from_iter(&mut rest)?);
-        let arg_start = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
-        let arg_end = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
-        let env_start = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
-        let env_end = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
-        let exit_code = since_kernel!(3, 5, 0, from_iter(&mut rest)?);
+        let exit_signal = since_kernel!(2, 1, 22, expect!(from_iter(&mut rest)));
+        let processor = since_kernel!(2, 2, 8, expect!(from_iter(&mut rest)));
+        let rt_priority = since_kernel!(2, 5, 19, expect!(from_iter(&mut rest)));
+        let policy = since_kernel!(2, 5, 19, expect!(from_iter(&mut rest)));
+        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, expect!(from_iter(&mut rest)));
+        let guest_time = since_kernel!(2, 6, 24, expect!(from_iter(&mut rest)));
+        let cguest_time = since_kernel!(2, 6, 24, expect!(from_iter(&mut rest)));
+        let start_data = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
+        let end_data = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
+        let start_brk = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
+        let arg_start = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
+        let arg_end = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
+        let env_start = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
+        let env_end = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
+        let exit_code = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
 
-        Some(Stat {
+        Ok(Stat {
             pid,
             comm,
             state,
@@ -1138,8 +1138,8 @@ impl Stat {
         })
     }
 
-    pub fn state(&self) -> ProcState {
-        ProcState::from_char(self.state).unwrap()
+    pub fn state(&self) -> ProcResult<ProcState> {
+        ProcState::from_char(self.state).ok_or_else(|| build_internal_error!(format!("{:?} is not a recognized process state", self.state)))
     }
 
     pub fn tty_nr(&self) -> (i32, i32) {
@@ -1153,13 +1153,8 @@ impl Stat {
         (major, minor)
     }
 
-    pub fn flags(&self) -> StatFlags {
-        StatFlags::from_bits(self.flags).unwrap_or_else(|| {
-            panic!(format!(
-                "Can't construct flags bitfield from {:?}",
-                self.flags
-            ))
-        })
+    pub fn flags(&self) -> ProcResult<StatFlags> {
+        StatFlags::from_bits(self.flags).ok_or_else(|| build_internal_error!(format!("Can't construct flags bitfield from {:?}", self.flags)))
     }
 
     pub fn starttime(&self) -> DateTime<Local> {
@@ -1333,94 +1328,95 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn from_reader<R: io::Read>(r: R) -> Option<Status> {
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Status> {
         use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
 
         for line in reader.lines() {
-            let line = line.ok()?;
+            let line = line?;
             if line.is_empty() {
                 continue;
             }
             let mut s = line.split(':');
-            let field = s.next()?;
-            let value = s.next()?.trim();
+            let field = expect!(s.next());
+            let value = expect!(s.next()).trim();
 
             map.insert(field.to_string(), value.to_string());
         }
+
         let status = Status {
-            name: map.remove("Name")?,
-            umask: map.remove("Umask").map(|x| from_str!(u32, &x, 8)),
-            state: map.remove("State")?,
-            tgid: from_str!(i32, &map.remove("Tgid")?),
-            ngid: map.remove("Ngid").map(|x| from_str!(i32, &x)),
-            pid: from_str!(i32, &map.remove("Pid")?),
-            ppid: from_str!(i32, &map.remove("PPid")?),
-            tracerpid: from_str!(i32, &map.remove("TracerPid")?),
-            ruid: Status::parse_uid_gid(&map.get("Uid")?, 0)?,
-            euid: Status::parse_uid_gid(&map.get("Uid")?, 1)?,
-            suid: Status::parse_uid_gid(&map.get("Uid")?, 2)?,
-            fuid: Status::parse_uid_gid(&map.remove("Uid")?, 3)?,
-            rgid: Status::parse_uid_gid(&map.get("Gid")?, 0)?,
-            egid: Status::parse_uid_gid(&map.get("Gid")?, 1)?,
-            sgid: Status::parse_uid_gid(&map.get("Gid")?, 2)?,
-            fgid: Status::parse_uid_gid(&map.remove("Gid")?, 3)?,
-            fdsize: from_str!(u32, &map.remove("FDSize")?),
-            groups: Status::parse_list(&map.remove("Groups")?),
-            nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)),
-            nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)),
-            nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)),
-            nssid: map.remove("NSsid").map(|x| Status::parse_list(&x)),
-            vmpeak: Status::parse_with_kb(map.remove("VmPeak")),
-            vmsize: Status::parse_with_kb(map.remove("VmSize")),
-            vmlck: Status::parse_with_kb(map.remove("VmLck")),
-            vmpin: Status::parse_with_kb(map.remove("VmPin")),
-            vmhwm: Status::parse_with_kb(map.remove("VmHWM")),
-            vmrss: Status::parse_with_kb(map.remove("VmRSS")),
-            rssanon: Status::parse_with_kb(map.remove("RssAnon")),
-            rssfile: Status::parse_with_kb(map.remove("RssFile")),
-            rssshmem: Status::parse_with_kb(map.remove("RssShmem")),
-            vmdata: Status::parse_with_kb(map.remove("VmData")),
-            vmstk: Status::parse_with_kb(map.remove("VmStk")),
-            vmexe: Status::parse_with_kb(map.remove("VmExe")),
-            vmlib: Status::parse_with_kb(map.remove("VmLib")),
-            vmpte: Status::parse_with_kb(map.remove("VmPTE")),
-            vmswap: Status::parse_with_kb(map.remove("VmSwap")),
-            hugetblpages: Status::parse_with_kb(map.remove("HugetlbPages")),
-            threads: from_str!(u64, &map.remove("Threads")?),
-            sigq: Status::parse_sigq(&map.remove("SigQ")?)?,
-            sigpnd: from_str!(u64, &map.remove("SigPnd")?, 16),
-            shdpnd: from_str!(u64, &map.remove("ShdPnd")?, 16),
-            sigblk: from_str!(u64, &map.remove("SigBlk")?, 16),
-            sigign: from_str!(u64, &map.remove("SigIgn")?, 16),
-            sigcgt: from_str!(u64, &map.remove("SigCgt")?, 16),
-            capinh: from_str!(u64, &map.remove("CapInh")?, 16),
-            capprm: from_str!(u64, &map.remove("CapPrm")?, 16),
-            capeff: from_str!(u64, &map.remove("CapEff")?, 16),
-            capbnd: map.remove("CapBnd").map(|x| from_str!(u64, &x, 16)),
-            capamb: map.remove("CapAmb").map(|x| from_str!(u64, &x, 16)),
-            nonewprivs: map.remove("NoNewPrivs").map(|x| from_str!(u64, &x)),
-            seccomp: map.remove("Seccomp").map(|x| from_str!(u32, &x)),
+            name: expect!(map.remove("Name")),
+            umask: map.remove("Umask").map(|x| Ok(from_str!(u32, &x, 8))).transpose()?,
+            state: expect!(map.remove("State")),
+            tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
+            ngid: map.remove("Ngid").map(|x| Ok(from_str!(i32, &x))).transpose()?,
+            pid: from_str!(i32, &expect!(map.remove("Pid"))),
+            ppid: from_str!(i32, &expect!(map.remove("PPid"))),
+            tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
+            ruid: expect!(Status::parse_uid_gid(&expect!(map.get("Uid")), 0)),
+            euid: expect!(Status::parse_uid_gid(&expect!(map.get("Uid")), 1)),
+            suid: expect!(Status::parse_uid_gid(&expect!(map.get("Uid")), 2)),
+            fuid: expect!(Status::parse_uid_gid(&expect!(map.remove("Uid")), 3)),
+            rgid: expect!(Status::parse_uid_gid(&expect!(map.get("Gid")), 0)),
+            egid: expect!(Status::parse_uid_gid(&expect!(map.get("Gid")), 1)),
+            sgid: expect!(Status::parse_uid_gid(&expect!(map.get("Gid")), 2)),
+            fgid: expect!(Status::parse_uid_gid(&expect!(map.remove("Gid")), 3)),
+            fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
+            groups: Status::parse_list(&expect!(map.remove("Groups")))?,
+            nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)).transpose()?,
+            nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)).transpose()?,
+            nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)).transpose()?,
+            nssid: map.remove("NSsid").map(|x| Status::parse_list(&x)).transpose()?,
+            vmpeak: Status::parse_with_kb(map.remove("VmPeak"))?,
+            vmsize: Status::parse_with_kb(map.remove("VmSize"))?,
+            vmlck: Status::parse_with_kb(map.remove("VmLck"))?,
+            vmpin: Status::parse_with_kb(map.remove("VmPin"))?,
+            vmhwm: Status::parse_with_kb(map.remove("VmHWM"))?,
+            vmrss: Status::parse_with_kb(map.remove("VmRSS"))?,
+            rssanon: Status::parse_with_kb(map.remove("RssAnon"))?,
+            rssfile: Status::parse_with_kb(map.remove("RssFile"))?,
+            rssshmem: Status::parse_with_kb(map.remove("RssShmem"))?,
+            vmdata: Status::parse_with_kb(map.remove("VmData"))?,
+            vmstk: Status::parse_with_kb(map.remove("VmStk"))?,
+            vmexe: Status::parse_with_kb(map.remove("VmExe"))?,
+            vmlib: Status::parse_with_kb(map.remove("VmLib"))?,
+            vmpte: Status::parse_with_kb(map.remove("VmPTE"))?,
+            vmswap: Status::parse_with_kb(map.remove("VmSwap"))?,
+            hugetblpages: Status::parse_with_kb(map.remove("HugetlbPages"))?,
+            threads: from_str!(u64, &expect!(map.remove("Threads"))),
+            sigq: expect!(Status::parse_sigq(&expect!(map.remove("SigQ")))),
+            sigpnd: from_str!(u64, &expect!(map.remove("SigPnd")), 16),
+            shdpnd: from_str!(u64, &expect!(map.remove("ShdPnd")), 16),
+            sigblk: from_str!(u64, &expect!(map.remove("SigBlk")), 16),
+            sigign: from_str!(u64, &expect!(map.remove("SigIgn")), 16),
+            sigcgt: from_str!(u64, &expect!(map.remove("SigCgt")), 16),
+            capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
+            capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
+            capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
+            capbnd: map.remove("CapBnd").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
+            capamb: map.remove("CapAmb").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
+            nonewprivs: map.remove("NoNewPrivs").map(|x| Ok(from_str!(u64, &x))).transpose()?,
+            seccomp: map.remove("Seccomp").map(|x| Ok(from_str!(u32, &x))).transpose()?,
             speculation_store_bypass: map.remove("Speculation_Store_Bypass"),
             cpus_allowed: map
                 .remove("Cpus_allowed")
-                .map(|x| Status::parse_allowed(&x)),
+                .map(|x| Status::parse_allowed(&x)).transpose()?,
             cpus_allowed_list: map
                 .remove("Cpus_allowed_list")
-                .map(|x| Status::parse_allowed_list(&x)),
+                .and_then(|x| Status::parse_allowed_list(&x).ok()),
             mems_allowed: map
                 .remove("Mems_allowed")
-                .map(|x| Status::parse_allowed(&x)),
+                .map(|x| Status::parse_allowed(&x)).transpose()?,
             mems_allowed_list: map
                 .remove("Mems_allowed_list")
-                .map(|x| Status::parse_allowed_list(&x)),
+                .and_then(|x| Status::parse_allowed_list(&x).ok()),
             voluntary_ctxt_switches: map
                 .remove("voluntary_ctxt_switches")
-                .map(|x| from_str!(u64, &x)),
+                .map(|x| Ok(from_str!(u64, &x))).transpose()?,
             nonvoluntary_ctxt_switches: map
                 .remove("nonvoluntary_ctxt_switches")
-                .map(|x| from_str!(u64, &x)),
+                .map(|x| Ok(from_str!(u64, &x))).transpose()?,
         };
 
         if cfg!(test) && !map.is_empty() {
@@ -1429,45 +1425,45 @@ impl Status {
             eprintln!("Warning: status map is not empty: {:#?}", map);
         }
 
-        Some(status)
+        Ok(status)
     }
 
-    fn parse_with_kb<T: FromStrRadix>(s: Option<String>) -> Option<T> {
+    fn parse_with_kb<T: FromStrRadix>(s: Option<String>) -> ProcResult<Option<T>> {
         if let Some(s) = s {
-            Some(from_str!(T, &s.replace(" kB", "")))
+            Ok(Some(from_str!(T, &s.replace(" kB", ""))))
         } else {
-            None
+            Ok(None)
         }
     }
 
-    fn parse_uid_gid(s: &str, i: usize) -> Option<i32> {
-        Some(from_str!(i32, s.split_whitespace().nth(i)?))
+    fn parse_uid_gid(s: &str, i: usize) -> ProcResult<i32> {
+        Ok(from_str!(i32, expect!(s.split_whitespace().nth(i))))
     }
 
-    fn parse_sigq(s: &str) -> Option<(u64, u64)> {
+    fn parse_sigq(s: &str) -> ProcResult<(u64, u64)> {
         let mut iter = s.split('/');
-        let first = from_str!(u64, iter.next()?);
-        let second = from_str!(u64, iter.next()?);
-        Some((first, second))
+        let first = from_str!(u64, expect!(iter.next()));
+        let second = from_str!(u64, expect!(iter.next()));
+        Ok((first, second))
     }
 
-    fn parse_list<T: FromStrRadix>(s: &str) -> Vec<T> {
+    fn parse_list<T: FromStrRadix>(s: &str) -> ProcResult<Vec<T>> {
         let mut ret = Vec::new();
         for i in s.split_whitespace() {
             ret.push(from_str!(T, i));
         }
-        ret
+        Ok(ret)
     }
 
-    fn parse_allowed(s: &str) -> Vec<u32> {
+    fn parse_allowed(s: &str) -> ProcResult<Vec<u32>> {
         let mut ret = Vec::new();
         for i in s.split(',') {
             ret.push(from_str!(u32, i, 16));
         }
-        ret
+        Ok(ret)
     }
 
-    fn parse_allowed_list(s: &str) -> Vec<(u32, u32)> {
+    fn parse_allowed_list(s: &str) -> ProcResult<Vec<(u32, u32)>> {
         let mut ret = Vec::new();
         for s in s.split(',') {
             if s.contains('-') {
@@ -1483,7 +1479,7 @@ impl Status {
                 ret.push((beg, end));
             }
         }
-        ret
+        Ok(ret)
     }
 }
 
@@ -1507,8 +1503,7 @@ impl Process {
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         let path = root.join("stat");
-        let stat = Stat::from_reader(FileWrapper::open(&path)?)
-            .ok_or(ProcError::Incomplete(Some(path)))?;
+        let stat = Stat::from_reader(FileWrapper::open(&path)?)?;
 
         let md = std::fs::metadata(&root)?;
 
@@ -1525,8 +1520,7 @@ impl Process {
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
         let path = root.join("stat");
-        let stat = Stat::from_reader(FileWrapper::open(&path)?)
-            .ok_or(ProcError::Incomplete(Some(path)))?;
+        let stat = Stat::from_reader(FileWrapper::open(&path)?)?;
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
@@ -1570,8 +1564,8 @@ impl Process {
                 prc.stat.comm == self.stat.comm
                     && prc.owner == self.owner
                     && prc.stat.starttime == self.stat.starttime
-                    && prc.stat.state() != ProcState::Zombie
-                    && self.stat.state() != ProcState::Zombie
+                    && prc.stat.state().map(|s| s != ProcState::Zombie).unwrap_or(false)
+                    && self.stat.state().map(|s| s != ProcState::Zombie).unwrap_or(false)
             }
             _ => false,
         }
@@ -1634,28 +1628,28 @@ impl Process {
     pub fn io(&self) -> ProcResult<Io> {
         let path = self.root.join("io");
         let file = FileWrapper::open(&path)?;
-        Io::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
+        Io::from_reader(file)
     }
 
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
-        fn from_line(line: &str) -> Option<MemoryMap> {
+        fn from_line(line: &str) -> ProcResult<MemoryMap> {
             let mut s = line.splitn(6, ' ');
-            let address = s.next()?;
-            let perms = s.next()?;
-            let offset = s.next()?;
-            let dev = s.next()?;
-            let inode = s.next()?;
-            let path = s.next()?;
+            let address = expect!(s.next());
+            let perms = expect!(s.next());
+            let offset = expect!(s.next());
+            let dev = expect!(s.next());
+            let inode = expect!(s.next());
+            let path = expect!(s.next());
 
-            Some(MemoryMap {
-                address: split_into_num(address, '-', 16),
+            Ok(MemoryMap {
+                address: split_into_num(address, '-', 16)?,
                 perms: perms.to_string(),
                 offset: from_str!(u64, offset, 16),
-                dev: split_into_num(dev, ':', 16),
+                dev: split_into_num(dev, ':', 16)?,
                 inode: from_str!(u64, inode),
-                pathname: MMapPath::from(path),
+                pathname: MMapPath::from(path)?,
             })
         }
 
@@ -1670,7 +1664,7 @@ impl Process {
 
         for line in reader.lines() {
             let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
-            vec.push(from_line(&line).ok_or_else(|| ProcError::Incomplete(Some(path.clone())))?);
+            vec.push(from_line(&line)?);
         }
 
         Ok(vec)
@@ -1685,14 +1679,15 @@ impl Process {
 
         for dir in self.root.join("fd").read_dir()? {
             let entry = dir?;
-            let fd = u32::from_str_radix(entry.file_name().to_str().unwrap(), 10).unwrap();
+            let file_name = entry.file_name();
+            let fd = from_str!(u32, expect!(file_name.to_str()), 10);
             //  note: the link might have disappeared between the time we got the directory listing
             //  and now.  So if the read_link fails, that's OK
             if let Ok(link) = read_link(entry.path()) {
                 let link_os: &OsStr = link.as_ref();
                 vec.push(FDInfo {
                     fd,
-                    target: FDTarget::from_str(link_os.to_str().unwrap()).unwrap(),
+                    target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
                 });
             }
         }
@@ -1754,7 +1749,7 @@ impl Process {
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
         let path = self.root.join("mountstats");
         let file = FileWrapper::open(&path)?;
-        MountStat::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
+        MountStat::from_reader(file)
     }
 
     /// Gets the symbolic name corresponding to the location in the kernel where the process is sleeping.
@@ -1771,7 +1766,7 @@ impl Process {
     pub fn status(&self) -> ProcResult<Status> {
         let path = self.root.join("status");
         let file = FileWrapper::open(&path)?;
-        Status::from_reader(file).ok_or(ProcError::Incomplete(Some(path)))
+        Status::from_reader(file)
     }
 
     /// Gets the process' login uid. May not be available.
@@ -1780,11 +1775,11 @@ impl Process {
         let path = self.root.join("loginuid");
         let mut file = FileWrapper::open(&path)?;
         file.read_to_string(&mut uid)?;
-        Status::parse_uid_gid(&uid, 0).ok_or(ProcError::Incomplete(Some(path)))
+        Status::parse_uid_gid(&uid, 0)
     }
 }
 
-pub fn all_processes() -> Vec<Process> {
+pub fn all_processes() -> ProcResult<Vec<Process>> {
     let mut v = Vec::new();
     for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
         if let Ok(entry) = dir {
@@ -1796,7 +1791,7 @@ pub fn all_processes() -> Vec<Process> {
         }
     }
 
-    v
+    Ok(v)
 }
 
 #[cfg(test)]
@@ -1893,7 +1888,7 @@ mod tests {
 
     #[test]
     fn test_all() {
-        for prc in all_processes() {
+        for prc in all_processes().unwrap() {
             // note: this test doesn't unwrap, since some of this data requires root to access
             // so permission denied errors are common
             // TODO unwrap but allow for permission denied errors in this test
@@ -1969,12 +1964,12 @@ mod tests {
 
     #[test]
     fn test_mmap_path() {
-        assert_eq!(MMapPath::from("[stack]"), MMapPath::Stack);
-        assert_eq!(MMapPath::from("[foo]"), MMapPath::Other("foo".to_owned()));
-        assert_eq!(MMapPath::from(""), MMapPath::Anonymous);
-        assert_eq!(MMapPath::from("[stack:154]"), MMapPath::TStack(154));
+        assert_eq!(MMapPath::from("[stack]").unwrap(), MMapPath::Stack);
+        assert_eq!(MMapPath::from("[foo]").unwrap(), MMapPath::Other("foo".to_owned()));
+        assert_eq!(MMapPath::from("").unwrap(), MMapPath::Anonymous);
+        assert_eq!(MMapPath::from("[stack:154]").unwrap(), MMapPath::TStack(154));
         assert_eq!(
-            MMapPath::from("/lib/libfoo.so"),
+            MMapPath::from("/lib/libfoo.so").unwrap(),
             MMapPath::Path(PathBuf::from("/lib/libfoo.so"))
         );
     }
@@ -2060,7 +2055,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 assert_eq!(Duration::from_secs(3542), stats.age);
                 assert_eq!(1, stats.bytes.normal_read);
                 assert_eq!(114, stats.events.inode_revalidate);
-                assert!(stats.server_caps().is_some());
+                assert!(stats.server_caps().unwrap().is_some());
             }
             None => {
                 panic!("Failed to retrieve nfs statistics");
@@ -2135,5 +2130,15 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         assert_eq!(status.vmpte, None);
         assert_eq!(status.vmswap, None);
         assert_eq!(status.hugetblpages, None);
+    }
+
+    #[test]
+    fn test_nopanic() {
+        fn inner() -> ProcResult<u8> {
+            let a = vec!("xyz");
+            from_iter(a)
+        }
+        assert!(inner().is_err());
+
     }
 }
