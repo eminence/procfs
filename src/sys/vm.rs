@@ -127,7 +127,5 @@ mod tests {
     fn test() {
         admin_reserve_kbytes().unwrap();
         max_map_count().unwrap();
-
-
     }
 }

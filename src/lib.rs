@@ -30,9 +30,9 @@
 //! please report that as well.
 //!
 //! # Cargo features
-//! 
+//!
 //! The following cargo features are available:
-//! 
+//!
 //! * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
 //! * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 //!
@@ -45,25 +45,21 @@
 //! > cargo run --example=ps
 //!
 //! ```rust
-//! extern crate procfs;
+//! let me = procfs::Process::myself().unwrap();
+//! let tps = procfs::ticks_per_second().unwrap();
 //!
-//! fn main() {
-//!     let me = procfs::Process::myself().unwrap();
-//!     let tps = procfs::ticks_per_second().unwrap();
+//! println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 //!
-//!     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
-//!
-//!     let tty = format!("pty/{}", me.stat.tty_nr().1);
-//!     for prc in procfs::all_processes().unwrap() {
-//!         if prc.stat.tty_nr == me.stat.tty_nr {
-//!             // total_time is in seconds
-//!             let total_time =
-//!                 (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
-//!             println!(
-//!                 "{: >5} {: <8} {: >8} {}",
-//!                 prc.stat.pid, tty, total_time, prc.stat.comm
-//!             );
-//!         }
+//! let tty = format!("pty/{}", me.stat.tty_nr().1);
+//! for prc in procfs::all_processes().unwrap() {
+//!     if prc.stat.tty_nr == me.stat.tty_nr {
+//!         // total_time is in seconds
+//!         let total_time =
+//!             (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
+//!         println!(
+//!             "{: >5} {: <8} {: >8} {}",
+//!             prc.stat.pid, tty, total_time, prc.stat.comm
+//!         );
 //!     }
 //! }
 //! ```
@@ -75,41 +71,36 @@
 //! > cargo run --example=netstat
 //!
 //! ```rust
-//! extern crate procfs;
+//! # use procfs::{Process, FDTarget};
+//! # use std::collections::HashMap;
+//! let all_procs = procfs::all_processes().unwrap();
 //!
-//! use procfs::{Process, FDTarget};
-//! use std::collections::HashMap;
-//!
-//! fn main() {
-//!     let all_procs = procfs::all_processes().unwrap();
-//!
-//!     // build up a map between socket inodes and processes:
-//!     let mut map: HashMap<u32, &Process> = HashMap::new();
-//!     for process in &all_procs {
-//!         if let Ok(fds) = process.fd() {
-//!             for fd in fds {
-//!                 if let FDTarget::Socket(inode) = fd.target {
-//!                     map.insert(inode, process);
-//!                 }
+//! // build up a map between socket inodes and processes:
+//! let mut map: HashMap<u32, &Process> = HashMap::new();
+//! for process in &all_procs {
+//!     if let Ok(fds) = process.fd() {
+//!         for fd in fds {
+//!             if let FDTarget::Socket(inode) = fd.target {
+//!                 map.insert(inode, process);
 //!             }
 //!         }
 //!     }
+//! }
 //!
-//!     // get the tcp table
-//!     let tcp = procfs::tcp().unwrap();
-//!     let tcp6 = procfs::tcp6().unwrap();
-//!     println!("{:<26} {:<26} {:<15} {:<8} {}", "Local address", "Remote address", "State", "Inode", "PID/Program name");
-//!     for entry in tcp.into_iter().chain(tcp6) {
-//!         // find the process (if any) that has an open FD to this entry's inode
-//!         let local_address = format!("{}", entry.local_address);
-//!         let remote_addr = format!("{}", entry.remote_address);
-//!         let state = format!("{:?}", entry.state);
-//!         if let Some(process) = map.get(&entry.inode) {
-//!             println!("{:<26} {:<26} {:<15} {:<8} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
-//!         } else {
-//!             // We might not always be able to find the process assocated with this socket
-//!             println!("{:<26} {:<26} {:<15} {:<8} -", local_address, remote_addr, state, entry.inode);
-//!         }
+//! // get the tcp table
+//! let tcp = procfs::tcp().unwrap();
+//! let tcp6 = procfs::tcp6().unwrap();
+//! println!("{:<26} {:<26} {:<15} {:<8} {}", "Local address", "Remote address", "State", "Inode", "PID/Program name");
+//! for entry in tcp.into_iter().chain(tcp6) {
+//!     // find the process (if any) that has an open FD to this entry's inode
+//!     let local_address = format!("{}", entry.local_address);
+//!     let remote_addr = format!("{}", entry.remote_address);
+//!     let state = format!("{:?}", entry.state);
+//!     if let Some(process) = map.get(&entry.inode) {
+//!         println!("{:<26} {:<26} {:<15} {:<8} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
+//!     } else {
+//!         // We might not always be able to find the process assocated with this socket
+//!         println!("{:<26} {:<26} {:<15} {:<8} -", local_address, remote_addr, state, entry.inode);
 //!     }
 //! }
 
@@ -154,7 +145,7 @@ use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-#[cfg(feature="chrono")]
+#[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
 
 const PROC_CONFIG_GZ: &str = "/proc/config.gz";
@@ -180,14 +171,13 @@ pub(crate) trait IntoResult<T, E> {
     fn into(t: Self) -> Result<T, E>;
 }
 
-
 macro_rules! build_internal_error {
     ($err: expr) => {
         crate::ProcError::InternalError(crate::InternalError {
             msg: format!("Internal Unwrap Error: {}", $err),
             file: file!(),
             line: line!(),
-            #[cfg(feature="backtrace")]
+            #[cfg(feature = "backtrace")]
             backtrace: backtrace::Backtrace::new(),
         })
     };
@@ -196,7 +186,7 @@ macro_rules! build_internal_error {
             msg: format!("Internal Unwrap Error: {}: {}", $msg, $err),
             file: file!(),
             line: line!(),
-            #[cfg(feature="backtrace")]
+            #[cfg(feature = "backtrace")]
             backtrace: backtrace::Backtrace::new(),
         })
     };
@@ -207,10 +197,9 @@ macro_rules! build_internal_error {
 struct NoneError;
 
 impl std::fmt::Display for NoneError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { 
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "NoneError")
     }
-
 }
 
 impl<T> IntoResult<T, NoneError> for Option<T> {
@@ -250,13 +239,13 @@ macro_rules! expect {
     ($e:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return ProcResult::Err(build_internal_error!(e))
+            Err(e) => return ProcResult::Err(build_internal_error!(e)),
         }
     };
     ($e:expr, $msg:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return ProcResult::Err(build_internal_error!(e, $msg))
+            Err(e) => return ProcResult::Err(build_internal_error!(e, $msg)),
         }
     };
 }
@@ -265,29 +254,40 @@ macro_rules! expect {
 macro_rules! from_str {
     ($t:tt, $e:expr) => {{
         let e = $e;
-        expect!($t::from_str_radix(e, 10), format!("Failed to parse {} ({:?}) as a {}", 
+        expect!(
+            $t::from_str_radix(e, 10),
+            format!(
+                "Failed to parse {} ({:?}) as a {}",
                 stringify!($e),
                 e,
                 stringify!($t),
-        ))
-            
+            )
+        )
     }};
     ($t:tt, $e:expr, $radix:expr) => {{
         let e = $e;
-        expect!($t::from_str_radix(e, $radix), format!("Failed to parse {} ({:?}) as a {}",
+        expect!(
+            $t::from_str_radix(e, $radix),
+            format!(
+                "Failed to parse {} ({:?}) as a {}",
                 stringify!($e),
                 e,
                 stringify!($t)
-        ))
+            )
+        )
     }};
     ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
         let e = $e;
-        expect!($t::from_str_radix(e, $radix), format!("Failed to parse {} ({:?}) as a {} (pid {})",
+        expect!(
+            $t::from_str_radix(e, $radix),
+            format!(
+                "Failed to parse {} ({:?}) as a {} (pid {})",
                 stringify!($e),
                 e,
                 stringify!($t),
                 $pid
-            ))
+            )
+        )
     }};
 }
 
@@ -304,10 +304,11 @@ pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> Pro
     Ok(())
 }
 
-pub(crate) fn read_value<P, T, E>(path: P) -> ProcResult<T> 
-    where P: AsRef<Path>,
-          T: FromStr<Err = E>,
-          ProcError: From<E>
+pub(crate) fn read_value<P, T, E>(path: P) -> ProcResult<T>
+where
+    P: AsRef<Path>,
+    T: FromStr<Err = E>,
+    ProcError: From<E>,
 {
     let val = read_file(path)?;
     Ok(<T as FromStr>::from_str(val.trim())?)
@@ -367,7 +368,10 @@ fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
         "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
         "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
         "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
-        unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
+        unknown => Err(build_internal_error!(format!(
+            "Unknown unit type {}",
+            unknown
+        ))),
     }
 }
 
@@ -512,29 +516,37 @@ pub enum ProcError {
 /// If you encounter this error, consider it a bug and please report it on
 /// [github](https://github.com/eminence/procfs).
 ///
-#[cfg_attr(not(feature="backtrace"), doc="If you compile with the optional `backtrace` feature, you can gain access to a stack trace of where the error happened.")]
+#[cfg_attr(
+    not(feature = "backtrace"),
+    doc = "If you compile with the optional `backtrace` feature, you can gain access to a stack trace of where the error happened."
+)]
 pub struct InternalError {
     pub msg: String,
     pub file: &'static str,
     pub line: u32,
-    #[cfg(feature="backtrace")]
-    pub backtrace: backtrace::Backtrace
+    #[cfg(feature = "backtrace")]
+    pub backtrace: backtrace::Backtrace,
 }
 
 impl std::fmt::Debug for InternalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "bug at {}:{} (please report this procfs bug)\n{}", self.file, self.line, self.msg)
+        write!(
+            f,
+            "bug at {}:{} (please report this procfs bug)\n{}",
+            self.file, self.line, self.msg
+        )
     }
-    
 }
 
 impl std::fmt::Display for InternalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "bug at {}:{} (please report this procfs bug)\n{}", self.file, self.line, self.msg)
+        write!(
+            f,
+            "bug at {}:{} (please report this procfs bug)\n{}",
+            self.file, self.line, self.msg
+        )
     }
-
 }
-
 
 impl From<std::io::Error> for ProcError {
     fn from(io: std::io::Error) -> Self {
@@ -658,7 +670,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
 /// The boottime of the system, as a `DateTime` object.
 ///
 /// This is calculated from `/proc/stat`.
-#[cfg(feature="chrono")]
+#[cfg(feature = "chrono")]
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
     use chrono::TimeZone;
     let secs = boot_time_secs()?;
@@ -670,12 +682,17 @@ pub fn boot_time() -> ProcResult<DateTime<Local>> {
 ///
 /// This is calculated from `/proc/stat`.
 ///
-#[cfg_attr(not(feature="chrono"), doc="If you compile with the optional `chrono` feature, you can use the `boot_time()` method to get the boot time as a `DateTime` object.")]
-#[cfg_attr(feature="chrono", doc="See also [boot_time()] to get the boot time as a `DateTime`")]
+#[cfg_attr(
+    not(feature = "chrono"),
+    doc = "If you compile with the optional `chrono` feature, you can use the `boot_time()` method to get the boot time as a `DateTime` object."
+)]
+#[cfg_attr(
+    feature = "chrono",
+    doc = "See also [boot_time()] to get the boot time as a `DateTime`"
+)]
 pub fn boot_time_secs() -> ProcResult<u64> {
     let stat = KernelStats::new()?;
     Ok(stat.btime)
-
 }
 
 /// Memory page size, in bytes.
@@ -805,29 +822,44 @@ pub struct CpuTime {
     ///
     /// (Since Linux 2.6.33)
     pub guest_nice: Option<f32>,
-
 }
 
 impl CpuTime {
     fn from_str(s: &str) -> ProcResult<CpuTime> {
-
         let mut s = s.split_whitespace();
 
         s.next();
-        let user  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let nice  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let system  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let idle  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let user = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let nice = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let system = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let idle = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
 
-        let iowait = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
-        let irq = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
-        let softirq = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
-        let steal = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
-        let guest = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
-        let guest_nice = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let iowait = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
+        let irq = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
+        let softirq = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
+        let steal = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
+        let guest = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
+        let guest_nice = s
+            .next()
+            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
+            .transpose()?;
 
-
-        Ok(CpuTime{
+        Ok(CpuTime {
             user,
             nice,
             system,
@@ -837,11 +869,9 @@ impl CpuTime {
             softirq,
             steal,
             guest,
-            guest_nice
+            guest_nice,
         })
-
     }
-
 }
 
 /// Kernel/system statistics, from `/proc/stat`
@@ -870,10 +900,7 @@ pub struct KernelStats {
     ///
     /// (Since Linux 2.5.45)
     pub procs_blocked: Option<u32>,
-
-
 }
-
 
 impl KernelStats {
     pub fn new() -> ProcResult<KernelStats> {
@@ -894,14 +921,12 @@ impl KernelStats {
         let mut procs_running = None;
         let mut procs_blocked = None;
 
-
         for line in lines {
             let line = line?;
             if line.starts_with("cpu ") {
                 total_cpu = Some(CpuTime::from_str(&line)?);
             } else if line.starts_with("cpu") {
                 cpus.push(CpuTime::from_str(&line)?);
-
             } else if line.starts_with("ctxt ") {
                 ctxt = Some(from_str!(u64, &line[5..]));
             } else if line.starts_with("btime ") {
@@ -913,7 +938,6 @@ impl KernelStats {
             } else if line.starts_with("procs_blocked ") {
                 procs_blocked = Some(from_str!(u32, &line[14..]));
             }
-
         }
 
         Ok(KernelStats {
@@ -992,7 +1016,6 @@ mod tests {
         }
 
         assert!(inner().is_err())
-
     }
 
     #[test]
@@ -1057,7 +1080,6 @@ mod tests {
         // thread 'tests::test_failure' panicked at 'called `Result::unwrap()` on an `Err` value: PermissionDenied(Some("/proc/1/maps"))', src/libcore/result.rs:997:5
     }
 
-
     #[test]
     fn test_nopanic() {
         fn _inner() -> ProcResult<bool> {
@@ -1078,11 +1100,9 @@ mod tests {
         let r = _inner2();
         println!("{:?}", r);
         assert!(r.is_err());
-
-
     }
 
-    #[cfg(feature="backtrace")]
+    #[cfg(feature = "backtrace")]
     #[test]
     fn test_backtrace() {
         fn _inner() -> ProcResult<bool> {
@@ -1092,7 +1112,6 @@ mod tests {
 
         let r = _inner();
         println!("{:?}", r);
-
     }
 
     #[test]
@@ -1113,10 +1132,11 @@ mod tests {
 
         assert!((stat.total.user - stat.cpu_time.iter().map(|i| i.user).sum::<f32>()).abs() < 2.0);
         assert!((stat.total.nice - stat.cpu_time.iter().map(|i| i.nice).sum::<f32>()).abs() < 2.0);
-        assert!((stat.total.system - stat.cpu_time.iter().map(|i| i.system).sum::<f32>()).abs() < 2.0);
+        assert!(
+            (stat.total.system - stat.cpu_time.iter().map(|i| i.system).sum::<f32>()).abs() < 2.0
+        );
 
         let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
         assert!(diff < 10.0, "idle time difference too high: {}", diff);
     }
-
 }

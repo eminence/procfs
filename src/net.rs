@@ -101,7 +101,10 @@ fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
 
         Ok(SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
     } else {
-        Err(build_internal_error!(format!("Unable to parse {:?} as an address:port", s)))
+        Err(build_internal_error!(format!(
+            "Unable to parse {:?} as an address:port",
+            s
+        )))
     }
 }
 

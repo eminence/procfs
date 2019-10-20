@@ -22,7 +22,7 @@ impl FakeMedatadataExt for std::fs::Metadata {
 
 bitflags! {
     /// Kernel flags for a process
-    /// 
+    ///
     /// See also the [Stat::flags()] method.
     pub struct StatFlags: u32 {
         /// I am an IDLE thread
@@ -148,7 +148,7 @@ where
     let val = expect!(iter.next());
     match FromStr::from_str(val) {
         Ok(u) => Ok(u),
-        Err(..) => Err(build_internal_error!("Failed to convert"))
+        Err(..) => Err(build_internal_error!("Failed to convert")),
     }
 }
 
@@ -210,7 +210,8 @@ impl ProcState {
 impl FromStr for ProcState {
     type Err = ProcError;
     fn from_str(s: &str) -> Result<ProcState, ProcError> {
-        ProcState::from_char(expect!(s.chars().next(), "empty string")).ok_or_else(|| build_internal_error!("failed to convert"))
+        ProcState::from_char(expect!(s.chars().next(), "empty string"))
+            .ok_or_else(|| build_internal_error!("failed to convert"))
     }
 }
 
@@ -319,8 +320,14 @@ pub struct Stat {
     /// In kernels before Linux 2.6, this value was expressed in  jiffies.  Since  Linux 2.6, the
     /// value is expressed in clock ticks (divide by `sysconf(_SC_CLK_TCK)`).
     ///
-    #[cfg_attr(feature="chrono", doc="See also the [Stat::starttime()] method to get the starttime as a `DateTime` object")]
-    #[cfg_attr(not(feature="chrono"), doc="If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the starttime as a `DateTime` object")]
+    #[cfg_attr(
+        feature = "chrono",
+        doc = "See also the [Stat::starttime()] method to get the starttime as a `DateTime` object"
+    )]
+    #[cfg_attr(
+        not(feature = "chrono"),
+        doc = "If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the starttime as a `DateTime` object"
+    )]
     pub starttime: i64,
     /// Virtual memory size in bytes.
     pub vsize: u64,
@@ -589,7 +596,10 @@ pub struct MountNFSStatistics {
 
 impl MountNFSStatistics {
     // Keep reading lines until we get to a blank line
-    fn from_lines<B: io::BufRead>(r: &mut io::Lines<B>, statsver: &str) -> ProcResult<MountNFSStatistics> {
+    fn from_lines<B: io::BufRead>(
+        r: &mut io::Lines<B>,
+        statsver: &str,
+    ) -> ProcResult<MountNFSStatistics> {
         let mut parsing_per_op = false;
 
         let mut opts: Option<Vec<String>> = None;
@@ -1150,7 +1160,12 @@ impl Stat {
     }
 
     pub fn state(&self) -> ProcResult<ProcState> {
-        ProcState::from_char(self.state).ok_or_else(|| build_internal_error!(format!("{:?} is not a recognized process state", self.state)))
+        ProcState::from_char(self.state).ok_or_else(|| {
+            build_internal_error!(format!(
+                "{:?} is not a recognized process state",
+                self.state
+            ))
+        })
     }
 
     pub fn tty_nr(&self) -> (i32, i32) {
@@ -1168,14 +1183,18 @@ impl Stat {
     ///
     /// See also the [Stat::flags](struct.Stat.html#structfield.flags) field.
     pub fn flags(&self) -> ProcResult<StatFlags> {
-        StatFlags::from_bits(self.flags).ok_or_else(|| build_internal_error!(format!("Can't construct flags bitfield from {:?}", self.flags)))
+        StatFlags::from_bits(self.flags).ok_or_else(|| {
+            build_internal_error!(format!(
+                "Can't construct flags bitfield from {:?}",
+                self.flags
+            ))
+        })
     }
-
 
     /// Get the starttime of the process as a `DateTime` object.
     ///
     /// See also the [`starttime`](struct.Stat.html#structfield.starttime) field.
-    #[cfg(feature="chrono")]
+    #[cfg(feature = "chrono")]
     pub fn starttime(&self) -> ProcResult<DateTime<Local>> {
         let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
         let boot_time = boot_time()?;
@@ -1380,10 +1399,16 @@ impl Status {
 
         let status = Status {
             name: expect!(map.remove("Name")),
-            umask: map.remove("Umask").map(|x| Ok(from_str!(u32, &x, 8))).transpose()?,
+            umask: map
+                .remove("Umask")
+                .map(|x| Ok(from_str!(u32, &x, 8)))
+                .transpose()?,
             state: expect!(map.remove("State")),
             tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
-            ngid: map.remove("Ngid").map(|x| Ok(from_str!(i32, &x))).transpose()?,
+            ngid: map
+                .remove("Ngid")
+                .map(|x| Ok(from_str!(i32, &x)))
+                .transpose()?,
             pid: from_str!(i32, &expect!(map.remove("Pid"))),
             ppid: from_str!(i32, &expect!(map.remove("PPid"))),
             tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
@@ -1397,10 +1422,22 @@ impl Status {
             fgid: expect!(Status::parse_uid_gid(&expect!(map.remove("Gid")), 3)),
             fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
             groups: Status::parse_list(&expect!(map.remove("Groups")))?,
-            nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)).transpose()?,
-            nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)).transpose()?,
-            nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)).transpose()?,
-            nssid: map.remove("NSsid").map(|x| Status::parse_list(&x)).transpose()?,
+            nstgid: map
+                .remove("NStgid")
+                .map(|x| Status::parse_list(&x))
+                .transpose()?,
+            nspid: map
+                .remove("NSpid")
+                .map(|x| Status::parse_list(&x))
+                .transpose()?,
+            nspgid: map
+                .remove("NSpgid")
+                .map(|x| Status::parse_list(&x))
+                .transpose()?,
+            nssid: map
+                .remove("NSsid")
+                .map(|x| Status::parse_list(&x))
+                .transpose()?,
             vmpeak: Status::parse_with_kb(map.remove("VmPeak"))?,
             vmsize: Status::parse_with_kb(map.remove("VmSize"))?,
             vmlck: Status::parse_with_kb(map.remove("VmLck"))?,
@@ -1427,29 +1464,45 @@ impl Status {
             capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
             capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
             capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
-            capbnd: map.remove("CapBnd").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
-            capamb: map.remove("CapAmb").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
-            nonewprivs: map.remove("NoNewPrivs").map(|x| Ok(from_str!(u64, &x))).transpose()?,
-            seccomp: map.remove("Seccomp").map(|x| Ok(from_str!(u32, &x))).transpose()?,
+            capbnd: map
+                .remove("CapBnd")
+                .map(|x| Ok(from_str!(u64, &x, 16)))
+                .transpose()?,
+            capamb: map
+                .remove("CapAmb")
+                .map(|x| Ok(from_str!(u64, &x, 16)))
+                .transpose()?,
+            nonewprivs: map
+                .remove("NoNewPrivs")
+                .map(|x| Ok(from_str!(u64, &x)))
+                .transpose()?,
+            seccomp: map
+                .remove("Seccomp")
+                .map(|x| Ok(from_str!(u32, &x)))
+                .transpose()?,
             speculation_store_bypass: map.remove("Speculation_Store_Bypass"),
             cpus_allowed: map
                 .remove("Cpus_allowed")
-                .map(|x| Status::parse_allowed(&x)).transpose()?,
+                .map(|x| Status::parse_allowed(&x))
+                .transpose()?,
             cpus_allowed_list: map
                 .remove("Cpus_allowed_list")
                 .and_then(|x| Status::parse_allowed_list(&x).ok()),
             mems_allowed: map
                 .remove("Mems_allowed")
-                .map(|x| Status::parse_allowed(&x)).transpose()?,
+                .map(|x| Status::parse_allowed(&x))
+                .transpose()?,
             mems_allowed_list: map
                 .remove("Mems_allowed_list")
                 .and_then(|x| Status::parse_allowed_list(&x).ok()),
             voluntary_ctxt_switches: map
                 .remove("voluntary_ctxt_switches")
-                .map(|x| Ok(from_str!(u64, &x))).transpose()?,
+                .map(|x| Ok(from_str!(u64, &x)))
+                .transpose()?,
             nonvoluntary_ctxt_switches: map
                 .remove("nonvoluntary_ctxt_switches")
-                .map(|x| Ok(from_str!(u64, &x))).transpose()?,
+                .map(|x| Ok(from_str!(u64, &x)))
+                .transpose()?,
             core_dumping: map.remove("CoreDumping").map(|x| x == "1"),
             thp_enabled: map.remove("THP_enabled").map(|x| x == "1"),
         };
@@ -1599,8 +1652,16 @@ impl Process {
                 prc.stat.comm == self.stat.comm
                     && prc.owner == self.owner
                     && prc.stat.starttime == self.stat.starttime
-                    && prc.stat.state().map(|s| s != ProcState::Zombie).unwrap_or(false)
-                    && self.stat.state().map(|s| s != ProcState::Zombie).unwrap_or(false)
+                    && prc
+                        .stat
+                        .state()
+                        .map(|s| s != ProcState::Zombie)
+                        .unwrap_or(false)
+                    && self
+                        .stat
+                        .state()
+                        .map(|s| s != ProcState::Zombie)
+                        .unwrap_or(false)
             }
             _ => false,
         }
@@ -1845,7 +1906,7 @@ mod tests {
                 if prc.is_alive() {
                     panic!("{:?} not found", path)
                 }
-            },
+            }
             Err(err) => panic!("{:?}", err),
         }
     }
@@ -1859,7 +1920,7 @@ mod tests {
         println!("tty: {:?}", myself.stat.tty_nr());
         println!("flags: {:?}", myself.stat.flags());
 
-        #[cfg(feature="chrono")]
+        #[cfg(feature = "chrono")]
         println!("starttime: {:#?}", myself.stat.starttime());
 
         let kernel = KernelVersion::current().unwrap();
@@ -1938,7 +1999,7 @@ mod tests {
 
             println!("{} {}", prc.pid(), prc.stat.comm);
             prc.stat.flags().unwrap();
-            #[cfg(feature="chrono")]
+            #[cfg(feature = "chrono")]
             prc.stat.starttime().unwrap();
 
             check_unwrap(&prc, prc.cmdline());
@@ -2011,9 +2072,15 @@ mod tests {
     #[test]
     fn test_mmap_path() {
         assert_eq!(MMapPath::from("[stack]").unwrap(), MMapPath::Stack);
-        assert_eq!(MMapPath::from("[foo]").unwrap(), MMapPath::Other("foo".to_owned()));
+        assert_eq!(
+            MMapPath::from("[foo]").unwrap(),
+            MMapPath::Other("foo".to_owned())
+        );
         assert_eq!(MMapPath::from("").unwrap(), MMapPath::Anonymous);
-        assert_eq!(MMapPath::from("[stack:154]").unwrap(), MMapPath::TStack(154));
+        assert_eq!(
+            MMapPath::from("[stack:154]").unwrap(),
+            MMapPath::TStack(154)
+        );
         assert_eq!(
             MMapPath::from("/lib/libfoo.so").unwrap(),
             MMapPath::Path(PathBuf::from("/lib/libfoo.so"))
@@ -2181,10 +2248,9 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
     #[test]
     fn test_nopanic() {
         fn inner() -> ProcResult<u8> {
-            let a = vec!("xyz");
+            let a = vec!["xyz"];
             from_iter(a)
         }
         assert!(inner().is_err());
-
     }
 }

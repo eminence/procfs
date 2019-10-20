@@ -149,7 +149,6 @@ mod tests {
             info.model_name(num).unwrap();
             info.vendor_id(num).unwrap();
             info.physical_id(num).unwrap();
-
         }
 
         //assert_eq!(info.num_cores(), 8);
