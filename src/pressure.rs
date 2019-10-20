@@ -32,11 +32,17 @@ pub struct PressureRecord {
     pub total: u64,
 }
 
+/// CPU pressure information
+///
+/// To construct this structure, see [cpu_pressure()].
 #[derive(Debug)]
 pub struct CpuPressure {
     pub some: PressureRecord,
 }
 
+/// Memory pressure information
+///
+/// To construct this structure, see [memory_pressure()].
 #[derive(Debug)]
 pub struct MemoryPressure {
     /// This record indicates the share of time in which at least some tasks are stalled
@@ -46,6 +52,9 @@ pub struct MemoryPressure {
     pub full: PressureRecord,
 }
 
+/// IO pressure information
+///
+/// To construct this structure, see [io_pressure()].
 #[derive(Debug)]
 pub struct IoPressure {
     /// This record indicates the share of time in which at least some tasks are stalled

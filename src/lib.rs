@@ -1,3 +1,4 @@
+#![deny(intra_doc_link_resolution_failure)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.
 //!
@@ -11,7 +12,7 @@
 //! releases, and other fields are only present in certain kernel configuration options are
 //! enabled.  These are represented as `Option` fields in this crate.
 //!
-//! This crate aims to support all 2.6 kernels
+//! This crate aims to support all 2.6 kernels (and newer).
 //!
 //! # Documentation
 //!
@@ -24,9 +25,16 @@
 //!
 //! While previous versions of the library could panic, this current version aims to be panic-free
 //! in a many situations as possible.  Whenever the procfs crate encounters a bug in its own
-//! parsing code, it will return a `[ProcError::InternalError]` error.  This should be considered a
+//! parsing code, it will return an [`InternalError`](enum.ProcError.html#variant.InternalError) error.  This should be considered a
 //! bug and should be [reported](https://github.com/eminence/procfs).  If you encounter a panic,
 //! please report that as well.
+//!
+//! # Cargo features
+//! 
+//! The following cargo features are available:
+//! 
+//! * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
+//! * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 //!
 //! # Examples
 //!
@@ -464,9 +472,12 @@ impl Read for FileWrapper {
     }
 }
 
+/// The main error type for the procfs crate.
+///
+/// For more info, see the [ProcError] type.
 pub type ProcResult<T> = Result<T, ProcError>;
 
-/// Error type for most procfs functions.
+/// The various error conditions in the procfs crate.
 ///
 /// Most of the variants have an `Option<PathBuf>` component.  If the error root cause was related
 /// to some operation on a file, the path of this file will be stored in this component.
@@ -481,12 +492,15 @@ pub enum ProcError {
     /// feature you are trying to use.
     NotFound(Option<PathBuf>),
     /// This might mean that a procfs file has incomplete contents.
+    ///
+    /// If you encounter this error, consider retrying the operation.
     Incomplete(Option<PathBuf>),
     /// Any other IO error (rare).
     Io(std::io::Error, Option<PathBuf>),
     /// Any other non-IO error (very rare).
     Other(String),
-    /// This error indicates that some unexpected error occurred.  This is a bug.
+    /// This error indicates that some unexpected error occurred.  This is a bug.  The inner
+    /// [InternalError] struct will contain some more info.
     ///
     /// If you ever encounter this error, consider it a bug in the procfs crate and please report
     /// it on github.
@@ -678,6 +692,7 @@ pub fn page_size() -> std::io::Result<i64> {
     }
 }
 
+/// Possible values for a kernel config option
 #[derive(Debug, PartialEq)]
 pub enum ConfigSetting {
     Yes,

@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 /// Represents the data from `/proc/cpuinfo`.
 ///
+/// To construct one of structs, see [cpuinfo()].
+///
 /// The `fields` field stores the fields that are common among all CPUs.  The `cpus` field stores
 /// CPU-specific info.
 ///
@@ -68,6 +70,7 @@ impl CpuInfo {
     }
 }
 
+/// Get CPU info, from /proc/cpuinfo
 pub fn cpuinfo() -> ProcResult<CpuInfo> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};

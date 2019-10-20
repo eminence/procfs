@@ -3,6 +3,9 @@ use crate::ProcResult;
 use super::Process;
 
 #[derive(Debug)]
+/// Container group controller information.
+///
+/// See also the [cgroups()] method.
 pub struct CGroupController {
     /// The name of the controller.
     pub name: String,
@@ -58,6 +61,9 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
     Ok(vec)
 }
 
+/// Information about a process cgroup
+///
+/// See also the [Process::cgroups()] method.
 #[derive(Debug)]
 pub struct ProcessCgroup {
     /// For cgroups version 1 hierarchies, this field contains a  unique  hierarchy  ID  number

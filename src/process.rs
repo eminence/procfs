@@ -21,6 +21,9 @@ impl FakeMedatadataExt for std::fs::Metadata {
 }
 
 bitflags! {
+    /// Kernel flags for a process
+    /// 
+    /// See also the [Stat::flags()] method.
     pub struct StatFlags: u32 {
         /// I am an IDLE thread
         const PF_IDLE = 0x0000_0002;
@@ -83,6 +86,7 @@ bitflags! {
 }
 bitflags! {
 
+    /// See the [coredump_filter()](struct.Process.html#method.coredump_filter) method.
     pub struct CoredumpFlags: u32 {
         const ANONYMOUS_PRIVATE_MAPPINGS = 0x01;
         const ANONYMOUS_SHARED_MAPPINGS = 0x02;
@@ -638,7 +642,7 @@ impl MountNFSStatistics {
         })
     }
 
-    /// Attempts to parse the caps= value from the [caps] field.
+    /// Attempts to parse the caps= value from the [caps](struct.MountNFSStatistics.html#structfield.caps) field.
     pub fn server_caps(&self) -> ProcResult<Option<NFSServerCaps>> {
         for data in &self.caps {
             if data.starts_with("caps=0x") {
@@ -942,6 +946,9 @@ impl Io {
     }
 }
 
+/// Describes a file descriptor opened by a process.
+///
+/// See also the [Process::fd()] method.
 #[derive(Debug)]
 pub enum FDTarget {
     /// A file or device
@@ -996,6 +1003,7 @@ impl FromStr for FDTarget {
     }
 }
 
+/// See the [Process::fd()] method
 #[derive(Debug)]
 pub struct FDInfo {
     pub fd: u32,
@@ -1156,6 +1164,9 @@ impl Stat {
         (major, minor)
     }
 
+    /// The kernel flags word of the process, as a bitfield
+    ///
+    /// See also the [Stat::flags](struct.Stat.html#structfield.flags) field.
     pub fn flags(&self) -> ProcResult<StatFlags> {
         StatFlags::from_bits(self.flags).ok_or_else(|| build_internal_error!(format!("Can't construct flags bitfield from {:?}", self.flags)))
     }
@@ -1228,20 +1239,20 @@ pub struct Status {
     /// Supplementary group list.
     pub groups: Vec<i32>,
     /// Thread group ID (i.e., PID) in each of the PID
-    /// namespaces of which [pid] is a member.  The leftmost entry
+    /// namespaces of which (pid)[struct.Status.html#structfield.pid] is a member.  The leftmost entry
     /// shows the value with respect to the PID namespace of the
     /// reading process, followed by the value in successively
     /// nested inner namespaces.  (Since Linux 4.1.)
     pub nstgid: Option<Vec<i32>>,
     /// Thread ID in each of the PID namespaces of which
-    /// [pid] is a member.  The fields are ordered as for NStgid.
+    /// (pid)[struct.Status.html#structfield.pid] is a member.  The fields are ordered as for NStgid.
     /// (Since Linux 4.1.)
     pub nspid: Option<Vec<i32>>,
     /// Process group ID in each of the PID namespaces of
-    /// which [pid] is a member.  The fields are ordered as for NStgid.  (Since Linux 4.1.)
+    /// which (pid)[struct.Status.html#structfield.pid] is a member.  The fields are ordered as for NStgid.  (Since Linux 4.1.)
     pub nspgid: Option<Vec<i32>>,
     /// NSsid: descendant namespace session ID hierarchy Session ID
-    /// in each of the PID namespaces of which [pid] is a member.
+    /// in each of the PID namespaces of which (pid)[struct.Status.html#structfield.pid] is a member.
     /// The fields are ordered as for NStgid.  (Since Linux 4.1.)
     pub nssid: Option<Vec<i32>>,
     /// Peak virtual memory size by kB.
@@ -1803,6 +1814,7 @@ impl Process {
     }
 }
 
+/// Return a list of all processes
 pub fn all_processes() -> ProcResult<Vec<Process>> {
     let mut v = Vec::new();
     for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
@@ -1925,9 +1937,9 @@ mod tests {
             // TODO unwrap but allow for permission denied errors in this test
 
             println!("{} {}", prc.pid(), prc.stat.comm);
-            prc.stat.flags();
+            prc.stat.flags().unwrap();
             #[cfg(feature="chrono")]
-            prc.stat.starttime();
+            prc.stat.starttime().unwrap();
 
             check_unwrap(&prc, prc.cmdline());
             check_unwrap(&prc, prc.environ());
