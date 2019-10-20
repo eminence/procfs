@@ -314,6 +314,9 @@ pub struct Stat {
     ///
     /// In kernels before Linux 2.6, this value was expressed in  jiffies.  Since  Linux 2.6, the
     /// value is expressed in clock ticks (divide by `sysconf(_SC_CLK_TCK)`).
+    ///
+    #[cfg_attr(feature="chrono", doc="See also the [Stat::starttime()] method to get the starttime as a `DateTime` object")]
+    #[cfg_attr(not(feature="chrono"), doc="If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the starttime as a `DateTime` object")]
     pub starttime: i64,
     /// Virtual memory size in bytes.
     pub vsize: u64,
@@ -1157,10 +1160,16 @@ impl Stat {
         StatFlags::from_bits(self.flags).ok_or_else(|| build_internal_error!(format!("Can't construct flags bitfield from {:?}", self.flags)))
     }
 
-    pub fn starttime(&self) -> DateTime<Local> {
-        let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
 
-        *BOOTTIME + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64)
+    /// Get the starttime of the process as a `DateTime` object.
+    ///
+    /// See also the [`starttime`](struct.Stat.html#structfield.starttime) field.
+    #[cfg(feature="chrono")]
+    pub fn starttime(&self) -> ProcResult<DateTime<Local>> {
+        let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
+        let boot_time = boot_time()?;
+
+        Ok(boot_time + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
     }
 
     /// Gets the Resident Set Size (in bytes)
@@ -1837,6 +1846,8 @@ mod tests {
         println!("state: {:?}", myself.stat.state());
         println!("tty: {:?}", myself.stat.tty_nr());
         println!("flags: {:?}", myself.stat.flags());
+
+        #[cfg(feature="chrono")]
         println!("starttime: {:#?}", myself.stat.starttime());
 
         let kernel = KernelVersion::current().unwrap();
@@ -1915,7 +1926,9 @@ mod tests {
 
             println!("{} {}", prc.pid(), prc.stat.comm);
             prc.stat.flags();
+            #[cfg(feature="chrono")]
             prc.stat.starttime();
+
             check_unwrap(&prc, prc.cmdline());
             check_unwrap(&prc, prc.environ());
             check_unwrap(&prc, prc.fd());

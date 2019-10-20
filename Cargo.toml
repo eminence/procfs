@@ -11,13 +11,13 @@ license = "MIT OR Apache-2.0"
 edition = "2018"
 
 [features]
-default = []
+default = ["chrono"]
 
 [dependencies]
 libc = "0.2"
 bitflags = "1"
 lazy_static = "1"
-chrono = "0.4"
+chrono = {version = "0.4", optional = true }
 byteorder = {version="1", features=["i128"]}
 hex = "0.3"
 libflate = "0.1"

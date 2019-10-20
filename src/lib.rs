@@ -113,7 +113,6 @@ extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 extern crate byteorder;
-extern crate chrono;
 extern crate hex;
 extern crate libflate;
 
@@ -147,6 +146,7 @@ use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+#[cfg(feature="chrono")]
 use chrono::{DateTime, Local};
 
 const PROC_CONFIG_GZ: &str = "/proc/config.gz";
@@ -332,12 +332,6 @@ mod pressure;
 pub use crate::pressure::*;
 
 lazy_static! {
-    /// The boottime of the system.
-    ///
-    /// This is calculated from `/proc/uptime`.
-    static ref BOOTTIME: DateTime<Local> = {
-        boot_time().unwrap()
-    };
     /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
@@ -647,18 +641,27 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     }
 }
 
-/// The boottime of the system.
+/// The boottime of the system, as a `DateTime` object.
 ///
-/// This is calculated from `/proc/uptime`.
+/// This is calculated from `/proc/stat`.
+#[cfg(feature="chrono")]
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
-    let now = Local::now();
+    use chrono::TimeZone;
+    let secs = boot_time_secs()?;
 
-    let mut f = FileWrapper::open("/proc/uptime")?;
-    let mut buf = String::new();
-    f.read_to_string(&mut buf)?;
+    Ok(chrono::Local.timestamp(secs as i64, 0))
+}
 
-    let uptime_seconds = expect!(f32::from_str(expect!(buf.split_whitespace().next())));
-    Ok(now - chrono::Duration::milliseconds((uptime_seconds * 1000.0) as i64))
+/// The boottime of the system, in seconds since the epoch
+///
+/// This is calculated from `/proc/stat`.
+///
+#[cfg_attr(not(feature="chrono"), doc="If you compile with the optional `chrono` feature, you can use the `boot_time()` method to get the boot time as a `DateTime` object.")]
+#[cfg_attr(feature="chrono", doc="See also [boot_time()] to get the boot time as a `DateTime`")]
+pub fn boot_time_secs() -> ProcResult<u64> {
+    let stat = KernelStats::new()?;
+    Ok(stat.btime)
+
 }
 
 /// Memory page size, in bytes.
@@ -917,7 +920,6 @@ mod tests {
 
     #[test]
     fn test_statics() {
-        println!("{:?}", *BOOTTIME);
         println!("{:?}", *TICKS_PER_SECOND);
         println!("{:?}", *KERNEL);
         println!("{:?}", *PAGESIZE);
@@ -1084,9 +1086,9 @@ mod tests {
         println!("{:#?}", stat);
 
         // the boottime from KernelStats should match the boottime from /proc/uptime
-        let boottime = boot_time().unwrap();
+        let boottime = boot_time_secs().unwrap();
 
-        let diff = (boottime.timestamp() - stat.btime as i64).abs();
+        let diff = (boottime as i32 - stat.btime as i32).abs();
         assert!(diff <= 1);
 
         let cpuinfo = cpuinfo().unwrap();
