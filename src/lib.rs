@@ -737,6 +737,178 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     Ok(map)
 }
 
+/// The amount of time, measured in seconds, the CPU has been in specific states
+#[derive(Debug)]
+pub struct CpuTime {
+    /// Seconds spent in user mode
+    pub user: f32,
+    /// Seconds spent in user mode with low priority (nice)
+    pub nice: f32,
+    /// Seconds spent in system mode
+    pub system: f32,
+    /// Seconds spent in the idle tast
+    pub idle: f32,
+    /// Seconds waiting for I/O to complete
+    ///
+    /// This value is not reliaable, for the following reasons:
+    ///
+    /// 1. The CPU will not wait for I/O to complete; iowait is the time that a
+    ///    task is waiting for I/O to complete.  When a CPU goes into idle state
+    ///    for outstanding task I/O, another task will be scheduled on this CPU.
+    ///
+    /// 2. On a multi-core CPU, this task waiting for I/O to complete is not running
+    ///    on any CPU, so the iowait for each CPU is difficult to calculate.
+    ///
+    /// 3. The value in this field may *decrease* in certain conditions.
+    ///
+    /// (Since Linux 2.5.41)
+    pub iowait: Option<f32>,
+    /// Seconds servicing interrupts
+    ///
+    /// (Since Linux 2.6.0)
+    pub irq: Option<f32>,
+    /// Seconds servicing softirqs
+    ///
+    /// (Since Linux 2.6.0)
+    pub softirq: Option<f32>,
+    /// Seconds of stolen time.
+    ///
+    /// Stolen time is the time spent in other operating systems when running in
+    /// a virtualized environemnt.
+    ///
+    /// (Since Linux 2.6.11)
+    pub steal: Option<f32>,
+    /// Seconds spent running a virtual CPU for guest operating systems under control
+    /// of the linux kernel
+    ///
+    /// (Since Linux 2.6.24)
+    pub guest: Option<f32>,
+    /// Seconds spent running a niced guest
+    ///
+    /// (Since Linux 2.6.33)
+    pub guest_nice: Option<f32>,
+
+}
+
+impl CpuTime {
+    fn from_str(s: &str) -> ProcResult<CpuTime> {
+
+        let mut s = s.split_whitespace();
+
+        s.next();
+        let user  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let nice  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let system  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        let idle  = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+
+        let iowait = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let irq = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let softirq = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let steal = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let guest = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+        let guest_nice = s.next().map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32)).transpose()?;
+
+
+        Ok(CpuTime{
+            user,
+            nice,
+            system,
+            idle,
+            iowait,
+            irq,
+            softirq,
+            steal,
+            guest,
+            guest_nice
+        })
+
+    }
+
+}
+
+/// Kernel/system statistics, from `/proc/stat`
+#[derive(Debug)]
+pub struct KernelStats {
+    /// The amount of time the system spent in various states
+    pub total: CpuTime,
+    /// The amount of time that specific CPUs spent in various states
+    pub cpu_time: Vec<CpuTime>,
+
+    /// The number of context switches that the system underwent
+    pub ctxt: u64,
+
+    /// Boot time, in number of seconds since the Epoch
+    pub btime: u64,
+
+    /// Number of forks since boot
+    pub processes: u64,
+
+    /// Number of processes in runnable state
+    ///
+    /// (Since Linux 2.5.45)
+    pub procs_running: Option<u32>,
+
+    /// Number of processes blocked waiting for I/O
+    ///
+    /// (Since Linux 2.5.45)
+    pub procs_blocked: Option<u32>,
+
+
+}
+
+
+impl KernelStats {
+    pub fn new() -> ProcResult<KernelStats> {
+        KernelStats::from_reader(FileWrapper::open("/proc/stat")?)
+    }
+
+    fn from_reader<R: io::Read>(r: R) -> ProcResult<KernelStats> {
+        use std::io::{BufRead, BufReader};
+
+        let bufread = BufReader::new(r);
+        let lines = bufread.lines();
+
+        let mut total_cpu = None;
+        let mut cpus = Vec::new();
+        let mut ctxt = None;
+        let mut btime = None;
+        let mut processes = None;
+        let mut procs_running = None;
+        let mut procs_blocked = None;
+
+
+        for line in lines {
+            let line = line?;
+            if line.starts_with("cpu ") {
+                total_cpu = Some(CpuTime::from_str(&line)?);
+            } else if line.starts_with("cpu") {
+                cpus.push(CpuTime::from_str(&line)?);
+
+            } else if line.starts_with("ctxt ") {
+                ctxt = Some(from_str!(u64, &line[5..]));
+            } else if line.starts_with("btime ") {
+                btime = Some(from_str!(u64, &line[6..]));
+            } else if line.starts_with("processes ") {
+                processes = Some(from_str!(u64, &line[10..]));
+            } else if line.starts_with("procs_running ") {
+                procs_running = Some(from_str!(u32, &line[14..]));
+            } else if line.starts_with("procs_blocked ") {
+                procs_blocked = Some(from_str!(u32, &line[14..]));
+            }
+
+        }
+
+        Ok(KernelStats {
+            total: expect!(total_cpu),
+            cpu_time: cpus,
+            ctxt: expect!(ctxt),
+            btime: expect!(btime),
+            processes: expect!(processes),
+            procs_running,
+            procs_blocked,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -904,6 +1076,30 @@ mod tests {
         let r = _inner();
         println!("{:?}", r);
 
+    }
+
+    #[test]
+    fn test_kernel_stat() {
+        let stat = KernelStats::new().unwrap();
+        println!("{:#?}", stat);
+
+        // the boottime from KernelStats should match the boottime from /proc/uptime
+        let boottime = boot_time().unwrap();
+
+        let diff = (boottime.timestamp() - stat.btime as i64).abs();
+        assert!(diff <= 1);
+
+        let cpuinfo = cpuinfo().unwrap();
+        assert_eq!(cpuinfo.num_cores(), stat.cpu_time.len());
+
+        // the num of each individual CPU should be equal to the total cpu entry
+
+        assert!((stat.total.user - stat.cpu_time.iter().map(|i| i.user).sum::<f32>()).abs() < 2.0);
+        assert!((stat.total.nice - stat.cpu_time.iter().map(|i| i.nice).sum::<f32>()).abs() < 2.0);
+        assert!((stat.total.system - stat.cpu_time.iter().map(|i| i.system).sum::<f32>()).abs() < 2.0);
+
+        let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
+        assert!(diff < 10.0, "idle time difference too high: {}", diff);
     }
 
 }
