@@ -46,6 +46,9 @@ The following cargo features are available:
 * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
 * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 
+## Minimum Rust Version
+
+This crate requires a minimum rust version of 1.33.0 (2019-02-28)
 
 ## License
 
