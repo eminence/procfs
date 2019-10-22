@@ -239,13 +239,13 @@ macro_rules! expect {
     ($e:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return ProcResult::Err(build_internal_error!(e)),
+            Err(e) => return Err(build_internal_error!(e)),
         }
     };
     ($e:expr, $msg:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return ProcResult::Err(build_internal_error!(e, $msg)),
+            Err(e) => return Err(build_internal_error!(e, $msg)),
         }
     };
 }
