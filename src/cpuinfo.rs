@@ -58,6 +58,7 @@ impl CpuInfo {
         self.get_info(cpu_num)
             .and_then(|mut m| m.remove("vendor_id"))
     }
+    /// May not be available on some older 2.6 kernels
     pub fn physical_id(&self, cpu_num: usize) -> Option<u32> {
         self.get_info(cpu_num)
             .and_then(|mut m| m.remove("physical id"))
@@ -148,7 +149,8 @@ mod tests {
         for num in 0..info.num_cores() {
             info.model_name(num).unwrap();
             info.vendor_id(num).unwrap();
-            info.physical_id(num).unwrap();
+            // May not be available on some old kernels:
+            info.physical_id(num);
         }
 
         //assert_eq!(info.num_cores(), 8);

@@ -125,7 +125,12 @@ mod tests {
 
     #[test]
     fn test() {
-        admin_reserve_kbytes().unwrap();
-        max_map_count().unwrap();
+        use std::path::Path;
+        if Path::new("/proc/sys/vm/admin_reserve_kbytes").exists() {
+            admin_reserve_kbytes().unwrap();
+        }
+        if Path::new("/proc/sys/vm/max_map_count").exists() {
+            max_map_count().unwrap();
+        }
     }
 }
