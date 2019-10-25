@@ -2026,11 +2026,6 @@ impl Limits {
                 (hard_limit, soft_limit, name)
             };
             let _units = expect!(s.get(l - 1));
-            println!("name: {:?}", name);
-
-            //if name == "Limit" {
-            //    continue;
-            //}
 
             map.insert(
                 name.to_owned(),
