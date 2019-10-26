@@ -2699,4 +2699,28 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
             limits.max_realtime_timeout.hard_limit.as_rlim_t()
         );
     }
+
+
+    #[test]
+    fn test_procinfo() {
+        // test to see that this crate and procinfo give mostly the same results
+
+        fn diff_mem(a: f32, b: f32) {
+            let diff = (a - b).abs();
+            assert!(diff < 20000.0);
+        }
+
+        let procinfo_stat = procinfo::pid::stat_self().unwrap();
+        let me = Process::myself().unwrap();
+        let me_stat = me.stat;
+
+        diff_mem(procinfo_stat.vsize as f32, me_stat.vsize as f32);
+
+        assert_eq!(me_stat.priority, procinfo_stat.priority as i64);
+        assert_eq!(me_stat.nice, procinfo_stat.nice as i64);
+        // flags seem to change during runtime, with PF_FREEZER_SKIP coming and going...
+        //assert_eq!(me_stat.flags, procinfo_stat.flags, "procfs:{:?} procinfo:{:?}", crate::StatFlags::from_bits(me_stat.flags), crate::StatFlags::from_bits(procinfo_stat.flags));
+        assert_eq!(me_stat.pid, procinfo_stat.pid);
+        assert_eq!(me_stat.ppid, procinfo_stat.ppid);
+    }
 }
