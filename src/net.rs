@@ -30,7 +30,7 @@
 //!
 //! // get the tcp table
 //! let tcp = procfs::net::tcp().unwrap();
-//! let tcp6 = procfs::tcp6().unwrap();
+//! let tcp6 = procfs::net::tcp6().unwrap();
 //! println!("{:<26} {:<26} {:<15} {:<8} {}", "Local address", "Remote address", "State", "Inode", "PID/Program name");
 //! for entry in tcp.into_iter().chain(tcp6) {
 //!     // find the process (if any) that has an open FD to this entry's inode
