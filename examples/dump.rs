@@ -1,14 +1,15 @@
 extern crate procfs;
 
 fn main() {
-    let pid = i32::from_str_radix(
-        &std::env::args().nth(1).expect("no proc ID arg specified"),
-        10,
-    )
-    .unwrap();
 
-    println!("Info for pid={}", pid);
-    let prc = procfs::Process::new(pid).unwrap();
+    let pid = std::env::args().nth(1).and_then(|s| i32::from_str_radix(&s, 10).ok());
+
+    let prc = if let Some(pid) = pid {
+        println!("Info for pid={}", pid);
+        procfs::Process::new(pid).unwrap()
+    } else {
+        procfs::Process::myself().unwrap()
+    };
     println!("{:#?}", prc);
 
     println!("State: {:?}", prc.stat.state());
