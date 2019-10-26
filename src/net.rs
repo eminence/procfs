@@ -38,10 +38,10 @@
 //!     let remote_addr = format!("{}", entry.remote_address);
 //!     let state = format!("{:?}", entry.state);
 //!     if let Some(process) = map.get(&entry.inode) {
-//!         println!("{:<26} {:<26} {:<15} {:<8} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
+//!         println!("{:<26} {:<26} {:<15} {:<12} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
 //!     } else {
 //!         // We might not always be able to find the process assocated with this socket
-//!         println!("{:<26} {:<26} {:<15} {:<8} -", local_address, remote_addr, state, entry.inode);
+//!         println!("{:<26} {:<26} {:<15} {:<12} -", local_address, remote_addr, state, entry.inode);
 //!     }
 //! }
 use crate::ProcResult;
