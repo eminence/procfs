@@ -6,9 +6,9 @@ fn main() {
 
     let prc = if let Some(pid) = pid {
         println!("Info for pid={}", pid);
-        procfs::Process::new(pid).unwrap()
+        procfs::process::Process::new(pid).unwrap()
     } else {
-        procfs::Process::myself().unwrap()
+        procfs::process::Process::myself().unwrap()
     };
     println!("{:#?}", prc);
 

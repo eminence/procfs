@@ -1,6 +1,6 @@
 use crate::ProcResult;
 
-use super::Process;
+use super::process::Process;
 
 #[derive(Debug)]
 /// Container group controller information.

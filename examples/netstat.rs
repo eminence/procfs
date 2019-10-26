@@ -2,13 +2,13 @@
 
 extern crate procfs;
 
-use procfs::{FDTarget, Process};
+use procfs::process::{FDTarget, Process};
 
 use std::collections::HashMap;
 
 fn main() {
     // get all processes
-    let all_procs = procfs::all_processes().unwrap();
+    let all_procs = procfs::process::all_processes().unwrap();
 
     // build up a map between socket inodes and processes:
     let mut map: HashMap<u32, &Process> = HashMap::new();
@@ -23,8 +23,8 @@ fn main() {
     }
 
     // get the tcp table
-    let tcp = procfs::tcp().unwrap();
-    let tcp6 = procfs::tcp6().unwrap();
+    let tcp = procfs::net::tcp().unwrap();
+    let tcp6 = procfs::net::tcp6().unwrap();
 
     println!(
         "{:<26} {:<26} {:<15} {:<8} {}",

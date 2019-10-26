@@ -38,71 +38,9 @@
 //!
 //! # Examples
 //!
-//! Here's a small example that prints out all processes that are running on the same tty as the calling
-//! process.  This is very similar to what "ps" does in its default mode.  You can run this example
-//! yourself with:
+//! Examples can be found in the various modules shown below.
 //!
-//! > cargo run --example=ps
 //!
-//! ```rust
-//! let me = procfs::Process::myself().unwrap();
-//! let tps = procfs::ticks_per_second().unwrap();
-//!
-//! println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
-//!
-//! let tty = format!("pty/{}", me.stat.tty_nr().1);
-//! for prc in procfs::all_processes().unwrap() {
-//!     if prc.stat.tty_nr == me.stat.tty_nr {
-//!         // total_time is in seconds
-//!         let total_time =
-//!             (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
-//!         println!(
-//!             "{: >5} {: <8} {: >8} {}",
-//!             prc.stat.pid, tty, total_time, prc.stat.comm
-//!         );
-//!     }
-//! }
-//! ```
-//!
-//! Here's another example that will print out all of the open and listening TCP sockets, and their
-//! corresponding processes, if know.  This mimics the "netstat" utility, but for TCP only.  You
-//! can run this example yourself with:
-//!
-//! > cargo run --example=netstat
-//!
-//! ```rust
-//! # use procfs::{Process, FDTarget};
-//! # use std::collections::HashMap;
-//! let all_procs = procfs::all_processes().unwrap();
-//!
-//! // build up a map between socket inodes and processes:
-//! let mut map: HashMap<u32, &Process> = HashMap::new();
-//! for process in &all_procs {
-//!     if let Ok(fds) = process.fd() {
-//!         for fd in fds {
-//!             if let FDTarget::Socket(inode) = fd.target {
-//!                 map.insert(inode, process);
-//!             }
-//!         }
-//!     }
-//! }
-//!
-//! // get the tcp table
-//! let tcp = procfs::tcp().unwrap();
-//! let tcp6 = procfs::tcp6().unwrap();
-//! println!("{:<26} {:<26} {:<15} {:<8} {}", "Local address", "Remote address", "State", "Inode", "PID/Program name");
-//! for entry in tcp.into_iter().chain(tcp6) {
-//!     // find the process (if any) that has an open FD to this entry's inode
-//!     let local_address = format!("{}", entry.local_address);
-//!     let remote_addr = format!("{}", entry.remote_address);
-//!     let state = format!("{:?}", entry.state);
-//!     if let Some(process) = map.get(&entry.inode) {
-//!         println!("{:<26} {:<26} {:<15} {:<8} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
-//!     } else {
-//!         // We might not always be able to find the process assocated with this socket
-//!         println!("{:<26} {:<26} {:<15} {:<8} -", local_address, remote_addr, state, entry.inode);
-//!     }
-//! }
 
 #[cfg(unix)]
 extern crate libc;
@@ -320,14 +258,12 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
     write_file(path, value.to_string().as_bytes())
 }
 
-mod process;
-pub use crate::process::*;
+pub mod process;
 
 mod meminfo;
 pub use crate::meminfo::*;
 
-mod net;
-pub use crate::net::*;
+pub mod net;
 
 mod cpuinfo;
 pub use crate::cpuinfo::*;
@@ -957,6 +893,7 @@ impl KernelStats {
 mod tests {
     extern crate failure;
     use super::*;
+    use super::process::Process;
 
     #[test]
     fn test_statics() {

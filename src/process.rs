@@ -1,3 +1,38 @@
+//! Functions and structs related to process information
+//!
+//! The primary source of data for functions in this module is the files in a /proc/<pid>/
+//! directory.  If you have a process id, you can use
+//! [`Process::new(pid)`](struct.Process.html#method.new), otherwise you can get a
+//! list of all running processes using [`all_processes()`](fn.all_processes.html).
+//!
+//! # Examples
+//!
+//! Here's a small example that prints out all processes that are running on the same tty as the calling
+//! process.  This is very similar to what "ps" does in its default mode.  You can run this example
+//! yourself with:
+//!
+//! > cargo run --example=ps
+//!
+//! ```rust
+//! let me = procfs::process::Process::myself().unwrap();
+//! let tps = procfs::ticks_per_second().unwrap();
+//!
+//! println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
+//!
+//! let tty = format!("pty/{}", me.stat.tty_nr().1);
+//! for prc in procfs::process::all_processes().unwrap() {
+//!     if prc.stat.tty_nr == me.stat.tty_nr {
+//!         // total_time is in seconds
+//!         let total_time =
+//!             (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
+//!         println!(
+//!             "{: >5} {: <8} {: >8} {}",
+//!             prc.stat.pid, tty, total_time, prc.stat.comm
+//!         );
+//!     }
+//! }
+//! ```
+
 use super::*;
 
 use std::ffi::OsString;
@@ -497,7 +532,7 @@ pub struct Io {
 /// # Example:
 ///
 /// ```
-/// # use procfs::Process;
+/// # use procfs::process::Process;
 /// let stats = Process::myself().unwrap().mountstats().unwrap();
 ///
 /// for mount in stats {
