@@ -215,6 +215,7 @@ impl<T, E> IntoResult<T, E> for Result<T, E> {
 }
 
 #[macro_use]
+#[allow(unused_macros)]
 macro_rules! proc_panic {
     ($e:expr) => {
         crate::IntoOption::into_option($e).unwrap_or_else(|| {
