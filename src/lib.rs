@@ -597,7 +597,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_CLK_TCK) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x),
+            x => Ok(x.into()),
         }
     } else {
         panic!("Not supported on non-unix platforms")
@@ -639,7 +639,7 @@ pub fn page_size() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_PAGESIZE) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x),
+            x => Ok(x.into()),
         }
     } else {
         panic!("Not supported on non-unix platforms")
