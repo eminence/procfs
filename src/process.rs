@@ -34,6 +34,7 @@
 //! ```
 
 use super::*;
+use crate::from_iter;
 
 use std::ffi::OsString;
 use std::io::{self, Read};
@@ -174,19 +175,6 @@ bitflags! {
 //        u32::from_str_radix(s, 10).unwrap()
 //    }
 //}
-
-fn from_iter<'a, I, U>(i: I) -> ProcResult<U>
-where
-    I: IntoIterator<Item = &'a str>,
-    U: FromStr,
-{
-    let mut iter = i.into_iter();
-    let val = expect!(iter.next());
-    match FromStr::from_str(val) {
-        Ok(u) => Ok(u),
-        Err(..) => Err(build_internal_error!("Failed to convert")),
-    }
-}
 
 //impl<'a> ProcFrom<&'a str> for u32 {
 //    fn from(s: &str) -> Self {
@@ -2735,7 +2723,6 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
             limits.max_realtime_timeout.hard_limit.as_rlim_t()
         );
     }
-
 
     #[test]
     fn test_procinfo() {

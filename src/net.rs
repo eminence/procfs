@@ -44,6 +44,8 @@
 //!         println!("{:<26} {:<26} {:<15} {:<12} -", local_address, remote_addr, state, entry.inode);
 //!     }
 //! }
+use crate::from_iter;
+use std::collections::HashMap;
 use crate::ProcResult;
 
 use crate::FileWrapper;
@@ -247,6 +249,106 @@ pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
     read_udp_table(BufReader::new(file))
 }
 
+/// General statistics for a network interface/device
+#[derive(Debug, Clone)]
+pub struct DeviceStatus {
+    /// Name of the interface
+    pub name: String,
+    /// Total bytes received
+    pub recv_bytes: u64,
+    /// Total packets received
+    pub recv_packets: u64,
+    /// Bad packets received
+    pub recv_errs: u64,
+    /// Packets dropped
+    pub recv_drop: u64,
+    /// Fifo overrun
+    pub recv_fifo: u64,
+    /// Frame alignment errors
+    pub recv_frame: u64,
+    /// Number of compressed packets received
+    pub recv_compressed: u64,
+    /// Number of multicast packets received
+    pub recv_multicast: u64,
+
+    /// Total bytes transmitted
+    pub sent_bytes: u64,
+    /// Total packets transmitted
+    pub sent_packets: u64,
+    /// Number of transmission errors
+    pub sent_errs: u64,
+    /// Number of packets dropped during transmission
+    pub sent_drop: u64,
+    pub sent_fifo: u64,
+    /// Number of collisions
+    pub sent_colls: u64,
+    /// Number of packets not sent due to carrier errors
+    pub sent_carrier: u64,
+    /// Number of compressed packets transmitted
+    pub sent_compressed: u64,
+}
+
+impl DeviceStatus {
+    fn from_str(s: &str) -> ProcResult<DeviceStatus> {
+        let mut split = s.trim().split_whitespace();
+        let name: String = expect!(from_iter(&mut split));
+        let recv_bytes = expect!(from_iter(&mut split));
+        let recv_packets = expect!(from_iter(&mut split));
+        let recv_errs = expect!(from_iter(&mut split));
+        let recv_drop = expect!(from_iter(&mut split));
+        let recv_fifo = expect!(from_iter(&mut split));
+        let recv_frame = expect!(from_iter(&mut split));
+        let recv_compressed = expect!(from_iter(&mut split));
+        let recv_multicast = expect!(from_iter(&mut split));
+        let sent_bytes = expect!(from_iter(&mut split));
+        let sent_packets = expect!(from_iter(&mut split));
+        let sent_errs = expect!(from_iter(&mut split));
+        let sent_drop = expect!(from_iter(&mut split));
+        let sent_fifo = expect!(from_iter(&mut split));
+        let sent_colls = expect!(from_iter(&mut split));
+        let sent_carrier = expect!(from_iter(&mut split));
+        let sent_compressed = expect!(from_iter(&mut split));
+
+
+        Ok(DeviceStatus {
+            name: name.trim_end_matches(':').to_owned(),
+            recv_bytes,
+            recv_packets,
+            recv_errs,
+            recv_drop,
+            recv_fifo,
+            recv_frame,
+            recv_compressed,
+            recv_multicast,
+            sent_bytes,
+            sent_packets,
+            sent_errs,
+            sent_drop,
+            sent_fifo,
+            sent_colls,
+            sent_carrier,
+            sent_compressed
+        })
+    }
+}
+
+/// Returns basic network device statistics for all interfaces
+///
+/// This data is from the `/proc/net/dev` file.
+pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
+    let file = FileWrapper::open("/proc/net/dev")?;
+    let buf = BufReader::new(file);
+    let mut map = HashMap::new();
+    // the first two lines are headers, so skip them
+    for line in buf.lines().skip(2) {
+        let dev = DeviceStatus::from_str(&line?)?;
+        map.insert(dev.name.clone(), dev);
+    }
+
+    Ok(map)
+
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -312,5 +414,12 @@ mod tests {
         for entry in udp6().unwrap() {
             println!("{:?}", entry);
         }
+    }
+
+    #[test]
+    fn test_dev_status() {
+        let status = dev_status().unwrap();
+        println!("{:#?}", status);
+
     }
 }

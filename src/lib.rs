@@ -258,6 +258,19 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
     write_file(path, value.to_string().as_bytes())
 }
 
+pub(crate) fn from_iter<'a, I, U>(i: I) -> ProcResult<U>
+where
+    I: IntoIterator<Item = &'a str>,
+    U: FromStr,
+{
+    let mut iter = i.into_iter();
+    let val = expect!(iter.next());
+    match FromStr::from_str(val) {
+        Ok(u) => Ok(u),
+        Err(..) => Err(build_internal_error!("Failed to convert")),
+    }
+}
+
 pub mod process;
 
 mod meminfo;
@@ -892,8 +905,8 @@ impl KernelStats {
 #[cfg(test)]
 mod tests {
     extern crate failure;
-    use super::*;
     use super::process::Process;
+    use super::*;
 
     #[test]
     fn test_statics() {
