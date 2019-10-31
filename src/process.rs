@@ -211,6 +211,8 @@ pub enum ProcState {
     Waking,
     /// Parked (P) (Linux 3.9 to 3.13 only)
     Parked,
+    /// Idle (I)
+    Idle
 }
 
 impl ProcState {
@@ -226,6 +228,7 @@ impl ProcState {
             'K' => Some(ProcState::Wakekill),
             'W' => Some(ProcState::Waking),
             'P' => Some(ProcState::Parked),
+            'I' => Some(ProcState::Idle),
             _ => None,
         }
     }
@@ -2233,6 +2236,7 @@ mod tests {
 
             println!("{} {}", prc.pid(), prc.stat.comm);
             prc.stat.flags().unwrap();
+            prc.stat.state().unwrap();
             #[cfg(feature = "chrono")]
             prc.stat.starttime().unwrap();
 
