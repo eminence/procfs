@@ -42,6 +42,7 @@ use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
+use libc::rlim_t;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -2112,7 +2113,7 @@ impl Limit {
 #[derive(Debug, Clone)]
 pub enum LimitValue {
     Unlimited,
-    Value(u64),
+    Value(rlim_t),
 }
 
 impl LimitValue {
@@ -2131,7 +2132,7 @@ impl FromStr for LimitValue {
         if s == "unlimited" {
             Ok(LimitValue::Unlimited)
         } else {
-            Ok(LimitValue::Value(from_str!(u64, s)))
+            Ok(LimitValue::Value(from_str!(rlim_t, s)))
         }
     }
 }
