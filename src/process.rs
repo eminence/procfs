@@ -1910,13 +1910,17 @@ impl Process {
 }
 
 /// Return a list of all processes
+///
+/// If a process can't be constructed for some reason, it won't be returned in the list.
 pub fn all_processes() -> ProcResult<Vec<Process>> {
     let mut v = Vec::new();
     for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
         if let Ok(entry) = dir {
             if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                if let Ok(prc) = Process::new(pid) {
-                    v.push(prc);
+                match Process::new(pid) {
+                    Ok(prc) => v.push(prc),
+                    Err(ProcError::InternalError(e)) => return Err(ProcError::InternalError(e)),
+                    _ => {}
                 }
             }
         }
