@@ -36,6 +36,7 @@
 use super::*;
 use crate::from_iter;
 
+use libc::rlim_t;
 use std::ffi::OsString;
 use std::io::{self, Read};
 #[cfg(unix)]
@@ -43,7 +44,6 @@ use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
-use libc::rlim_t;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -212,7 +212,7 @@ pub enum ProcState {
     /// Parked (P) (Linux 3.9 to 3.13 only)
     Parked,
     /// Idle (I)
-    Idle
+    Idle,
 }
 
 impl ProcState {

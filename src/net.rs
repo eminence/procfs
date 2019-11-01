@@ -45,8 +45,8 @@
 //!     }
 //! }
 use crate::from_iter;
-use std::collections::HashMap;
 use crate::ProcResult;
+use std::collections::HashMap;
 
 use crate::FileWrapper;
 use byteorder::{ByteOrder, NetworkEndian};
@@ -309,7 +309,6 @@ impl DeviceStatus {
         let sent_carrier = expect!(from_iter(&mut split));
         let sent_compressed = expect!(from_iter(&mut split));
 
-
         Ok(DeviceStatus {
             name: name.trim_end_matches(':').to_owned(),
             recv_bytes,
@@ -327,7 +326,7 @@ impl DeviceStatus {
             sent_fifo,
             sent_colls,
             sent_carrier,
-            sent_compressed
+            sent_compressed,
         })
     }
 }
@@ -346,9 +345,7 @@ pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
     }
 
     Ok(map)
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -420,6 +417,5 @@ mod tests {
     fn test_dev_status() {
         let status = dev_status().unwrap();
         println!("{:#?}", status);
-
     }
 }
