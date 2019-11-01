@@ -1856,6 +1856,15 @@ impl Process {
         let mut file = FileWrapper::open(self.root.join("auxv"))?;
         let mut map = HashMap::new();
 
+        let mut buf = Vec::new();
+        let bytes_read = file.read_to_end(&mut buf)?;
+        if bytes_read == 0 {
+            // some kernel processes won't have any data for their auxv file
+            return Ok(map);
+        }
+        buf.truncate(bytes_read);
+        let mut file = std::io::Cursor::new(buf);
+
         loop {
             let key = file.read_u32::<NativeEndian>()?;
             let value = file.read_u32::<NativeEndian>()?;
@@ -2235,8 +2244,8 @@ mod tests {
     fn test_all() {
         for prc in all_processes().unwrap() {
             // note: this test doesn't unwrap, since some of this data requires root to access
-            // so permission denied errors are common
-            // TODO unwrap but allow for permission denied errors in this test
+            // so permission denied errors are common.  The check_unwrap helper function handles
+            // this.
 
             println!("{} {}", prc.pid(), prc.stat.comm);
             prc.stat.flags().unwrap();
@@ -2278,9 +2287,13 @@ mod tests {
         // getting the proc struct should be OK
         let init = Process::new(1).unwrap();
 
-        // but accessing data should result in an error (unless we are running as root!)
-        assert!(!init.cwd().is_ok());
-        assert!(!init.environ().is_ok());
+        let i_am_root = unsafe { libc::geteuid() } == 0;
+
+        if !i_am_root {
+            // but accessing data should result in an error (unless we are running as root!)
+            assert!(!init.cwd().is_ok());
+            assert!(!init.environ().is_ok());
+        }
     }
 
     #[test]
