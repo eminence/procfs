@@ -1,8 +1,10 @@
 procfs
 ======
 
-Click here to view the documentation for this crate:
-[Documentation](https://docs.rs/procfs)
+[![Crate](https://img.shields.io/crates/v/procfs.svg)](https://crates.io/crates/procfs)
+[![Docs](https://docs.rs/procfs/badge.svg)](https://docs.rs/procfs)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.33+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
+
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
 Long-term, this crate aims to be fairly feature complete, but at the moment not all files are exposed.
