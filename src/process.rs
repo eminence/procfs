@@ -94,7 +94,7 @@ bitflags! {
         const PF_NOFREEZE = 0x0000_8000;
         /// Frozen for system suspend
         const PF_FROZEN = 0x0001_0000;
-        //// I am kswapd
+        /// I am kswapd
         const PF_KSWAPD = 0x0002_0000;
         /// All allocation requests will inherit GFP_NOFS
         const PF_MEMALLOC_NOFS = 0x0004_0000;
@@ -108,10 +108,16 @@ bitflags! {
         const PF_RANDOMIZE = 0x0040_0000;
         /// Allowed to write to swap
         const PF_SWAPWRITE = 0x0080_0000;
+        /// Stalled due to lack of memory
+        const PF_MEMSTALL = 0x0100_0000;
+        /// I'm an Usermodehelper process
+        const PF_UMH = 0x0200_0000;
         /// Userland is not allowed to meddle with cpus_allowed
         const PF_NO_SETAFFINITY = 0x0400_0000;
         /// Early kill for mce process policy
         const PF_MCE_EARLY = 0x0800_0000;
+        /// All allocation request will have _GFP_MOVABLE cleared
+        const PF_MEMALLOC_NOCMA = 0x1000_0000;
         /// Thread belongs to the rt mutex tester
         const PF_MUTEX_TESTER = 0x2000_0000;
         /// Freezer should not count it as freezable
