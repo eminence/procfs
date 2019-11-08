@@ -1271,21 +1271,21 @@ pub struct Status {
     /// PID of process tracing this process (0 if not being traced).
     pub tracerpid: i32,
     /// Real UID.
-    pub ruid: i32,
+    pub ruid: u32,
     /// Effective UID.
-    pub euid: i32,
+    pub euid: u32,
     /// Saved set UID.
-    pub suid: i32,
+    pub suid: u32,
     /// Filesystem UID.
-    pub fuid: i32,
+    pub fuid: u32,
     /// Real GID.
-    pub rgid: i32,
+    pub rgid: u32,
     /// Effective GID.
-    pub egid: i32,
+    pub egid: u32,
     /// Saved set GID.
-    pub sgid: i32,
+    pub sgid: u32,
     /// Filesystem GID.
-    pub fgid: i32,
+    pub fgid: u32,
     /// Number of file descriptor slots currently allocated.
     pub fdsize: u32,
     /// Supplementary group list.
@@ -1557,8 +1557,8 @@ impl Status {
         }
     }
 
-    fn parse_uid_gid(s: &str, i: usize) -> ProcResult<i32> {
-        Ok(from_str!(i32, expect!(s.split_whitespace().nth(i))))
+    fn parse_uid_gid(s: &str, i: usize) -> ProcResult<u32> {
+        Ok(from_str!(u32, expect!(s.split_whitespace().nth(i))))
     }
 
     fn parse_sigq(s: &str) -> ProcResult<(u64, u64)> {
@@ -1908,7 +1908,7 @@ impl Process {
     }
 
     /// Gets the process' login uid. May not be available.
-    pub fn loginuid(&self) -> ProcResult<i32> {
+    pub fn loginuid(&self) -> ProcResult<u32> {
         let mut uid = String::new();
         let path = self.root.join("loginuid");
         let mut file = FileWrapper::open(&path)?;
