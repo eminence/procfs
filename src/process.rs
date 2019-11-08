@@ -2405,6 +2405,12 @@ mod tests {
             #[cfg(feature = "chrono")]
             prc.stat.starttime().unwrap();
 
+            // if this process is defunct/zombie, don't try to read any of the below data
+            // (some might be successful, but not all)
+            if prc.stat.state().unwrap() == ProcState::Zombie {
+                continue;
+            }
+
             check_unwrap(&prc, prc.cmdline());
             check_unwrap(&prc, prc.environ());
             check_unwrap(&prc, prc.fd());
