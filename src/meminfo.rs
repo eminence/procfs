@@ -378,11 +378,16 @@ mod test {
     #[allow(clippy::cognitive_complexity)]
     #[test]
     fn test_meminfo() {
+        use std::path::Path;
+
         // TRAVIS
         // we don't have access to the kernel_config on travis, so skip that test there
         match ::std::env::var("TRAVIS") {
             Ok(ref s) if s == "true" => return,
             _ => {}
+        }
+        if !Path::new(crate::PROC_CONFIG_GZ).exists() && !Path::new(crate::BOOT_CONFIG).exists() {
+            return;
         }
 
         let kernel = KernelVersion::current().unwrap();

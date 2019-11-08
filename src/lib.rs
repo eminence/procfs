@@ -977,6 +977,9 @@ mod tests {
             Ok(ref s) if s == "true" => return,
             _ => {}
         }
+        if !Path::new(PROC_CONFIG_GZ).exists() && !Path::new(BOOT_CONFIG).exists() {
+            return;
+        }
 
         let config = kernel_config().unwrap();
         println!("{:#?}", config);
@@ -1079,13 +1082,16 @@ mod tests {
         let cpuinfo = cpuinfo().unwrap();
         assert_eq!(cpuinfo.num_cores(), stat.cpu_time.len());
 
-        // the num of each individual CPU should be equal to the total cpu entry
+        // the sum of each individual CPU should be equal to the total cpu entry
+        // note: on big machines with 128 cores, it seems that the differences can be rather high,
+        // especially when heavily loaded.  So this test tollerates a 60-second discrepency
 
-        assert!((stat.total.user - stat.cpu_time.iter().map(|i| i.user).sum::<f32>()).abs() < 2.0);
-        assert!((stat.total.nice - stat.cpu_time.iter().map(|i| i.nice).sum::<f32>()).abs() < 2.0);
-        assert!(
-            (stat.total.system - stat.cpu_time.iter().map(|i| i.system).sum::<f32>()).abs() < 2.0
-        );
+        let user: f32 = stat.cpu_time.iter().map(|i| i.user).sum();
+        let nice: f32 = stat.cpu_time.iter().map(|i| i.nice).sum();
+        let system: f32 = stat.cpu_time.iter().map(|i| i.system).sum();
+        assert!((stat.total.user - user).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.user, user, stat.total.user - user);
+        assert!((stat.total.nice - nice).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.nice, nice, stat.total.nice - nice);
+        assert!((stat.total.system - system).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.system, system, stat.total.system - system);
 
         let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
         assert!(diff < 10.0, "idle time difference too high: {}", diff);

@@ -2911,8 +2911,12 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
 
         fn diff_mem(a: f32, b: f32) {
             let diff = (a - b).abs();
-            assert!(diff < 20000.0);
+            assert!(diff < 20000.0, "diff:{}", diff);
         }
+
+        // take a pause to let things "settle" before getting data.  By default, cargo will run
+        // tests in parallel, which can cause disturbences
+        std::thread::sleep(std::time::Duration::from_secs(1));
 
         let procinfo_stat = procinfo::pid::stat_self().unwrap();
         let me = Process::myself().unwrap();
