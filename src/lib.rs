@@ -902,6 +902,33 @@ impl KernelStats {
     }
 }
 
+/// Get various vritual memory statistics
+///
+/// Since the exact set of statistics will vary from kernel to kernel,
+/// and because most of them are not well documented, this function
+/// returns a HashMap instead of a struct.  Consult the kernel source
+/// code for more details of this data.
+///
+/// This data is taken from the `/proc/vmstat` file.
+///
+/// (since Linux 2.6.0)
+pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
+    use std::io::{BufRead, BufReader};
+
+    let file = FileWrapper::open("/proc/vmstat")?;
+    let reader = BufReader::new(file);
+    let mut map = HashMap::new();
+    for line in reader.lines() {
+        let line = line?;
+        let mut split = line.split_whitespace();
+        let name = expect!(split.next());
+        let val = from_str!(i64, expect!(split.next()));
+        map.insert(name.to_owned(), val);
+    }
+
+    Ok(map)
+}
+
 #[cfg(test)]
 mod tests {
     extern crate failure;
@@ -1095,5 +1122,11 @@ mod tests {
 
         let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
         assert!(diff < 10.0, "idle time difference too high: {}", diff);
+    }
+
+    #[test]
+    fn test_vmstat() {
+        let stat = vmstat().unwrap();
+        println!("{:?}", stat);
     }
 }

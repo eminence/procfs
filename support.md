@@ -239,7 +239,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/tty`
 * [x] `/proc/uptime`
 * [ ] `/proc/version`
-* [ ] `/proc/vmstat`
+* [x] `/proc/vmstat`
 * [ ] `/proc/zoneinfo`
 
  
