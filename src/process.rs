@@ -1942,6 +1942,21 @@ impl Process {
 
         Ok(vec)
     }
+
+    /// The current score that the kernel gives to this process for the purpose of selecting a
+    /// process for the OOM-killer
+    ///
+    /// A higher score means that the process is more likely to be selected by the OOM-killer.
+    /// The basis for this score is the amount of memory used by the process, plus other factors.
+    ///
+    /// (Since linux 2.6.11)
+    pub fn oom_score(&self) -> ProcResult<u32> {
+        let path = self.root.join("oom_score");
+        let mut file = FileWrapper::open(&path)?;
+        let mut oom = String::new();
+        file.read_to_string(&mut oom)?;
+        Ok(from_str!(u32, oom.trim()))
+    }
 }
 
 /// Return a list of all processes
@@ -2424,6 +2439,7 @@ mod tests {
             check_unwrap(&prc, prc.status());
             check_unwrap(&prc, prc.mountinfo());
             check_unwrap(&prc, prc.mountstats());
+            check_unwrap(&prc, prc.oom_score());
         }
     }
 
