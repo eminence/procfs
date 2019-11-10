@@ -130,8 +130,6 @@ pub fn cpuinfo() -> ProcResult<CpuInfo> {
         map.retain(|k, _| !common_fields.contains(k));
     }
 
-    print!("{:?}", common_fields);
-
     Ok(CpuInfo {
         fields: common_map,
         cpus: list,
