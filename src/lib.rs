@@ -1116,9 +1116,27 @@ mod tests {
         let user: f32 = stat.cpu_time.iter().map(|i| i.user).sum();
         let nice: f32 = stat.cpu_time.iter().map(|i| i.nice).sum();
         let system: f32 = stat.cpu_time.iter().map(|i| i.system).sum();
-        assert!((stat.total.user - user).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.user, user, stat.total.user - user);
-        assert!((stat.total.nice - nice).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.nice, nice, stat.total.nice - nice);
-        assert!((stat.total.system - system).abs() < 60.0, "sum:{} total:{} diff:{}", stat.total.system, system, stat.total.system - system);
+        assert!(
+            (stat.total.user - user).abs() < 60.0,
+            "sum:{} total:{} diff:{}",
+            stat.total.user,
+            user,
+            stat.total.user - user
+        );
+        assert!(
+            (stat.total.nice - nice).abs() < 60.0,
+            "sum:{} total:{} diff:{}",
+            stat.total.nice,
+            nice,
+            stat.total.nice - nice
+        );
+        assert!(
+            (stat.total.system - system).abs() < 60.0,
+            "sum:{} total:{} diff:{}",
+            stat.total.system,
+            system,
+            stat.total.system - system
+        );
 
         let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
         assert!(diff < 10.0, "idle time difference too high: {}", diff);
