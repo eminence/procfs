@@ -1106,7 +1106,7 @@ mod tests {
         let diff = (boottime as i32 - stat.btime as i32).abs();
         assert!(diff <= 1);
 
-        let cpuinfo = cpuinfo().unwrap();
+        let cpuinfo = CpuInfo::new().unwrap();
         assert_eq!(cpuinfo.num_cores(), stat.cpu_time.len());
 
         // the sum of each individual CPU should be equal to the total cpu entry

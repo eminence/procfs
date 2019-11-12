@@ -1,7 +1,7 @@
 /// A basic example of /proc/pressure/ usage.
 
 fn main() {
-    println!("memory pressure: {:#?}", procfs::memory_pressure());
-    println!("cpu pressure: {:#?}", procfs::cpu_pressure());
-    println!("io pressure: {:#?}", procfs::io_pressure());
+    println!("memory pressure: {:#?}", procfs::MemoryPressure::new());
+    println!("cpu pressure: {:#?}", procfs::CpuPressure::new());
+    println!("io pressure: {:#?}", procfs::IoPressure::new());
 }

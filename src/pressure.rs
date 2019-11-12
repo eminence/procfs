@@ -33,16 +33,30 @@ pub struct PressureRecord {
 }
 
 /// CPU pressure information
-///
-/// To construct this structure, see [cpu_pressure()].
 #[derive(Debug)]
 pub struct CpuPressure {
     pub some: PressureRecord,
 }
 
+impl CpuPressure {
+    /// Get CPU pressure information
+    pub fn new() -> ProcResult<CpuPressure> {
+        use std::fs::File;
+        use std::io::{BufRead, BufReader};
+
+        let file = File::open("/proc/pressure/cpu")?;
+        let mut reader = BufReader::new(file);
+
+        let mut some = String::new();
+        reader.read_line(&mut some)?;
+
+        Ok(CpuPressure {
+            some: parse_pressure_record(&some)?,
+        })
+    }
+}
+
 /// Memory pressure information
-///
-/// To construct this structure, see [memory_pressure()].
 #[derive(Debug)]
 pub struct MemoryPressure {
     /// This record indicates the share of time in which at least some tasks are stalled
@@ -52,9 +66,16 @@ pub struct MemoryPressure {
     pub full: PressureRecord,
 }
 
+impl MemoryPressure {
+    /// Get memory pressure information
+    pub fn new() -> ProcResult<MemoryPressure> {
+        let (some, full) = get_pressure("memory")?;
+
+        Ok(MemoryPressure { some, full })
+    }
+}
+
 /// IO pressure information
-///
-/// To construct this structure, see [io_pressure()].
 #[derive(Debug)]
 pub struct IoPressure {
     /// This record indicates the share of time in which at least some tasks are stalled
@@ -62,6 +83,15 @@ pub struct IoPressure {
     /// This record indicates this share of time in which all non-idle tasks are stalled
     /// simultaneously.
     pub full: PressureRecord,
+}
+
+impl IoPressure {
+    /// Get IO pressure information
+    pub fn new() -> ProcResult<IoPressure> {
+        let (some, full) = get_pressure("io")?;
+
+        Ok(IoPressure { some, full })
+    }
 }
 
 fn get_f32(map: &HashMap<&str, &str>, value: &str) -> ProcResult<f32> {
@@ -104,19 +134,9 @@ fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
 }
 
 /// Get CPU pressure information
+#[deprecated(note = "Please use the CpuPressure::new() method instead")]
 pub fn cpu_pressure() -> ProcResult<CpuPressure> {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
-
-    let file = File::open("/proc/pressure/cpu")?;
-    let mut reader = BufReader::new(file);
-
-    let mut some = String::new();
-    reader.read_line(&mut some)?;
-
-    Ok(CpuPressure {
-        some: parse_pressure_record(&some)?,
-    })
+    CpuPressure::new()
 }
 
 fn get_pressure(pressure_file: &str) -> ProcResult<(PressureRecord, PressureRecord)> {
@@ -135,17 +155,15 @@ fn get_pressure(pressure_file: &str) -> ProcResult<(PressureRecord, PressureReco
 }
 
 /// Get memory pressure information
+#[deprecated(note = "Please use the MemoryPressure::new() method instead")]
 pub fn memory_pressure() -> ProcResult<MemoryPressure> {
-    let (some, full) = get_pressure("memory")?;
-
-    Ok(MemoryPressure { some, full })
+    MemoryPressure::new()
 }
 
 /// Get IO pressure information
+#[deprecated(note = "Please use the IoPressure::new() method instead")]
 pub fn io_pressure() -> ProcResult<IoPressure> {
-    let (some, full) = get_pressure("io")?;
-
-    Ok(IoPressure { some, full })
+    IoPressure::new()
 }
 
 #[cfg(test)]
@@ -182,7 +200,7 @@ mod test {
             return;
         }
 
-        let mem_psi = memory_pressure().unwrap();
+        let mem_psi = MemoryPressure::new().unwrap();
         assert!(valid_percentage(mem_psi.some.avg10));
         assert!(valid_percentage(mem_psi.some.avg60));
         assert!(valid_percentage(mem_psi.some.avg300));
@@ -198,7 +216,7 @@ mod test {
             return;
         }
 
-        let io_psi = io_pressure().unwrap();
+        let io_psi = IoPressure::new().unwrap();
         assert!(valid_percentage(io_psi.some.avg10));
         assert!(valid_percentage(io_psi.some.avg60));
         assert!(valid_percentage(io_psi.some.avg300));
@@ -214,7 +232,7 @@ mod test {
             return;
         }
 
-        let cpu_psi = cpu_pressure().unwrap();
+        let cpu_psi = CpuPressure::new().unwrap();
         assert!(valid_percentage(cpu_psi.some.avg10));
         assert!(valid_percentage(cpu_psi.some.avg60));
         assert!(valid_percentage(cpu_psi.some.avg300));
