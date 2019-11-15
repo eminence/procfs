@@ -53,6 +53,7 @@ use byteorder::{ByteOrder, NetworkEndian};
 use hex;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::path::PathBuf;
 
 #[derive(Debug, PartialEq)]
 pub enum TcpState {
@@ -109,6 +110,25 @@ pub struct UdpNetEntry {
     pub rx_queue: u32,
     pub tx_queue: u32,
     pub inode: u32,
+}
+
+/// An entry in the Unix socket tabale
+#[derive(Debug)]
+pub struct UnixNetEntry {
+    /// The number of users of the socket
+    pub ref_count: u32,
+    /// The socket type.
+    ///
+    /// Possible values are `SOCK_STREAM`, `SOCK_DGRAM`, or `SOCK_SEQPACKET`.  These constants can
+    /// be found in the libc crate.
+    pub socket_type: u16,
+    /// The inode number of the socket
+    pub inode: u32,
+    /// The bound pathname (if any) of the socket.
+    ///
+    /// Sockets in the abstract namespace are included, and are shown with a path that commences
+    /// with the '@' character.
+    pub path: Option<PathBuf>,
 }
 
 /// Parses an address in the form 00010203:1234
@@ -247,6 +267,37 @@ pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
     let file = FileWrapper::open("/proc/net/udp6")?;
 
     read_udp_table(BufReader::new(file))
+}
+
+/// Reads the unix socket table
+pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
+    let file = FileWrapper::open("/proc/net/unix")?;
+    let reader = BufReader::new(file);
+
+    let mut vec = Vec::new();
+
+    // first line is a header we need to skip
+    for line in reader.lines().skip(1) {
+        let line = line?;
+        let mut s = line.split_whitespace();
+        s.next(); // skip table slot number
+        let ref_count = from_str!(u32, expect!(s.next()), 16);
+        s.next(); // skip protocol, always zero
+        s.next(); // skip internal kernel flags
+        let socket_type = from_str!(u16, expect!(s.next()), 16);
+        s.next(); // skip state
+        let inode = from_str!(u32, expect!(s.next()));
+        let path = s.next().map(|s| PathBuf::from(s));
+
+        vec.push(UnixNetEntry {
+            ref_count,
+            socket_type,
+            inode,
+            path,
+        });
+    }
+
+    Ok(vec)
 }
 
 /// General statistics for a network interface/device
@@ -409,6 +460,13 @@ mod tests {
     #[test]
     fn test_udp6() {
         for entry in udp6().unwrap() {
+            println!("{:?}", entry);
+        }
+    }
+
+    #[test]
+    fn test_unix() {
+        for entry in unix().unwrap() {
             println!("{:?}", entry);
         }
     }
