@@ -1967,6 +1967,15 @@ impl Process {
         file.read_to_string(&mut oom)?;
         Ok(from_str!(u32, oom.trim()))
     }
+
+    /// Set process memory information
+    ///
+    /// Much of this data is the same as the data from `stat()` and `status()`
+    pub fn statm(&self) -> ProcResult<StatM> {
+        let path = self.root.join("statm");
+        let file = FileWrapper::open(&path)?;
+        StatM::from_reader(file)
+    }
 }
 
 /// Return a list of all processes
@@ -2314,6 +2323,61 @@ impl MountInfo {
             fs_type,
             mount_source,
             super_options,
+        })
+    }
+}
+
+/// Provides information about memory usage, measured in pages.
+#[derive(Debug, Clone, Copy)]
+pub struct StatM {
+    /// Total program size
+    ///
+    /// (same as VmSize in /proc/[pid]/status)
+    pub size: u64,
+    /// Resident set size
+    ///
+    /// (same as VmRSS in /proc/[pid]/status)
+    pub resident: u64,
+    /// number of resident shared pages (i.e., backed by a file)
+    ///
+    /// (same as RssFile+RssShmem in /proc/[pid]/status)
+    pub shared: u64,
+    /// Text (code)
+    pub text: u64,
+    /// library (unused since Linux 2.6; always 0)
+    pub lib: u64,
+    /// data + stack
+    pub data: u64,
+    /// dirty pages (unused since Linux 2.6; always 0)
+    pub dt: u64,
+}
+
+impl StatM {
+    fn from_reader<R: io::Read>(mut r: R) -> ProcResult<StatM> {
+        let mut line = String::new();
+        r.read_to_string(&mut line)?;
+        let mut s = line.split_whitespace();
+
+        let size = expect!(from_iter(&mut s));
+        let resident = expect!(from_iter(&mut s));
+        let shared = expect!(from_iter(&mut s));
+        let text = expect!(from_iter(&mut s));
+        let lib = expect!(from_iter(&mut s));
+        let data = expect!(from_iter(&mut s));
+        let dt = expect!(from_iter(&mut s));
+
+        if cfg!(test) {
+            assert!(s.next().is_none());
+        }
+
+        Ok(StatM {
+            size,
+            resident,
+            shared,
+            text,
+            lib,
+            data,
+            dt,
         })
     }
 }
@@ -2971,5 +3035,12 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
         let me = Process::myself().unwrap();
         let mounts = me.mountinfo().unwrap();
         println!("{:#?}", mounts);
+    }
+
+    #[test]
+    fn test_statm() {
+        let me = Process::myself().unwrap();
+        let statm = me.statm().unwrap();
+        println!("{:#?}", statm);
     }
 }

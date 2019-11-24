@@ -46,7 +46,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/smaps`
   * [ ] `/proc/[pid]/stack`
   * [x] `/proc/[pid]/stat`
-  * [ ] `/proc/[pid]/statm`
+  * [x] `/proc/[pid]/statm`
   * [x] `/proc/[pid]/status`
   * [ ] `/proc/[pid]/syscall`
   * [ ] `/proc/[pid]/task`
