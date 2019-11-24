@@ -1907,6 +1907,16 @@ impl Process {
         Status::from_reader(file)
     }
 
+    /// Returns the status info from `/proc/[pid]/stat`.
+    ///
+    /// Note that this data comes pre-loaded in the `stat` field.  This method is useful when you
+    /// get the latest status data (since some of it changes while the program is running)
+    pub fn stat(&self) -> ProcResult<Stat> {
+        let path = self.root.join("stat");
+        let stat = Stat::from_reader(FileWrapper::open(&path)?)?;
+        Ok(stat)
+    }
+
     /// Gets the process' login uid. May not be available.
     pub fn loginuid(&self) -> ProcResult<u32> {
         let mut uid = String::new();
