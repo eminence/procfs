@@ -2149,7 +2149,7 @@ impl Limits {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Limit {
     pub soft_limit: LimitValue,
     pub hard_limit: LimitValue,
@@ -2165,7 +2165,7 @@ impl Limit {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum LimitValue {
     Unlimited,
     Value(rlim_t),
