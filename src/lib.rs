@@ -1061,31 +1061,6 @@ mod tests {
         // thread 'tests::test_failure' panicked at 'called `Result::unwrap()` on an `Err` value: PermissionDenied(Some("/proc/1/maps"))', src/libcore/result.rs:997:5
     }
 
-    /// Test that our error type can be easily used with the `anyhow` crate
-    #[test]
-    fn test_anyhow() {
-        use anyhow::Context;
-        fn inner() -> Result<(), anyhow::Error> {
-            let _load = LoadAverage::new()?;
-            Ok(())
-        }
-        let _ = inner();
-
-        fn inner2() -> Result<(), anyhow::Error> {
-            let proc = Process::new(1).context("Get process")?;
-            let _io = proc.maps().context("Get process maps")?;
-            Ok(())
-        }
-
-        let _ = inner2();
-        // Unwrapping inner2 should produce a message that looks like:
-        // thread 'tests::test_anyhow' panicked at 'called `Result::unwrap()` on an `Err` value:
-        // Get process maps
-        //
-        // Caused by:
-        //     Permission Denied: /proc/1/maps
-    }
-
     #[test]
     fn test_nopanic() {
         fn _inner() -> ProcResult<bool> {
