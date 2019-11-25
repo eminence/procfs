@@ -10,3 +10,4 @@ script:
   - cargo build --verbose --all --all-features
   - env RUST_BACKTRACE=1 cargo test --verbose --all --all-features
   - env RUST_BACKTRACE=1 cargo test --verbose --all --no-default-features
+  - cargo doc --all-features
