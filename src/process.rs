@@ -480,7 +480,7 @@ pub struct Stat {
 /// In the current implementation, things are a bit racy on 32-bit systems: if process A
 /// reads process B's `/proc/<pid>/io` while process  B is updating one of these 64-bit
 /// counters, process A could see an intermediate result.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Io {
     /// Characters read
     ///
