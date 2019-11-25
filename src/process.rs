@@ -2332,15 +2332,15 @@ impl MountInfo {
 pub struct StatM {
     /// Total program size
     ///
-    /// (same as VmSize in /proc/[pid]/status)
+    /// (same as VmSize in /proc/<pid>/status)
     pub size: u64,
     /// Resident set size
     ///
-    /// (same as VmRSS in /proc/[pid]/status)
+    /// (same as VmRSS in /proc/<pid>/status)
     pub resident: u64,
     /// number of resident shared pages (i.e., backed by a file)
     ///
-    /// (same as RssFile+RssShmem in /proc/[pid]/status)
+    /// (same as RssFile+RssShmem in /proc/<pid>/status)
     pub shared: u64,
     /// Text (code)
     pub text: u64,
