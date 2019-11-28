@@ -1812,7 +1812,9 @@ impl Process {
 
         let mut vec = Vec::new();
 
-        for dir in self.root.join("fd").read_dir()? {
+        let path = self.root.join("fd");
+
+        for dir in wrap_io_error!(path, path.read_dir())? {
             let entry = dir?;
             let file_name = entry.file_name();
             let fd = from_str!(u32, expect!(file_name.to_str()), 10);

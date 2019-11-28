@@ -230,6 +230,24 @@ macro_rules! from_str {
     }};
 }
 
+macro_rules! wrap_io_error {
+    ($path:expr, $expr:expr) => {
+        match $expr {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let kind = e.kind();
+                Err(io::Error::new(
+                    kind,
+                    IoErrorWrapper {
+                        path: $path.clone(),
+                        inner: e.into_inner(),
+                    },
+                ))
+            }
+        }
+    };
+}
+
 pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
     let mut f = FileWrapper::open(path)?;
     let mut buf = String::new();
@@ -391,24 +409,6 @@ impl FileWrapper {
             }
         }
     }
-}
-
-macro_rules! wrap_io_error {
-    ($path:expr, $expr:expr) => {
-        match $expr {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                let kind = e.kind();
-                Err(io::Error::new(
-                    kind,
-                    IoErrorWrapper {
-                        path: $path.clone(),
-                        inner: e.into_inner(),
-                    },
-                ))
-            }
-        }
-    };
 }
 
 impl Read for FileWrapper {
