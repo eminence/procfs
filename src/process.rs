@@ -1610,6 +1610,10 @@ impl Status {
 /// demand (and so might fail, if the process no longer exist).
 #[derive(Debug, Clone)]
 pub struct Process {
+    /// The process ID
+    ///
+    /// (same as the `Stat.pid` field).
+    pub pid: i32,
     /// Process status, based on the `/proc/<pid>/stat` file.
     pub stat: Stat,
     /// The user id of the owner of this process
@@ -1629,6 +1633,7 @@ impl Process {
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
+            pid,
             root,
             stat,
             owner: md.st_uid(),
@@ -1645,6 +1650,7 @@ impl Process {
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
+            pid: stat.pid,
             root,
             stat,
             owner: md.st_uid(),
