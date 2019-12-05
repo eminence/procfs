@@ -32,6 +32,22 @@
 //!     }
 //! }
 //! ```
+//!
+//! Here's a simple example of how you could get the total memory used by the current process.
+//! There are several ways to do this.  For a longer example, see the `examples/self_memory.rs`
+//! file in the git repository.  You can run this example with:
+//!
+//! > cargo run --example=self_memory
+//!
+//! ```rust
+//! # use procfs::process::Process;
+//! let me = Process::myself().unwrap();
+//! let page_size = procfs::page_size().unwrap() as u64;
+//!
+//! println!("== Data from /proc/self/stat:");
+//! println!("Total virtual memory used: {} bytes", me.stat.vsize);
+//! println!("Total resident set: {} pages ({} bytes)", me.stat.rss, me.stat.rss as u64 * page_size);
+//! ```
 
 use super::*;
 use crate::from_iter;
@@ -1307,41 +1323,41 @@ pub struct Status {
     /// in each of the PID namespaces of which (pid)[struct.Status.html#structfield.pid] is a member.
     /// The fields are ordered as for NStgid.  (Since Linux 4.1.)
     pub nssid: Option<Vec<i32>>,
-    /// Peak virtual memory size by kB.
+    /// Peak virtual memory size by kibibytes.
     pub vmpeak: Option<u64>,
-    /// Virtual memory size by kB.
+    /// Virtual memory size by kibibytes.
     pub vmsize: Option<u64>,
-    /// Locked memory size by kB (see mlock(3)).
+    /// Locked memory size by kibibytes (see mlock(3)).
     pub vmlck: Option<u64>,
-    /// Pinned memory size by kB (since Linux 3.2).  These are
+    /// Pinned memory size by kibibytes (since Linux 3.2).  These are
     /// pages that can't be moved because something needs to
     /// directly access physical memory.
     pub vmpin: Option<u64>,
-    /// Peak resident set size by kB ("high water mark").
+    /// Peak resident set size by kibibytes ("high water mark").
     pub vmhwm: Option<u64>,
-    /// Resident set size by kB.  Note that the value here is the
+    /// Resident set size by kibibytes.  Note that the value here is the
     /// sum of RssAnon, RssFile, and RssShmem.
     pub vmrss: Option<u64>,
-    /// Size of resident anonymous memory by kB.  (since Linux 4.5).
+    /// Size of resident anonymous memory by kibibytes.  (since Linux 4.5).
     pub rssanon: Option<u64>,
-    /// Size of resident file mappings by kB.  (since Linux 4.5).
+    /// Size of resident file mappings by kibibytes.  (since Linux 4.5).
     pub rssfile: Option<u64>,
-    /// Size of resident shared memory by kB (includes System V
+    /// Size of resident shared memory by kibibytes (includes System V
     /// shared memory, mappings from tmpfs(5), and shared anonymous
     /// mappings).  (since Linux 4.5).
     pub rssshmem: Option<u64>,
-    /// Size of data by kB.
+    /// Size of data by kibibytes.
     pub vmdata: Option<u64>,
-    /// Size of stack by kB.
+    /// Size of stack by kibibytes.
     pub vmstk: Option<u64>,
-    /// Size of text seg‐ments by kB.
+    /// Size of text seg‐ments by kibibytes.
     pub vmexe: Option<u64>,
-    /// Shared library code size by kB.
+    /// Shared library code size by kibibytes.
     pub vmlib: Option<u64>,
-    /// Page table entries size by kB (since Linux 2.6.10).
+    /// Page table entries size by kibibytes (since Linux 2.6.10).
     pub vmpte: Option<u64>,
     /// Swapped-out virtual memory size by anonymous private
-    /// pages by kB; shmem swap usage is not included (since Linux 2.6.34).
+    /// pages by kibibytes; shmem swap usage is not included (since Linux 2.6.34).
     pub vmswap: Option<u64>,
     /// Size of hugetlb memory portions by kB.  (since Linux 4.4).
     pub hugetblpages: Option<u64>,
@@ -2338,11 +2354,11 @@ impl MountInfo {
 /// Provides information about memory usage, measured in pages.
 #[derive(Debug, Clone, Copy)]
 pub struct StatM {
-    /// Total program size
+    /// Total program size, measured in pages
     ///
     /// (same as VmSize in /proc/<pid>/status)
     pub size: u64,
-    /// Resident set size
+    /// Resident set size, measured in pages
     ///
     /// (same as VmRSS in /proc/<pid>/status)
     pub resident: u64,

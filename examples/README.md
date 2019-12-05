@@ -60,3 +60,24 @@ Prints out all processes that share the same tty as the current terminal.  This 
 24206 pty/13       0.11 ps
 ```
 
+## self_memory.rs
+
+Shows several ways to get the current memory usage of the current process
+
+```
+PID: 21867
+Memory page size: 4096
+== Data from /proc/self/stat:
+Total virtual memory used: 3436544 bytes
+Total resident set: 220 pages (901120 bytes)
+
+== Data from /proc/self/statm:
+Total virtual memory used: 839 pages (3436544 bytes)
+Total resident set: 220 pages (901120 byte)s
+Total shared memory: 191 pages (782336 bytes)
+
+== Data from /proc/self/status:
+Total virtual memory used: 3436544 bytes
+Total resident set: 901120 bytes
+Total shared memory: 782336 bytes
+```

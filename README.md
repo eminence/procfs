@@ -18,8 +18,6 @@ Here's a small example that prints out all processes that are running on the sam
 process.  This is very similar to what "ps" does in its default mode:
 
 ```rust
-extern crate procfs;
-
 fn main() {
     let me = procfs::Process::myself().unwrap();
     let tps = procfs::ticks_per_second().unwrap();
@@ -40,6 +38,28 @@ fn main() {
     }
 }
 ```
+
+Here's another example that shows how to get the current memory usage of the current process:
+
+```rust
+use procfs::process::Process;
+
+fn main() {
+    let me = Process::myself().unwrap();
+    println!("PID: {}", me.pid);
+
+    let page_size = procfs::page_size().unwrap() as u64;
+    println!("Memory page size: {}", page_size);
+
+    println!("== Data from /proc/self/stat:");
+    println!("Total virtual memory used: {} bytes", me.stat.vsize);
+    println!("Total resident set: {} pages ({} bytes)", me.stat.rss, me.stat.rss as u64 * page_size);
+}
+```
+
+There are a few ways to get this data, so also checkout the longer
+[self_memory](https://github.com/eminence/procfs/blob/master/examples/self_memory.rs) example for more
+details.
 
 ## Cargo features
 
