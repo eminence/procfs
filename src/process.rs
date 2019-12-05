@@ -1865,11 +1865,10 @@ impl Process {
         for dir in wrap_io_error!(path, path.read_dir())? {
             let entry = dir?;
             let file_name = entry.file_name();
-            let md = entry.metadata()?;
             let fd = from_str!(u32, expect!(file_name.to_str()), 10);
             //  note: the link might have disappeared between the time we got the directory listing
-            //  and now.  So if the read_link fails, that's OK
-            if let Ok(link) = read_link(entry.path()) {
+            //  and now.  So if the read_link or metadata fails, that's OK
+            if let (Ok(link), Ok(md)) = (read_link(entry.path()), entry.metadata()) {
                 let link_os: &OsStr = link.as_ref();
                 vec.push(FDInfo {
                     fd,
