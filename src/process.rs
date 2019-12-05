@@ -32,6 +32,22 @@
 //!     }
 //! }
 //! ```
+//!
+//! Here's a simple example of how you could get the total memory used by the current process.
+//! There are several ways to do this.  For a longer example, see the `examples/self_memory.rs`
+//! file in the git repository.  You can run this example with:
+//!
+//! > cargo run --example=self_memory
+//!
+//! ```rust
+//! # use procfs::process::Process;
+//! let me = Process::myself().unwrap();
+//! let page_size = procfs::page_size().unwrap() as u64;
+//!
+//! println!("== Data from /proc/self/stat:");
+//! println!("Total virtual memory used: {} bytes", me.stat.vsize);
+//! println!("Total resident set: {} pages ({} bytes)", me.stat.rss, me.stat.rss as u64 * page_size);
+//! ```
 
 use super::*;
 use crate::from_iter;
