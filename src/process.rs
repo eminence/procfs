@@ -191,6 +191,15 @@ bitflags! {
     }
 }
 
+bitflags! {
+    /// The mode (read/write permissions) for an open file descriptor
+    pub struct FDPermissions: u32 {
+        const READ = libc::S_IRUSR;
+        const WRITE = libc::S_IWUSR;
+        const EXECUTE = libc::S_IXUSR;
+    }
+}
+
 //impl<'a, 'b, T> ProcFrom<&'b mut T> for u32 where T: Iterator<Item=&'a str> + Sized, 'a: 'b {
 //    fn from(i: &'b mut T) -> u32 {
 //        let s = i.next().unwrap();
@@ -1008,7 +1017,7 @@ impl Io {
 /// Describes a file descriptor opened by a process.
 ///
 /// See also the [Process::fd()] method.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FDTarget {
     /// A file or device
     Path(PathBuf),
@@ -1063,10 +1072,33 @@ impl FromStr for FDTarget {
 }
 
 /// See the [Process::fd()] method
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct FDInfo {
+    /// The file descriptor
     pub fd: u32,
+    /// The permission bits for this FD
+    ///
+    /// **Note**: this field is only the owner read/write/execute bits.  All the other bits
+    /// (include filetype bits) are masked out.  See also the `mode()` method.
+    pub mode: u32,
     pub target: FDTarget,
+}
+
+impl FDInfo {
+    /// Gets the read/write mode of this file descriptor as a bitfield
+    pub fn mode(&self) -> FDPermissions {
+        FDPermissions::from_bits_truncate(self.mode)
+    }
+}
+
+impl std::fmt::Debug for FDInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "FDInfo {{ fd: {:?}, mode: 0{:o}, target: {:?} }}",
+            self.fd, self.mode, self.target
+        )
+    }
 }
 
 macro_rules! since_kernel {
@@ -1833,6 +1865,7 @@ impl Process {
         for dir in wrap_io_error!(path, path.read_dir())? {
             let entry = dir?;
             let file_name = entry.file_name();
+            let md = entry.metadata()?;
             let fd = from_str!(u32, expect!(file_name.to_str()), 10);
             //  note: the link might have disappeared between the time we got the directory listing
             //  and now.  So if the read_link fails, that's OK
@@ -1840,6 +1873,7 @@ impl Process {
                 let link_os: &OsStr = link.as_ref();
                 vec.push(FDInfo {
                     fd,
+                    mode: md.st_mode() & libc::S_IRWXU,
                     target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
                 });
             }
@@ -2619,7 +2653,7 @@ mod tests {
     fn test_proc_fd() {
         let myself = Process::myself().unwrap();
         for fd in myself.fd().unwrap() {
-            println!("{:?}", fd);
+            println!("{:?} {:?}", fd, fd.mode());
         }
     }
 
