@@ -1,9 +1,12 @@
 //! Functions and structs related to process information
 //!
-//! The primary source of data for functions in this module is the files in a /proc/<pid>/
-//! directory.  If you have a process id, you can use
+//! The primary source of data for functions in this module is the files in a `/proc/<pid>/`
+//! directory.  If you have a process ID, you can use
 //! [`Process::new(pid)`](struct.Process.html#method.new), otherwise you can get a
 //! list of all running processes using [`all_processes()`](fn.all_processes.html).
+//!
+//! In case you have procfs filesystem mounted to a location other than `/proc`,
+//! use [`Process::new_with_root()`](struct.Process.html#method.new_with_root).
 //!
 //! # Examples
 //!
@@ -1670,18 +1673,23 @@ pub struct Process {
 }
 
 impl Process {
-    /// Tries to create a `Process` based on a PID.
+    /// Returns a `Process` based on a specified PID.
     ///
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
     pub fn new(pid: pid_t) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
+        Self::new_with_root(root)
+    }
+
+    /// Returns a `Process` based on a specified `/proc/<pid>` path.
+    pub fn new_with_root(root: PathBuf) -> ProcResult<Process> {
         let path = root.join("stat");
         let stat = Stat::from_reader(FileWrapper::open(&path)?)?;
 
         let md = std::fs::metadata(&root)?;
 
         Ok(Process {
-            pid,
+            pid: stat.pid,
             root,
             stat,
             owner: md.st_uid(),
@@ -1693,16 +1701,7 @@ impl Process {
     /// This is done by using the `/proc/self` symlink
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
-        let path = root.join("stat");
-        let stat = Stat::from_reader(FileWrapper::open(&path)?)?;
-        let md = std::fs::metadata(&root)?;
-
-        Ok(Process {
-            pid: stat.pid,
-            root,
-            stat,
-            owner: md.st_uid(),
-        })
+        Self::new_with_root(root)
     }
 
     /// Returns the complete command line for the process, unless the process is a zombie.
