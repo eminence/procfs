@@ -176,7 +176,8 @@ fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
     }
 }
 
-fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>> {
+/// Reads TCP socket table from the provided `reader`.
+pub fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>> {
     let mut vec = Vec::new();
 
     // first line is a header we need to skip
@@ -209,7 +210,8 @@ fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEntry>>
     Ok(vec)
 }
 
-fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>> {
+/// Reads UDP socket table from the provided `reader`.
+pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEntry>> {
     let mut vec = Vec::new();
 
     // first line is a header we need to skip
