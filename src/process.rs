@@ -1769,6 +1769,22 @@ impl Process {
         Ok(std::fs::read_link(self.root.join("cwd"))?)
     }
 
+    /// Retrieves current root directory of the process by dereferencing `/proc/<pid>/root` symbolic link.
+    ///
+    /// This method has the following caveats:
+    ///
+    /// * if the pathname has been unlinked, the symbolic link will contain the string " (deleted)"
+    ///   appended to the original pathname
+    ///
+    /// * in a multithreaded process, the contents of this symbolic link are not available if the
+    ///   main thread has already terminated (typically by calling `pthread_exit(3)`)
+    ///
+    /// * permission to dereference or read this symbolic link is governed by a
+    ///   `ptrace(2)` access mode `PTRACE_MODE_READ_FSCREDS` check
+    pub fn root(&self) -> ProcResult<PathBuf> {
+        Ok(std::fs::read_link(self.root.join("root"))?)
+    }
+
     /// Gets the current environment for the process.  This is done by reading the
     /// `/proc/pid/environ` file.
     pub fn environ(&self) -> ProcResult<HashMap<OsString, OsString>> {
