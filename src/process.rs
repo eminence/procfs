@@ -1753,16 +1753,36 @@ impl Process {
         }
     }
 
-    /// The the current working directory of the process.  This done by dereferencing the
-    /// `/proc/pid/cwd` symbolic link.
+    /// Retrieves current working directory of the process by dereferencing `/proc/<pid>/cwd` symbolic link.
     ///
-    /// In a multithreaded process, the contents of this symbolic link are not available if the
-    /// main thread has already terminated (typically by calling pthread_exit(3)).
+    /// This method has the following caveats:
     ///
-    /// Permission  to  dereference or read (readlink(2)) this symbolic link is governed by a
-    /// ptrace access mode PTRACE_MODE_READ_FSCREDS check;
+    /// * if the pathname has been unlinked, the symbolic link will contain the string " (deleted)"
+    ///   appended to the original pathname
+    ///
+    /// * in a multithreaded process, the contents of this symbolic link are not available if the
+    ///   main thread has already terminated (typically by calling `pthread_exit(3)`)
+    ///
+    /// * permission to dereference or read this symbolic link is governed by a
+    ///   `ptrace(2)` access mode `PTRACE_MODE_READ_FSCREDS` check
     pub fn cwd(&self) -> ProcResult<PathBuf> {
         Ok(std::fs::read_link(self.root.join("cwd"))?)
+    }
+
+    /// Retrieves current root directory of the process by dereferencing `/proc/<pid>/root` symbolic link.
+    ///
+    /// This method has the following caveats:
+    ///
+    /// * if the pathname has been unlinked, the symbolic link will contain the string " (deleted)"
+    ///   appended to the original pathname
+    ///
+    /// * in a multithreaded process, the contents of this symbolic link are not available if the
+    ///   main thread has already terminated (typically by calling `pthread_exit(3)`)
+    ///
+    /// * permission to dereference or read this symbolic link is governed by a
+    ///   `ptrace(2)` access mode `PTRACE_MODE_READ_FSCREDS` check
+    pub fn root(&self) -> ProcResult<PathBuf> {
+        Ok(std::fs::read_link(self.root.join("root"))?)
     }
 
     /// Gets the current environment for the process.  This is done by reading the
@@ -1792,14 +1812,18 @@ impl Process {
         Ok(map)
     }
 
-    /// The actual path of the executed command, taken by resolving the `/proc/pid/exe` symbolic
-    /// link.
+    /// Retrieves the actual path of the executed command by dereferencing `/proc/<pid>/exe` symbolic link.
     ///
-    /// Under Linux 2.2 and later, this symbolic link contains the actual pathname of
-    /// the executed command.  If the pathname has been unlinked, the symbolic link will  contain
-    /// the  string  '(deleted)' appended  to the original pathname.  In a multithreaded process,
-    /// the contents of this symbolic link are not available if the main thread has already
-    /// terminated (typically by calling pthread_exit(3)).
+    /// This method has the following caveats:
+    ///
+    /// * if the pathname has been unlinked, the symbolic link will contain the string " (deleted)"
+    ///   appended to the original pathname
+    ///
+    /// * in a multithreaded process, the contents of this symbolic link are not available if the
+    ///   main thread has already terminated (typically by calling `pthread_exit(3)`)
+    ///
+    /// * permission to dereference or read this symbolic link is governed by a
+    ///   `ptrace(2)` access mode `PTRACE_MODE_READ_FSCREDS` check
     pub fn exe(&self) -> ProcResult<PathBuf> {
         Ok(std::fs::read_link(self.root.join("exe"))?)
     }
