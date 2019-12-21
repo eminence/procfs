@@ -389,7 +389,7 @@ pub struct Stat {
         not(feature = "chrono"),
         doc = "If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the starttime as a `DateTime` object"
     )]
-    pub starttime: i64,
+    pub starttime: u64,
     /// Virtual memory size in bytes.
     pub vsize: u64,
     /// Resident Set Size: number of pages the process has in real memory.
@@ -459,12 +459,12 @@ pub struct Stat {
     /// measured in clock ticks (divide by [`ticks_per_second()`])
     ///
     /// (since Linux 2.6.24)
-    pub guest_time: Option<u32>,
+    pub guest_time: Option<u64>,
     /// Guest time of the process's children, measured in clock ticks (divide by
     /// [`ticks_per_second()`]).
     ///
     /// (since Linux 2.6.24)
-    pub cguest_time: Option<u32>,
+    pub cguest_time: Option<i64>,
     /// Address above which program initialized and uninitialized (BSS) data are placed.
     ///
     /// (since Linux 3.3)
