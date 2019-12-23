@@ -124,6 +124,7 @@ pub struct TcpNetEntry {
 pub struct UdpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
+    pub state: TcpState,
     pub rx_queue: u32,
     pub tx_queue: u32,
     pub inode: u32,
@@ -238,7 +239,7 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
         s.next();
         let local_address = expect!(s.next(), "udp::local_address");
         let rem_address = expect!(s.next(), "udp::rem_address");
-        s.next(); // skip state
+        let state = expect!(s.next(), "udp::st");
         let mut tx_rx_queue = expect!(s.next(), "udp::tx_queue:rx_queue").splitn(2, ':');
         let tx_queue: u32 = from_str!(u32, expect!(tx_rx_queue.next(), "udp::tx_queue"), 16);
         let rx_queue: u32 = from_str!(u32, expect!(tx_rx_queue.next(), "udp::rx_queue"), 16);
@@ -253,6 +254,7 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
             remote_address: parse_addressport_str(rem_address)?,
             rx_queue,
             tx_queue,
+            state: expect!(TcpState::from_u8(from_str!(u8, state, 16))),
             inode: from_str!(u32, inode),
         });
     }
