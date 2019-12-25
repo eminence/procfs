@@ -89,6 +89,23 @@ impl TcpState {
             _ => None,
         }
     }
+
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            TcpState::Established => 0x01,
+            TcpState::SynSent => 0x02,
+            TcpState::SynRecv => 0x03,
+            TcpState::FinWait1 => 0x04,
+            TcpState::FinWait2 => 0x05,
+            TcpState::TimeWait => 0x06,
+            TcpState::Close => 0x07,
+            TcpState::CloseWait => 0x08,
+            TcpState::LastAck => 0x09,
+            TcpState::Listen => 0x0A,
+            TcpState::Closing => 0x0B,
+            TcpState::NewSynRecv => 0x0C,
+        }
+    }
 }
 
 /// An entry in the TCP socket table
