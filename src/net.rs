@@ -108,6 +108,29 @@ impl TcpState {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum UdpState {
+    Established = 1,
+    Close = 7,
+}
+
+impl UdpState {
+    pub fn from_u8(num: u8) -> Option<UdpState> {
+        match num {
+            0x01 => Some(UdpState::Established),
+            0x07 => Some(UdpState::Close),
+            _ => None,
+        }
+    }
+
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            UdpState::Established => 0x01,
+            UdpState::Close => 0x07,
+        }
+    }
+}
+
 /// An entry in the TCP socket table
 #[derive(Debug)]
 pub struct TcpNetEntry {
@@ -124,7 +147,7 @@ pub struct TcpNetEntry {
 pub struct UdpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
-    pub state: TcpState,
+    pub state: UdpState,
     pub rx_queue: u32,
     pub tx_queue: u32,
     pub inode: u32,
@@ -254,7 +277,7 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
             remote_address: parse_addressport_str(rem_address)?,
             rx_queue,
             tx_queue,
-            state: expect!(TcpState::from_u8(from_str!(u8, state, 16))),
+            state: expect!(UdpState::from_u8(from_str!(u8, state, 16))),
             inode: from_str!(u32, inode),
         });
     }
