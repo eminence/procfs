@@ -131,6 +131,35 @@ impl UdpState {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum UnixState {
+    UNCONNECTED = 1,
+    CONNECTING = 2,
+    CONNECTED = 3,
+    DISCONNECTING = 4,
+}
+
+impl UnixState {
+    pub fn from_u8(num: u8) -> Option<UnixState> {
+        match num {
+            0x01 => Some(UnixState::UNCONNECTED),
+            0x02 => Some(UnixState::CONNECTING),
+            0x03 => Some(UnixState::CONNECTED),
+            0x04 => Some(UnixState::DISCONNECTING),
+            _ => None,
+        }
+    }
+
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            UnixState::UNCONNECTED => 0x01,
+            UnixState::CONNECTING => 0x02,
+            UnixState::CONNECTED => 0x03,
+            UnixState::DISCONNECTING => 0x04,
+        }
+    }
+}
+
 /// An entry in the TCP socket table
 #[derive(Debug)]
 pub struct TcpNetEntry {
@@ -163,6 +192,8 @@ pub struct UnixNetEntry {
     /// Possible values are `SOCK_STREAM`, `SOCK_DGRAM`, or `SOCK_SEQPACKET`.  These constants can
     /// be found in the libc crate.
     pub socket_type: u16,
+    /// The state of the socket
+    pub state: UnixState,
     /// The inode number of the socket
     pub inode: u32,
     /// The bound pathname (if any) of the socket.
@@ -329,7 +360,7 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
         s.next(); // skip protocol, always zero
         s.next(); // skip internal kernel flags
         let socket_type = from_str!(u16, expect!(s.next()), 16);
-        s.next(); // skip state
+        let state = from_str!(u8, expect!(s.next()), 16);
         let inode = from_str!(u32, expect!(s.next()));
         let path = s.next().map(|s| PathBuf::from(s));
 
@@ -337,6 +368,7 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
             ref_count,
             socket_type,
             inode,
+            state: expect!(UnixState::from_u8(state)),
             path,
         });
     }
