@@ -641,8 +641,20 @@ pub fn boot_time() -> ProcResult<DateTime<Local>> {
     doc = "See also [boot_time()] to get the boot time as a `DateTime`"
 )]
 pub fn boot_time_secs() -> ProcResult<u64> {
-    let stat = KernelStats::new()?;
-    Ok(stat.btime)
+    BOOT_TIME.with(|x| {
+        let mut btime = x.borrow_mut();
+        if let Some(btime) = *btime {
+            Ok(btime)
+        } else {
+            let stat = KernelStats::new()?;
+            *btime = Some(stat.btime);
+            Ok(stat.btime)
+        }
+    })
+}
+
+thread_local! {
+    static BOOT_TIME : std::cell::RefCell<Option<u64>> = std::cell::RefCell::new(None);
 }
 
 /// Memory page size, in bytes.
