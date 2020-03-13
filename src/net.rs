@@ -49,7 +49,7 @@ use crate::ProcResult;
 use std::collections::HashMap;
 
 use crate::FileWrapper;
-use byteorder::{ByteOrder, NetworkEndian};
+use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 use hex;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -226,17 +226,21 @@ fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
         Ok(SocketAddr::V4(SocketAddrV4::new(ip, port)))
     } else if ip_part.len() == 32 {
         let bytes = expect!(hex::decode(&ip_part));
-        let ip_u128 = NetworkEndian::read_u128(&bytes);
+
+        let ip_a = NativeEndian::read_u32(&bytes[0..]);
+        let ip_b = NativeEndian::read_u32(&bytes[4..]);
+        let ip_c = NativeEndian::read_u32(&bytes[8..]);
+        let ip_d = NativeEndian::read_u32(&bytes[12..]);
 
         let ip = Ipv6Addr::new(
-            (ip_u128 & 0xffff) as u16,
-            ((ip_u128 & 0xffff << 16) >> 16) as u16,
-            ((ip_u128 & 0xffff << 32) >> 32) as u16,
-            ((ip_u128 & 0xffff << 48) >> 48) as u16,
-            ((ip_u128 & 0xffff << 64) >> 64) as u16,
-            ((ip_u128 & 0xffff << 80) >> 80) as u16,
-            ((ip_u128 & 0xffff << 96) >> 96) as u16,
-            ((ip_u128 & 0xffff << 112) >> 112) as u16,
+            ((ip_a >> 16) & 0xffff) as u16,
+            ((ip_a >> 0) & 0xffff) as u16,
+            ((ip_b >> 16) & 0xffff) as u16,
+            ((ip_b >> 0) & 0xffff) as u16,
+            ((ip_c >> 16) & 0xffff) as u16,
+            ((ip_c >> 0) & 0xffff) as u16,
+            ((ip_d >> 16) & 0xffff) as u16,
+            ((ip_d >> 0) & 0xffff) as u16,
         );
 
         Ok(SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
@@ -490,21 +494,32 @@ mod tests {
             _ => panic!("Not IPv4"),
         }
 
-        let addr = parse_addressport_str("5014002A18080140000000000E200000:0050").unwrap();
+        // When you connect to [2a00:1450:4001:814::200e]:80 (ipv6.google.com) the entry with
+        // 5014002A14080140000000000E200000:0050 remote endpoint is created in /proc/net/tcp6
+        // on Linux 4.19.
+        let addr = parse_addressport_str("5014002A14080140000000000E200000:0050").unwrap();
         assert_eq!(addr.port(), 80);
         match addr.ip() {
-            IpAddr::V6(addr) => {
-                assert_eq!(addr, Ipv6Addr::from_str("0:e20::140:1808:2a:5014").unwrap())
-            }
+            IpAddr::V6(addr) => assert_eq!(
+                addr,
+                Ipv6Addr::from_str("2a00:1450:4001:814::200e").unwrap()
+            ),
+            _ => panic!("Not IPv6"),
+        }
+
+        // IPv6 test case from https://stackoverflow.com/questions/41940483/parse-ipv6-addresses-from-proc-net-tcp6-python-2-7/41948004#41948004
+        let addr = parse_addressport_str("B80D01200000000067452301EFCDAB89:0").unwrap();
+        assert_eq!(addr.port(), 0);
+        match addr.ip() {
+            IpAddr::V6(addr) => assert_eq!(
+                addr,
+                Ipv6Addr::from_str("2001:db8::123:4567:89ab:cdef").unwrap()
+            ),
             _ => panic!("Not IPv6"),
         }
 
         let addr = parse_addressport_str("1234:1234");
         assert!(addr.is_err());
-
-        // tcp6       0      0 2a01:4f8:110:31e8:33141 2a00:1450:4001:818:::80 TIME_WAIT
-        //   11: F804012AE83110010000000002000000:8175 5014002A18080140000000000E200000:0050 06 00000000:00000000 03:00001237 00000000     0        0 0 3 ffff88070a777340
-        //   0:e20::140:1808:2a:5014
     }
 
     #[test]
