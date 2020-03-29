@@ -941,6 +941,68 @@ pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
     Ok(map)
 }
 
+#[derive(Debug)]
+pub struct KernelModule {
+    /// The name of the module
+    pub name: String,
+
+    /// The size of the module
+    pub size: u32,
+
+    /// The number of references in the kernel to this module.  This can be -1 if the module is unloading
+    pub refcount: i32,
+
+    /// A list of modules that depend on this module.
+    pub used_by: Vec<String>,
+
+    /// The module state
+    ///
+    /// This will probably always be "Live", but it could also be either "Unloading" or "Loading"
+    pub state: String,
+}
+
+/// Get a list of loaded kernel modules
+///
+/// This corresponds to the data in `/proc/modules`.
+pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
+    use std::io::{BufRead, BufReader};
+    // kernel reference: kernel/module.c m_show()
+
+    let mut map = HashMap::new();
+    let file = FileWrapper::open("/proc/modules")?;
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        let line: String = line?;
+        let mut s = line.split_whitespace();
+        let name = expect!(s.next());
+        let size = from_str!(u32, expect!(s.next()));
+        let refcount = from_str!(i32, expect!(s.next()));
+        let used_by: &str = expect!(s.next());
+        let state = expect!(s.next());
+
+        map.insert(
+            name.to_string(),
+            KernelModule {
+                name: name.to_string(),
+                size,
+                refcount,
+                used_by: if used_by == "-" {
+                    Vec::new()
+                } else {
+                    used_by
+                        .split(',')
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string())
+                        .collect()
+                },
+                state: state.to_string(),
+            },
+        );
+    }
+
+    Ok(map)
+}
+
 #[cfg(test)]
 mod tests {
     extern crate failure;
@@ -1158,5 +1220,13 @@ mod tests {
     fn test_vmstat() {
         let stat = vmstat().unwrap();
         println!("{:?}", stat);
+    }
+
+    #[test]
+    fn test_modules() {
+        let mods = modules().unwrap();
+        for module in mods.values() {
+            println!("{:?}", module);
+        }
     }
 }

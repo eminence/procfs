@@ -81,3 +81,7 @@ Total virtual memory used: 3436544 bytes
 Total resident set: 901120 bytes
 Total shared memory: 782336 bytes
 ```
+
+## lsmod.rs
+
+This lists all the loaded kernel modules, in a simple tree format.
