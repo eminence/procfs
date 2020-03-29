@@ -584,8 +584,6 @@ pub struct MountStat {
 
 impl MountStat {
     pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Vec<MountStat>> {
-        use std::io::{BufRead, BufReader};
-
         let mut v = Vec::new();
         let bufread = BufReader::new(r);
         let mut lines = bufread.lines();
@@ -982,7 +980,6 @@ pub struct MemoryMap {
 
 impl Io {
     pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Io> {
-        use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
 
@@ -1465,7 +1462,6 @@ pub struct Status {
 
 impl Status {
     pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Status> {
-        use std::io::{BufRead, BufReader};
         let mut map = HashMap::new();
         let reader = BufReader::new(r);
 
@@ -1859,8 +1855,6 @@ impl Process {
             })
         }
 
-        use std::io::{BufRead, BufReader};
-
         let path = self.root.join("maps");
         let file = FileWrapper::open(&path)?;
 
@@ -2019,8 +2013,6 @@ impl Process {
     ///
     /// (Since Linux 2.6.26)
     pub fn mountinfo(&self) -> ProcResult<Vec<MountInfo>> {
-        use std::io::{BufRead, BufReader};
-
         let path = self.root.join("mountinfo");
         let file = FileWrapper::open(&path)?;
         let bufread = BufReader::new(file);
@@ -2176,8 +2168,6 @@ pub struct Limits {
 
 impl Limits {
     fn from_reader<R: Read>(r: R) -> ProcResult<Limits> {
-        use std::io::{BufRead, BufReader};
-
         let bufread = BufReader::new(r);
         let mut lines = bufread.lines();
 

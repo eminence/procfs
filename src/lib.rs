@@ -77,7 +77,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, BufRead, BufReader};
 use std::mem;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
@@ -684,7 +684,6 @@ pub enum ConfigSetting {
 /// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     use libflate::gzip::Decoder;
-    use std::io::{BufRead, BufReader};
 
     let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
         let file = FileWrapper::open(PROC_CONFIG_GZ)?;
@@ -870,8 +869,6 @@ impl KernelStats {
     }
 
     fn from_reader<R: io::Read>(r: R) -> ProcResult<KernelStats> {
-        use std::io::{BufRead, BufReader};
-
         let bufread = BufReader::new(r);
         let lines = bufread.lines();
 
@@ -925,8 +922,6 @@ impl KernelStats {
 ///
 /// (since Linux 2.6.0)
 pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
-    use std::io::{BufRead, BufReader};
-
     let file = FileWrapper::open("/proc/vmstat")?;
     let reader = BufReader::new(file);
     let mut map = HashMap::new();
@@ -965,7 +960,6 @@ pub struct KernelModule {
 ///
 /// This corresponds to the data in `/proc/modules`.
 pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
-    use std::io::{BufRead, BufReader};
     // kernel reference: kernel/module.c m_show()
 
     let mut map = HashMap::new();
