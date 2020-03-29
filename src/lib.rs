@@ -77,7 +77,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
 use std::fs::File;
-use std::io::{self, Read, Write, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::mem;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};

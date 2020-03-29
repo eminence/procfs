@@ -173,7 +173,7 @@ mod test {
     use std::path::Path;
 
     fn valid_percentage(value: f32) -> bool {
-        (value >= 0.00 && value < 100.0)
+        value >= 0.00 && value < 100.0
     }
 
     #[test]
