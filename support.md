@@ -68,7 +68,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/crypto`
 * [ ] `/proc/cpuinfo`
 * [ ] `/proc/devices`
-* [ ] `/proc/diskstats`
+* [x] `/proc/diskstats`
 * [ ] `/proc/dma`
 * [ ] `/proc/driver`
 * [ ] `/proc/execdomains`
