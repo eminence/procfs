@@ -85,3 +85,17 @@ Total shared memory: 782336 bytes
 ## lsmod.rs
 
 This lists all the loaded kernel modules, in a simple tree format.
+
+## diskinfo.rs
+
+Lists IO information for local disks:
+
+```
+sda1 mounted on /:
+  total reads: 7325390 (13640070 ms)
+  total writes: 124191552 (119109541 ms)
+  total flushes: 0 (0 ms)
+```
+
+Note: only local disks will be shown (not NFS mounts,
+and disks used for ZFS will not be shown either).
