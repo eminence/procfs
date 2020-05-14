@@ -90,7 +90,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/kpageflags`
 * [ ] `/proc/ksyms`
 * [x] `/proc/loadavg`
-* [ ] `/proc/locks`
+* [x] `/proc/locks`
 * [ ] `/proc/malloc`
 * [x] `/proc/meminfo`
 * [x] `/proc/modules`
