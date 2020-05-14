@@ -13,5 +13,7 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Run more tests
+      run: cargo test -p --manifest-path procfs-tests/Cargo.toml -p procfs-tests
     - name: Build docs
       run: cargo doc --all-features

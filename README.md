@@ -70,7 +70,8 @@ The following cargo features are available:
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of 1.33.0 (2019-02-28)
+This crate requires a minimum rust version of 1.33.0 (2019-02-28), though if you use the optional `backtrace` feature,
+rust 1.38.0 is required (2019-09-23).
 
 ## License
 

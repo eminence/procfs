@@ -25,5 +25,4 @@ libflate = "1"
 backtrace = { version = "0.3", optional = true }
 
 [dev-dependencies]
-failure = "0.1.5"
 procinfo = "0.4.2"
