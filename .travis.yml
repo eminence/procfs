@@ -2,7 +2,7 @@ language: rust
 sudo: required
 dist: xenial
 rust:
-  - 1.33.0
+  - 1.38.0
   - stable
   - beta
   - nightly
@@ -10,4 +10,14 @@ script:
   - cargo build --verbose --all --all-features
   - env RUST_BACKTRACE=1 cargo test --verbose --all --all-features
   - env RUST_BACKTRACE=1 cargo test --verbose --all --no-default-features
+  - env RUST_BACKTRACE=1 cargo test -p --manifest-path procfs-tests/Cargo.toml -p procfs-tests
   - cargo doc --all-features
+
+jobs:
+  include:
+    rust: 1.33.0
+    script: 
+        - cargo build --verbose --all
+        - env RUST_BACKTRACE=1 cargo test --verbose --all
+        - cargo doc
+
