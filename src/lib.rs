@@ -311,6 +311,9 @@ pub use crate::pressure::*;
 mod diskstats;
 pub use diskstats::*;
 
+mod locks;
+pub use locks::*;
+
 lazy_static! {
     /// The number of clock ticks per second.
     ///

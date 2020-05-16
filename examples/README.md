@@ -99,3 +99,7 @@ sda1 mounted on /:
 
 Note: only local disks will be shown (not NFS mounts,
 and disks used for ZFS will not be shown either).
+
+## lslocks.rs
+
+Shows current file locks in a format that is similiar to the `lslocks` utility.
