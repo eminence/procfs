@@ -1005,7 +1005,6 @@ pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
 
 #[cfg(test)]
 mod tests {
-    use super::process::Process;
     use super::*;
 
     #[test]

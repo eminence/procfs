@@ -50,7 +50,6 @@ use std::collections::HashMap;
 
 use crate::FileWrapper;
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
-use hex;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::path::PathBuf;
@@ -366,7 +365,7 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
         let socket_type = from_str!(u16, expect!(s.next()), 16);
         let state = from_str!(u8, expect!(s.next()), 16);
         let inode = from_str!(u32, expect!(s.next()));
-        let path = s.next().map(|s| PathBuf::from(s));
+        let path = s.next().map(PathBuf::from);
 
         vec.push(UnixNetEntry {
             ref_count,

@@ -227,8 +227,6 @@ fn test_proc_auxv() {
     println!("{:?}", auxv);
 }
 
-
-
 #[test]
 fn test_proc_wchan() {
     let myself = Process::myself().unwrap();
@@ -246,8 +244,6 @@ fn test_proc_loginuid() {
     let loginuid = myself.loginuid().unwrap();
     println!("{:?}", loginuid);
 }
-
-
 
 #[test]
 fn test_nopanic() {
@@ -284,8 +280,6 @@ fn test_procinfo() {
     assert_eq!(me_stat.pid, procinfo_stat.pid);
     assert_eq!(me_stat.ppid, procinfo_stat.ppid);
 }
-
-
 
 #[test]
 fn test_statm() {

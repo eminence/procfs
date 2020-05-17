@@ -362,44 +362,43 @@ impl Status {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::process::*;
 
     #[test]
-fn test_proc_status() {
-    let myself = Process::myself().unwrap();
-    let status = myself.status().unwrap();
-    println!("{:?}", status);
+    fn test_proc_status() {
+        let myself = Process::myself().unwrap();
+        let status = myself.status().unwrap();
+        println!("{:?}", status);
 
-    assert_eq!(status.name, myself.stat.comm);
-    assert_eq!(status.pid, myself.stat.pid);
-    assert_eq!(status.ppid, myself.stat.ppid);
-}
+        assert_eq!(status.name, myself.stat.comm);
+        assert_eq!(status.pid, myself.stat.pid);
+        assert_eq!(status.ppid, myself.stat.ppid);
+    }
 
-#[test]
-fn test_proc_status_for_kthreadd() {
-    let kthreadd = process::Process::new(2).unwrap();
-    let status = kthreadd.status().unwrap();
-    println!("{:?}", status);
+    #[test]
+    fn test_proc_status_for_kthreadd() {
+        let kthreadd = process::Process::new(2).unwrap();
+        let status = kthreadd.status().unwrap();
+        println!("{:?}", status);
 
-    assert_eq!(status.pid, 2);
-    assert_eq!(status.vmpeak, None);
-    assert_eq!(status.vmsize, None);
-    assert_eq!(status.vmlck, None);
-    assert_eq!(status.vmpin, None);
-    assert_eq!(status.vmhwm, None);
-    assert_eq!(status.vmrss, None);
-    assert_eq!(status.rssanon, None);
-    assert_eq!(status.rssfile, None);
-    assert_eq!(status.rssshmem, None);
-    assert_eq!(status.vmdata, None);
-    assert_eq!(status.vmstk, None);
-    assert_eq!(status.vmexe, None);
-    assert_eq!(status.vmlib, None);
-    assert_eq!(status.vmpte, None);
-    assert_eq!(status.vmswap, None);
-    assert_eq!(status.hugetblpages, None);
-}
+        assert_eq!(status.pid, 2);
+        assert_eq!(status.vmpeak, None);
+        assert_eq!(status.vmsize, None);
+        assert_eq!(status.vmlck, None);
+        assert_eq!(status.vmpin, None);
+        assert_eq!(status.vmhwm, None);
+        assert_eq!(status.vmrss, None);
+        assert_eq!(status.rssanon, None);
+        assert_eq!(status.rssfile, None);
+        assert_eq!(status.rssshmem, None);
+        assert_eq!(status.vmdata, None);
+        assert_eq!(status.vmstk, None);
+        assert_eq!(status.vmexe, None);
+        assert_eq!(status.vmlib, None);
+        assert_eq!(status.vmpte, None);
+        assert_eq!(status.vmswap, None);
+        assert_eq!(status.hugetblpages, None);
+    }
 }

@@ -545,60 +545,58 @@ impl NFSOperationStat {
 
 pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
 
-
-
 #[cfg(test)]
 mod tests {
     use crate::process::*;
     use std::time::Duration;
 
     #[test]
-fn test_mountinfo() {
-    let s = "25 0 8:1 / / rw,relatime shared:1 - ext4 /dev/sda1 rw,errors=remount-ro";
+    fn test_mountinfo() {
+        let s = "25 0 8:1 / / rw,relatime shared:1 - ext4 /dev/sda1 rw,errors=remount-ro";
 
-    let stat = MountInfo::from_line(s).unwrap();
-    println!("{:?}", stat);
-}
+        let stat = MountInfo::from_line(s).unwrap();
+        println!("{:?}", stat);
+    }
 
-#[test]
-fn test_mountinfo_live() {
-    let me = Process::myself().unwrap();
-    let mounts = me.mountinfo().unwrap();
-    println!("{:#?}", mounts);
-}
+    #[test]
+    fn test_mountinfo_live() {
+        let me = Process::myself().unwrap();
+        let mounts = me.mountinfo().unwrap();
+        println!("{:#?}", mounts);
+    }
 
-#[test]
-fn test_proc_mountstats() {
-    let simple = MountStat::from_reader(
-        "device /dev/md127 mounted on /boot with fstype ext2 
+    #[test]
+    fn test_proc_mountstats() {
+        let simple = MountStat::from_reader(
+            "device /dev/md127 mounted on /boot with fstype ext2 
 device /dev/md124 mounted on /home with fstype ext4 
 device tmpfs mounted on /run/user/0 with fstype tmpfs 
 "
-        .as_bytes(),
-    )
-    .unwrap();
-    let simple_parsed = vec![
-        MountStat {
-            device: Some("/dev/md127".to_string()),
-            mount_point: PathBuf::from("/boot"),
-            fs: "ext2".to_string(),
-            statistics: None,
-        },
-        MountStat {
-            device: Some("/dev/md124".to_string()),
-            mount_point: PathBuf::from("/home"),
-            fs: "ext4".to_string(),
-            statistics: None,
-        },
-        MountStat {
-            device: Some("tmpfs".to_string()),
-            mount_point: PathBuf::from("/run/user/0"),
-            fs: "tmpfs".to_string(),
-            statistics: None,
-        },
-    ];
-    assert_eq!(simple, simple_parsed);
-    let mountstats = MountStat::from_reader("device elwe:/space mounted on /srv/elwe/space with fstype nfs4 statvers=1.1 
+            .as_bytes(),
+        )
+        .unwrap();
+        let simple_parsed = vec![
+            MountStat {
+                device: Some("/dev/md127".to_string()),
+                mount_point: PathBuf::from("/boot"),
+                fs: "ext2".to_string(),
+                statistics: None,
+            },
+            MountStat {
+                device: Some("/dev/md124".to_string()),
+                mount_point: PathBuf::from("/home"),
+                fs: "ext4".to_string(),
+                statistics: None,
+            },
+            MountStat {
+                device: Some("tmpfs".to_string()),
+                mount_point: PathBuf::from("/run/user/0"),
+                fs: "tmpfs".to_string(),
+                statistics: None,
+            },
+        ];
+        assert_eq!(simple, simple_parsed);
+        let mountstats = MountStat::from_reader("device elwe:/space mounted on /srv/elwe/space with fstype nfs4 statvers=1.1 
        opts:   rw,vers=4.1,rsize=131072,wsize=131072,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=krb5,clientaddr=10.0.1.77,local_lock=none 
        age:    3542 
        impl_id:        name='',domain='',date='0,0' 
@@ -616,38 +614,37 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
              COMMIT: 0 0 0 0 0 0 0 0 
                OPEN: 1 1 0 320 420 0 124 124 
         ".as_bytes()).unwrap();
-    let nfs_v4 = &mountstats[0];
-    match &nfs_v4.statistics {
-        Some(stats) => {
-            assert_eq!(
-                "1.1".to_string(),
-                stats.version,
-                "mountstats version wrongly parsed."
-            );
-            assert_eq!(Duration::from_secs(3542), stats.age);
-            assert_eq!(1, stats.bytes.normal_read);
-            assert_eq!(114, stats.events.inode_revalidate);
-            assert!(stats.server_caps().unwrap().is_some());
-        }
-        None => {
-            panic!("Failed to retrieve nfs statistics");
-        }
-    }
-}
-#[test]
-fn test_proc_mountstats_live() {
-    // this tries to parse a live mountstats file
-    // thera are no assertions, but we still want to check for parsing errors (which can
-    // cause panics)
-
-    let stats =
-        MountStat::from_reader(FileWrapper::open("/proc/self/mountstats").unwrap()).unwrap();
-    for stat in stats {
-        println!("{:#?}", stat);
-        if let Some(nfs) = stat.statistics {
-            println!("  {:?}", nfs.server_caps().unwrap());
+        let nfs_v4 = &mountstats[0];
+        match &nfs_v4.statistics {
+            Some(stats) => {
+                assert_eq!(
+                    "1.1".to_string(),
+                    stats.version,
+                    "mountstats version wrongly parsed."
+                );
+                assert_eq!(Duration::from_secs(3542), stats.age);
+                assert_eq!(1, stats.bytes.normal_read);
+                assert_eq!(114, stats.events.inode_revalidate);
+                assert!(stats.server_caps().unwrap().is_some());
+            }
+            None => {
+                panic!("Failed to retrieve nfs statistics");
+            }
         }
     }
-}
+    #[test]
+    fn test_proc_mountstats_live() {
+        // this tries to parse a live mountstats file
+        // thera are no assertions, but we still want to check for parsing errors (which can
+        // cause panics)
 
+        let stats =
+            MountStat::from_reader(FileWrapper::open("/proc/self/mountstats").unwrap()).unwrap();
+        for stat in stats {
+            println!("{:#?}", stat);
+            if let Some(nfs) = stat.statistics {
+                println!("  {:?}", nfs.server_caps().unwrap());
+            }
+        }
+    }
 }
