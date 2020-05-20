@@ -103,3 +103,25 @@ and disks used for ZFS will not be shown either).
 ## lslocks.rs
 
 Shows current file locks in a format that is similiar to the `lslocks` utility.
+
+## mountinfo.rs
+
+Lists all mountpoints, along with their type and options:
+
+```
+sysfs on /sys type sysfs (noexec,relatime,nodev,rw,nosuid)
+proc on /proc type proc (noexec,rw,nodev,relatime,nosuid)
+udev on /dev type devtmpfs (rw,nosuid,relatime)
+  mode = 755
+  nr_inodes = 4109298
+  size = 16437192k
+devpts on /dev/pts type devpts (nosuid,rw,noexec,relatime)
+  gid = 5
+  ptmxmode = 000
+  mode = 620
+tmpfs on /run type tmpfs (rw,nosuid,noexec,relatime)
+  size = 3291852k
+  mode = 755
+/dev/sda1 on / type ext4 (rw,relatime)
+  errors = remount-ro
+```
