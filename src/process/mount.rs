@@ -66,7 +66,10 @@ impl super::Process {
 
 /// Information about a specific mount in a process's mount namespace.
 ///
-/// This data is taken from the `/proc/[pid]/mountinfo` file
+/// This data is taken from the `/proc/[pid]/mountinfo` file.
+///
+/// For an example, see the [mountinfo.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 #[derive(Debug, Clone)]
 pub struct MountInfo {
     /// Mount ID.  A unique ID for the mount (but may be reused after `unmount`)

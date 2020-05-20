@@ -926,6 +926,10 @@ pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
     Ok(map)
 }
 
+/// Details about a loaded kernel module
+///
+/// For an example, see the [lsmod.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 #[derive(Debug)]
 pub struct KernelModule {
     /// The name of the module

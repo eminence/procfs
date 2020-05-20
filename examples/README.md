@@ -86,7 +86,7 @@ Total shared memory: 782336 bytes
 
 This lists all the loaded kernel modules, in a simple tree format.
 
-## diskinfo.rs
+## diskstat.rs
 
 Lists IO information for local disks:
 

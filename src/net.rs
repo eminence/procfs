@@ -380,6 +380,9 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
 }
 
 /// General statistics for a network interface/device
+///
+/// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 #[derive(Debug, Clone)]
 pub struct DeviceStatus {
     /// Name of the interface
@@ -464,6 +467,9 @@ impl DeviceStatus {
 /// Returns basic network device statistics for all interfaces
 ///
 /// This data is from the `/proc/net/dev` file.
+///
+/// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
     let file = FileWrapper::open("/proc/net/dev")?;
     let buf = BufReader::new(file);

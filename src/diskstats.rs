@@ -4,7 +4,10 @@ use std::io::{BufRead, BufReader};
 /// Disk IO stat information
 ///
 /// To fully understand these fields, please see the [iostats.txt](https://www.kernel.org/doc/Documentation/iostats.txt)
-/// kernel documentation
+/// kernel documentation.
+///
+/// For an example, see the [diskstats.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 // Doc reference: https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats
 // Doc reference: https://www.kernel.org/doc/Documentation/iostats.txt
 #[derive(Debug)]

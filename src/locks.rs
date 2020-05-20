@@ -106,6 +106,9 @@ impl From<&str> for LockKind {
 /// Details about an individual file lock
 ///
 /// See the [`locks`] function.
+///
+/// For an example, see the [lslocks.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
 pub struct Lock {
     /// The type of lock
     pub lock_type: LockType,
