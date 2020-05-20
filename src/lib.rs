@@ -53,25 +53,9 @@ extern crate byteorder;
 extern crate hex;
 extern crate libflate;
 
-#[cfg(unix)]
-mod platform_specific_items {
-    pub use libc::pid_t;
-    pub use libc::sysconf;
-    pub use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
-}
-
-// Even though this lib isn't supported on windows, I want it to at least typecheck
-#[cfg(windows)]
-mod platform_specific_items {
-    pub type pid_t = i32; // just to make things build on windows in my IDE
-    pub fn sysconf(_: i32) -> i64 {
-        panic!()
-    }
-    pub const _SC_CLK_TCK: i32 = 2;
-    pub const _SC_PAGESIZE: i32 = 30;
-}
-
-use crate::platform_specific_items::*;
+use libc::pid_t;
+use libc::sysconf;
+use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 
 use std::collections::HashMap;
 use std::ffi::CStr;
