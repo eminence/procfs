@@ -38,8 +38,8 @@
 //!
 //! # Examples
 //!
-//! Examples can be found in the various modules shown below.
-//!
+//! Examples can be found in the various modules shown below, or in the
+//! [examples](https://github.com/eminence/procfs/tree/master/examples) folder of the code repository.
 //!
 
 #[cfg(unix)]
@@ -456,10 +456,8 @@ pub enum ProcError {
 /// If you encounter this error, consider it a bug and please report it on
 /// [github](https://github.com/eminence/procfs).
 ///
-#[cfg_attr(
-    not(feature = "backtrace"),
-    doc = "If you compile with the optional `backtrace` feature, you can gain access to a stack trace of where the error happened."
-)]
+/// If you compile with the optional `backtrace` feature (disabled by default),
+/// you can gain access to a stack trace of where the error happened.
 pub struct InternalError {
     pub msg: String,
     pub file: &'static str,
@@ -610,6 +608,8 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
 /// The boottime of the system, as a `DateTime` object.
 ///
 /// This is calculated from `/proc/stat`.
+///
+/// This function requires the "chrono" features to be enabled (which it is by default).
 #[cfg(feature = "chrono")]
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
     use chrono::TimeZone;

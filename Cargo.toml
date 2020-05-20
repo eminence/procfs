@@ -26,3 +26,6 @@ backtrace = { version = "0.3", optional = true }
 
 [dev-dependencies]
 procinfo = "0.4.2"
+
+[package.metadata.docs.rs]
+all-features = true

@@ -397,6 +397,8 @@ impl Stat {
     /// Get the starttime of the process as a `DateTime` object.
     ///
     /// See also the [`starttime`](struct.Stat.html#structfield.starttime) field.
+    ///
+    /// This function requires the "chrono" features to be enabled (which it is by default).
     #[cfg(feature = "chrono")]
     pub fn starttime(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
         let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
