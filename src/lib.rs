@@ -298,6 +298,8 @@ pub use diskstats::*;
 mod locks;
 pub use locks::*;
 
+pub mod keyring;
+
 lazy_static! {
     /// The number of clock ticks per second.
     ///
