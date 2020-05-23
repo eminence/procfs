@@ -81,8 +81,8 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/ioports`
 * [ ] `/proc/kallsyms`
 * [ ] `/proc/kcore`
-* [ ] `/proc/keys`
-* [ ] `/proc/key-users`
+* [x] `/proc/keys`
+* [x] `/proc/key-users`
 * [ ] `/proc/kmsg`
 * [ ] `/proc/kpagecgroup`
 * [ ] `/proc/kpagecgroup`
@@ -164,7 +164,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/hostname`
 	* [ ] `/proc/sys/kernel/hotplug`
 	* [ ] `/proc/sys/kernel/htab-reclaim`
-	* [ ] `/proc/sys/kernel/keys/\*`
+	* [x] `/proc/sys/kernel/keys/\*`
 	* [ ] `/proc/sys/kernel/kptr_restrict`
 	* [ ] `/proc/sys/kernel/l2cr`
 	* [ ] `/proc/sys/kernel/modprobe`
