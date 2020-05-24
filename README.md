@@ -8,7 +8,8 @@ procfs
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
 Long-term, this crate aims to be fairly feature complete, but at the moment not all files are exposed.
-See the docs for info on what's supported.
+See the docs for info on what's supported, or view the [support.md](https://github.com/eminence/procfs/blob/master/support.md)
+file in the code repository.
 
 ## Examples
 There are several examples in the docs and in the [examples folder](https://github.com/eminence/procfs/tree/master/examples)
