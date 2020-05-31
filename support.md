@@ -124,13 +124,13 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/sys/dev`
   * [ ] `/proc/sys/fs`
 	* [ ] `/proc/sys/fs/binfmt_misc`
-	* [ ] `/proc/sys/fs/dentry-state`
+	* [x] `/proc/sys/fs/dentry-state`
 	* [ ] `/proc/sys/fs/dir-notify-enable`
 	* [ ] `/proc/sys/fs/dquot-max`
 	* [ ] `/proc/sys/fs/dquot-nr`
-	* [ ] `/proc/sys/fs/epoll`
-	* [ ] `/proc/sys/fs/file-max`
-	* [ ] `/proc/sys/fs/file-nr`
+	* [x] `/proc/sys/fs/epoll`
+	* [x] `/proc/sys/fs/file-max`
+	* [x] `/proc/sys/fs/file-nr`
 	* [ ] `/proc/sys/fs/inode-max`
 	* [ ] `/proc/sys/fs/inode-nr`
 	* [ ] `/proc/sys/fs/inode-state`
