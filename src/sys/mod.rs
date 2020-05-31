@@ -6,5 +6,6 @@
 //! These variables can be read and sometimes modified using the `/proc` filesystem,
 //! and the (deprecated) sysctl(2) system call.
 
+pub mod fs;
 pub mod kernel;
 pub mod vm;

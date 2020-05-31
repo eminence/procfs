@@ -519,6 +519,12 @@ impl From<std::num::ParseIntError> for ProcError {
     }
 }
 
+impl From<std::string::ParseError> for ProcError {
+    fn from(_: std::string::ParseError) -> Self {
+        unreachable!()
+    }
+}
+
 impl std::fmt::Display for ProcError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
