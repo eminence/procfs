@@ -520,8 +520,8 @@ impl From<std::num::ParseIntError> for ProcError {
 }
 
 impl From<std::string::ParseError> for ProcError {
-    fn from(_: std::string::ParseError) -> Self {
-        unreachable!()
+    fn from(e: std::string::ParseError) -> Self {
+        match e {}
     }
 }
 
