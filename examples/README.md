@@ -10,7 +10,7 @@ Prints out details about the current process (the dumper itself), or a process s
 
 Runs continually and prints out how many bytes/packets are sent/received.  Press ctrl-c to exit the example:
 
-```
+```text
        Interface: bytes recv                         bytes sent
 ================  ====================               ====================
  br-883c4c992deb: 823307769                0.2 kbps  1537694158               0.5 kbps
@@ -35,7 +35,7 @@ Runs continually and prints out how many bytes/packets are sent/received.  Press
 Prints out all open and listening TCP/UDP sockets, along with the owning process.  The
 output format is very similar to the standard `netstat` linux utility:
 
-```
+```text
 Local address              Remote address             State           Inode    PID/Program name
 0.0.0.0:53                 0.0.0.0:0                  Listen          30883        1409/pdns_server
 0.0.0.0:51413              0.0.0.0:0                  Listen          24263        927/transmission-da
@@ -53,7 +53,7 @@ Prints out CPU/IO/Memory pressure information
 Prints out all processes that share the same tty as the current terminal.  This is very similar to the standard
 `ps` utility on linux when run with no arguments:
 
-```
+```text
   PID TTY          TIME CMD
  8369 pty/13       4.05 bash
 23124 pty/13       0.23 basic-http-serv
@@ -64,7 +64,7 @@ Prints out all processes that share the same tty as the current terminal.  This 
 
 Shows several ways to get the current memory usage of the current process
 
-```
+```text
 PID: 21867
 Memory page size: 4096
 == Data from /proc/self/stat:
@@ -90,7 +90,7 @@ This lists all the loaded kernel modules, in a simple tree format.
 
 Lists IO information for local disks:
 
-```
+```text
 sda1 mounted on /:
   total reads: 7325390 (13640070 ms)
   total writes: 124191552 (119109541 ms)
@@ -108,7 +108,7 @@ Shows current file locks in a format that is similiar to the `lslocks` utility.
 
 Lists all mountpoints, along with their type and options:
 
-```
+```text
 sysfs on /sys type sysfs (noexec,relatime,nodev,rw,nosuid)
 proc on /proc type proc (noexec,rw,nodev,relatime,nosuid)
 udev on /dev type devtmpfs (rw,nosuid,relatime)
@@ -125,3 +125,20 @@ tmpfs on /run type tmpfs (rw,nosuid,noexec,relatime)
 /dev/sda1 on / type ext4 (rw,relatime)
   errors = remount-ro
 ```
+
+## process_hierarchy.rs
+
+Lists all processes as a tree. Sub-processes will be hierarchically ordered beneath their parents.
+
+```text
+1       /usr/lib/systemd/systemd --system --deserialize 54
+366         /usr/lib/systemd/systemd-journald
+375         /usr/lib/systemd/systemd-udevd
+383         /usr/bin/lvmetad -f
+525         /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only
+529         /usr/bin/syncthing -no-browser -no-restart -logflags=0
+608             /usr/bin/syncthing -no-browser -no-restart -logflags=0
+530         /usr/lib/systemd/systemd-logind
+...
+```
+
