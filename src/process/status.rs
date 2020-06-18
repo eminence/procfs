@@ -103,7 +103,7 @@ pub struct Status {
     /// pages by kibibytes; shmem swap usage is not included (since Linux 2.6.34).
     pub vmswap: Option<u64>,
     /// Size of hugetlb memory portions by kB.  (since Linux 4.4).
-    pub hugetblpages: Option<u64>,
+    pub hugetlbpages: Option<u64>,
     /// Number of threads in process containing this thread.
     pub threads: u64,
     /// This field contains two slash-separated numbers that
@@ -244,7 +244,7 @@ impl Status {
             vmlib: Status::parse_with_kb(map.remove("VmLib"))?,
             vmpte: Status::parse_with_kb(map.remove("VmPTE"))?,
             vmswap: Status::parse_with_kb(map.remove("VmSwap"))?,
-            hugetblpages: Status::parse_with_kb(map.remove("HugetlbPages"))?,
+            hugetlbpages: Status::parse_with_kb(map.remove("HugetlbPages"))?,
             threads: from_str!(u64, &expect!(map.remove("Threads"))),
             sigq: expect!(Status::parse_sigq(&expect!(map.remove("SigQ")))),
             sigpnd: from_str!(u64, &expect!(map.remove("SigPnd")), 16),
@@ -399,6 +399,6 @@ mod tests {
         assert_eq!(status.vmlib, None);
         assert_eq!(status.vmpte, None);
         assert_eq!(status.vmswap, None);
-        assert_eq!(status.hugetblpages, None);
+        assert_eq!(status.hugetlbpages, None);
     }
 }
