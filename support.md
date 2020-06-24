@@ -180,7 +180,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/overflowuid`
 	* [ ] `/proc/sys/kernel/panic`
 	* [ ] `/proc/sys/kernel/panic_on_oops`
-	* [ ] `/proc/sys/kernel/pid_max`
+	* [x] `/proc/sys/kernel/pid_max`
 	* [ ] `/proc/sys/kernel/powersave-nap`
 	* [ ] `/proc/sys/kernel/printk`
 	* [ ] `/proc/sys/kernel/pty`

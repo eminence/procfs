@@ -119,6 +119,27 @@ impl cmp::PartialOrd for Version {
     }
 }
 
+/// Returns the maximum process ID number.
+///
+/// This is taken from `/proc/sys/kernel/pid_max`.
+///
+/// # Example
+///
+/// ```
+/// let pid_max = procfs::sys::kernel::pid_max().unwrap();
+///
+/// let pid = 42; // e.g. from user input, CLI args, etc.
+///
+/// if pid > pid_max {
+///     eprintln!("bad process ID: {}", pid)
+/// } else {
+///     println!("good process ID: {}", pid);
+/// }
+/// ```
+pub fn pid_max() -> ProcResult<i32> {
+    read_value("/proc/sys/kernel/pid_max")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,5 +162,10 @@ mod tests {
     #[test]
     fn test_current() {
         let _ = Version::current().unwrap();
+    }
+
+    #[test]
+    fn test_pid_max() {
+        assert!(pid_max().is_ok());
     }
 }
