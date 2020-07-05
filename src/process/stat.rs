@@ -1,7 +1,9 @@
 use super::ProcState;
 use super::StatFlags;
+#[cfg(feature = "chrono")]
+use crate::TICKS_PER_SECOND;
 use crate::{from_iter, KernelVersion, ProcResult};
-use crate::{KERNEL, PAGESIZE, TICKS_PER_SECOND};
+use crate::{KERNEL, PAGESIZE};
 
 use std::io::Read;
 use std::str::FromStr;

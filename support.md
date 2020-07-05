@@ -50,6 +50,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/status`
   * [ ] `/proc/[pid]/syscall`
   * [ ] `/proc/[pid]/task`
+    * [x] `/proc/[pid]/task/[tid]/stat`
     * [ ] `/proc/[pid]/task/[tid]/children`
   * [ ] `/proc/[pid]/timers`
   * [ ] `/proc/[pid]/timerslack_ns`
@@ -241,5 +242,3 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/version`
 * [x] `/proc/vmstat`
 * [ ] `/proc/zoneinfo`
-
- 
