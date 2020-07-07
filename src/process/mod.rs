@@ -439,32 +439,47 @@ pub enum FDTarget {
 impl FromStr for FDTarget {
     type Err = ProcError;
     fn from_str(s: &str) -> Result<FDTarget, ProcError> {
+
+        // helper function that removes the first and last character
+        fn strip_first_last(s: &str) -> ProcResult<&str> {
+            if s.len() > 2 {
+                let mut c = s.chars();
+                // remove the first and last characters
+                let _ = c.next();
+                let _ = c.next_back();
+                Ok(c.as_str())
+            } else {
+                Err(ProcError::Incomplete(None))
+            }
+        }
+
         if !s.starts_with('/') && s.contains(':') {
             let mut s = s.split(':');
             let fd_type = expect!(s.next());
             match fd_type {
                 "socket" => {
                     let inode = expect!(s.next(), "socket inode");
-                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
+                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Socket(inode))
                 }
                 "net" => {
                     let inode = expect!(s.next(), "net inode");
-                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
+                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Net(inode))
                 }
                 "pipe" => {
                     let inode = expect!(s.next(), "pipe inode");
-                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
+                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Pipe(inode))
                 }
                 "anon_inode" => Ok(FDTarget::AnonInode(
                     expect!(s.next(), "anon inode").to_string(),
                 )),
                 "/memfd" => Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string())),
+                "" => Err(ProcError::Incomplete(None)),
                 x => {
                     let inode = expect!(s.next(), "other inode");
-                    let inode = expect!(u32::from_str_radix(&inode[1..inode.len() - 1], 10));
+                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
             }

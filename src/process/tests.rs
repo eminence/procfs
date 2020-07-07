@@ -287,3 +287,14 @@ fn test_statm() {
     let statm = me.statm().unwrap();
     println!("{:#?}", statm);
 }
+
+#[test]
+fn test_fdtarget() {
+    // none of these values are valid, but were found by a fuzzer to crash procfs.  this
+    // test ensures that the crashes have been fixed
+    
+    let _ = FDTarget::from_str(":");
+    let _ = FDTarget::from_str("n:ǟF");
+    let _ = FDTarget::from_str("pipe:");
+
+}
