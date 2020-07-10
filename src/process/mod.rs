@@ -56,6 +56,7 @@ use super::*;
 use crate::from_iter;
 
 use std::ffi::OsString;
+use std::fs;
 use std::io::{self, Read};
 #[cfg(unix)]
 use std::os::linux::fs::MetadataExt;
@@ -73,6 +74,9 @@ pub use mount::*;
 
 mod status;
 pub use status::*;
+
+mod task;
+pub use task::*;
 
 // provide a type-compatible st_uid for windows
 #[cfg(windows)]
@@ -883,6 +887,136 @@ impl Process {
         let path = self.root.join("statm");
         let file = FileWrapper::open(&path)?;
         StatM::from_reader(file)
+    }
+
+    /// Iterate over all the [`Task`]s (aka Threads) in this process
+    ///
+    /// Note that the iterator does not receive a snapshot of tasks, it is a
+    /// lazy iterator over whatever happens to be running when the iterator
+    /// gets there, see the examples below.
+    ///
+    /// # Examples
+    ///
+    /// ## Simple iteration over subtasks
+    ///
+    /// If you want to get the info that most closely matches what was running
+    /// when you call `tasks` you should collect them as quikcly as possible,
+    /// and then run processing over that collection:
+    ///
+    /// ```
+    /// # use std::thread;
+    /// # use std::sync::mpsc::channel;
+    /// # use procfs::process::Process;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let (finish_tx, finish_rx) = channel();
+    /// # let (start_tx, start_rx) = channel();
+    /// let name = "testing:example";
+    /// let t = thread::Builder::new().name(name.to_string())
+    ///   .spawn(move || { // do work
+    /// #     start_tx.send(()).unwrap();
+    /// #     finish_rx.recv().expect("valid channel");
+    ///   })?;
+    /// # start_rx.recv()?;
+    ///
+    /// let proc = Process::myself()?;
+    ///
+    /// // Collect a snapshot
+    /// let threads: Vec<_> = proc.tasks()?.flatten().map(|t| t.stat().unwrap().comm).collect();
+    /// threads.iter().find(|s| &**s == name).expect("thread should exist");
+    ///
+    /// # finish_tx.send(());
+    /// # t.join().unwrap();
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// ## The TaskIterator is lazy
+    ///
+    /// This means both that tasks that stop before you get to them in
+    /// iteration will not be there, and that new tasks that are created after
+    /// you start the iterator *will* appear.
+    ///
+    /// ```
+    /// # use std::thread;
+    /// # use std::sync::mpsc::channel;
+    /// # use procfs::process::Process;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let proc = Process::myself()?;
+    ///
+    /// // Task iteration is lazy
+    /// let mut task_iter = proc.tasks()?.flatten().map(|t| t.stat().unwrap().comm);
+    ///
+    /// # let (finish_tx, finish_rx) = channel();
+    /// # let (start_tx, start_rx) = channel();
+    /// let name = "testing:lazy";
+    /// let t = thread::Builder::new().name(name.to_string())
+    ///   .spawn(move || { // do work
+    /// #     start_tx.send(()).unwrap();
+    /// #     finish_rx.recv().expect("valid channel");
+    ///   })?;
+    /// # start_rx.recv()?;
+    ///
+    /// task_iter.find(|s| &**s == name).expect("thread should exist");
+    ///
+    /// # finish_tx.send(());
+    /// # t.join().unwrap();
+    /// # Ok(())
+    /// # }
+    /// ```
+    ///
+    /// Tasks that stop while you're iterating may or may not appear:
+    ///
+    /// ```
+    /// # use std::thread;
+    /// # use std::sync::mpsc::channel;
+    /// # use procfs::process::Process;
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let (finish_tx, finish_rx) = channel();
+    /// # let (start_tx, start_rx) = channel();
+    /// let name = "testing:stopped";
+    /// let t = thread::Builder::new().name(name.to_string())
+    ///   .spawn(move || { // do work
+    /// #     start_tx.send(()).unwrap();
+    /// #     finish_rx.recv().expect("valid channel");
+    ///   })?;
+    /// # start_rx.recv()?;
+    ///
+    /// let proc = Process::myself()?;
+    ///
+    /// // Task iteration is lazy
+    /// let mut task_iter = proc.tasks()?.flatten().map(|t| t.stat().unwrap().comm);
+    ///
+    /// # finish_tx.send(());
+    /// t.join().unwrap();
+    ///
+    /// // It's impossible to know if this is going to be gone
+    /// let _ = task_iter.find(|s| &**s == name).is_some();
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn tasks(&self) -> ProcResult<TasksIter> {
+        Ok(TasksIter {
+            pid: self.pid,
+            inner: fs::read_dir(self.root.join("task"))?,
+        })
+    }
+}
+
+/// The result of [`Process::tasks`], iterates over all tasks in a process
+#[derive(Debug)]
+pub struct TasksIter {
+    pid: pid_t,
+    inner: fs::ReadDir,
+}
+
+impl std::iter::Iterator for TasksIter {
+    type Item = ProcResult<Task>;
+    fn next(&mut self) -> Option<ProcResult<Task>> {
+        match self.inner.next() {
+            Some(Ok(tp)) => Some(Task::from_rel_path(self.pid, &tp.path())),
+            Some(Err(e)) => Some(Err(ProcError::Io(e.into(), None))),
+            None => None,
+        }
     }
 }
 
