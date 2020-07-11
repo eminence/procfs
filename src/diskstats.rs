@@ -23,7 +23,7 @@ pub struct DiskStat {
 
     /// Reads completed successfully
     ///
-    /// This is the total number rof reads comopleted successfully
+    /// This is the total number rof reads completed successfully
     pub reads: usize,
 
     /// Reads merged

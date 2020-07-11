@@ -75,7 +75,7 @@ pub struct Meminfo {
     pub mlocked: Option<u64>,
     /// Total amount of highmem.
     ///
-    /// Highmem is all memory above ~860MB of physicalcal  memory.  Highmem areas are for use by
+    /// Highmem is all memory above ~860MB of physical  memory.  Highmem areas are for use by
     /// user-space programs, or for the page cache.  The kernel must use tricks to access this
     /// memory, making it slower to access than lowmem.
     ///
@@ -168,7 +168,7 @@ pub struct Meminfo {
     /// The  amount of memory presently allocated on the system.
     ///
     /// The committed memory is a sum of all of the memory which has been allocated
-    /// cated by processes, even if it has not been "used" by them as of yet.  A process which allocates 1GB of memory  (using  malloc(3)
+    /// by processes, even if it has not been "used" by them as of yet.  A process which allocates 1GB of memory  (using  malloc(3)
     /// or  similar),  but  touches only 300MB of that memory will show up as using only 300MB of memory even if it has the address space
     /// allocated for the entire 1GB.
     ///
@@ -251,7 +251,7 @@ pub struct Meminfo {
     /// needs documentation
     pub hugetlb: Option<u64>,
 
-    /// Memory allocated to the percpu alloctor used to back percpu allocations.
+    /// Memory allocated to the per-cpu alloctor used to back per-cpu allocations.
     ///
     /// This stat excludes the cost of metadata.
     pub per_cpu: Option<u64>,

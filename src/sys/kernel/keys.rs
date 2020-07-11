@@ -8,8 +8,8 @@ use crate::{read_value, write_value, ProcResult};
 /// GC Delay
 ///
 /// The value in this file specifies the interval, in seconds,
-/// after which revoked and expired keys will be garbage col‐
-/// lected.  The purpose of having such an interval is so that
+/// after which revoked and expired keys will be garbage collected.
+/// The purpose of having such an interval is so that
 /// there is a window of time where user space can see an error
 /// (respectively EKEYREVOKED and EKEYEXPIRED) that indicates what
 /// happened to the key.
@@ -23,8 +23,8 @@ pub fn gc_delay() -> ProcResult<u32> {
 
 /// Persistent Keyring Expiry
 ///
-/// This file defines an interval, in seconds, to which the per‐
-/// sistent keyring's expiration timer is reset each time the
+/// This file defines an interval, in seconds, to which the persistent
+/// keyring's expiration timer is reset each time the
 /// keyring is accessed (via keyctl_get_persistent(3) or the
 /// keyctl(2) KEYCTL_GET_PERSISTENT operation.)
 ///

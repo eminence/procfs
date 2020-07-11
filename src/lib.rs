@@ -541,7 +541,7 @@ impl std::fmt::Display for ProcError {
             ProcError::Incomplete(None) => write!(f, "Data incomplete"),
             ProcError::Io(inner, None) => write!(f, "Unexpected IO error: {}", inner),
 
-            ProcError::Other(s) => write!(f, "Uknown error {}", s),
+            ProcError::Other(s) => write!(f, "Unknown error {}", s),
             ProcError::InternalError(e) => write!(f, "Internal error: {}", e),
         }
     }
@@ -613,7 +613,7 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     }
 }
 
-/// The boottime of the system, as a `DateTime` object.
+/// The boot time of the system, as a `DateTime` object.
 ///
 /// This is calculated from `/proc/stat`.
 ///
@@ -740,11 +740,11 @@ pub struct CpuTime {
     pub nice: f32,
     /// Seconds spent in system mode
     pub system: f32,
-    /// Seconds spent in the idle tast
+    /// Seconds spent in the idle state
     pub idle: f32,
     /// Seconds waiting for I/O to complete
     ///
-    /// This value is not reliaable, for the following reasons:
+    /// This value is not reliable, for the following reasons:
     ///
     /// 1. The CPU will not wait for I/O to complete; iowait is the time that a
     ///    task is waiting for I/O to complete.  When a CPU goes into idle state
@@ -768,7 +768,7 @@ pub struct CpuTime {
     /// Seconds of stolen time.
     ///
     /// Stolen time is the time spent in other operating systems when running in
-    /// a virtualized environemnt.
+    /// a virtualized environment.
     ///
     /// (Since Linux 2.6.11)
     pub steal: Option<f32>,
@@ -909,7 +909,7 @@ impl KernelStats {
     }
 }
 
-/// Get various vritual memory statistics
+/// Get various virtual memory statistics
 ///
 /// Since the exact set of statistics will vary from kernel to kernel,
 /// and because most of them are not well documented, this function
@@ -1159,7 +1159,7 @@ mod tests {
 
         // the sum of each individual CPU should be equal to the total cpu entry
         // note: on big machines with 128 cores, it seems that the differences can be rather high,
-        // especially when heavily loaded.  So this test tollerates a 60-second discrepency
+        // especially when heavily loaded.  So this test tolerates a 60-second discrepancy
 
         let user: f32 = stat.cpu_time.iter().map(|i| i.user).sum();
         let nice: f32 = stat.cpu_time.iter().map(|i| i.nice).sum();

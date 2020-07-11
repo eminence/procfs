@@ -83,11 +83,11 @@ The procfs library is licensed under either of
 
 at your option.
 
-For additional copyright information regarding documetnation, please also see the COPYRIGHT.txt file.
+For additional copyright information regarding documentation, please also see the COPYRIGHT.txt file.
 
 ### Contribution
 
-Contriutions are welcome, especially in the areas of documentation and testing on older kernels.
+Contributions are welcome, especially in the areas of documentation and testing on older kernels.
 
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0

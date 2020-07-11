@@ -84,7 +84,7 @@ pub struct MountInfo {
     /// parent mount (for the initramfs filesystem) that lies outside the process's root
     /// directory, and an entry for  that mount point will not appear in mountinfo.
     pub pid: i32,
-    /// The value of `st_dev` for files on this filesytem
+    /// The value of `st_dev` for files on this filesystem
     pub majmin: String,
     /// The pathname of the directory in the filesystem which forms the root of this mount.
     pub root: String,
@@ -638,7 +638,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
     #[test]
     fn test_proc_mountstats_live() {
         // this tries to parse a live mountstats file
-        // thera are no assertions, but we still want to check for parsing errors (which can
+        // there are no assertions, but we still want to check for parsing errors (which can
         // cause panics)
 
         let stats =

@@ -27,7 +27,7 @@ impl Version {
         }
     }
 
-    /// Returns the kernel version of the curretly running kernel.
+    /// Returns the kernel version of the currently running kernel.
     ///
     /// This is taken from `/proc/sys/kernel/osrelease`;
     pub fn current() -> ProcResult<Self> {

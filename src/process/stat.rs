@@ -94,7 +94,7 @@ pub struct Stat {
     /// this is the negated scheduling priority, minus one;
     ///
     /// That is, a number in the range -2 to -100,
-    /// corresponding to real-time priority orities  1  to 99.  For processes running under a non-real-time
+    /// corresponding to real-time priority 1 to 99.  For processes running under a non-real-time
     /// scheduling policy, this is the raw nice value (setpriority(2)) as represented in the kernel.
     /// The kernel stores nice values as numbers in the range 0 (high) to 39  (low),  corresponding
     /// to the user-visible nice range of -20 to 19.

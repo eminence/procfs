@@ -48,7 +48,7 @@ pub struct Limits {
 
     /// Max resident set
     ///
-    /// This is a limit (in bytes) on the processe's resident set (the number of virtual pages
+    /// This is a limit (in bytes) on the process's resident set (the number of virtual pages
     /// resident in RAM).
     pub max_resident_set: Limit,
 
@@ -82,7 +82,7 @@ pub struct Limits {
 
     /// Max pending signals
     ///
-    /// This is a limit on the number of signals that may be qeueued for the real user rID of the
+    /// This is a limit on the number of signals that may be queued for the real user rID of the
     /// calling process.
     pub max_pending_signals: Limit,
 

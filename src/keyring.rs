@@ -48,11 +48,11 @@ bitflags! {
         const WRITE = 0x04;
         /// The key may be found by a search.
         ///
-        /// For keyrings: keys and keyrings that are linked to by the keyrind may be searched.
+        /// For keyrings: keys and keyrings that are linked to by the keyring may be searched.
         const SEARCH = 0x08;
         /// Links may be created from keyrings to the key.
         ///
-        /// THe inital link to a key that is established when the key is created doesn't require this permission.
+        /// The initial link to a key that is established when the key is created doesn't require this permission.
         const LINK = 0x10;
         /// The ownership details and security label of the key may be changed, the key's expiration
         /// time may be set, and the key may be revoked.

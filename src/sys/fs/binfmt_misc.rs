@@ -1,5 +1,6 @@
 use crate::{read_value, ProcResult};
 
+/// Returns true if the miscellaneous Binary Formats system is enabled.
 pub fn enabled() -> ProcResult<bool> {
     let val: String = read_value("/proc/sys/fs/binfmt_misc/status")?;
     Ok(val == "enabled")

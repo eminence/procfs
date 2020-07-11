@@ -10,7 +10,7 @@ pub enum LockType {
     /// A POSIX byte-range lock created with `fcntl`
     Posix,
 
-    /// An Open File Description (ODF) lock created wtih `fnctl`
+    /// An Open File Description (ODF) lock created with `fnctl`
     ODF,
 
     /// Some other unknown lock type
