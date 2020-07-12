@@ -9,7 +9,7 @@ pub mod epoll;
 /// Information about the status of the directory cache (dcache)
 #[derive(Debug)]
 pub struct DEntryState {
-    /// The number rof allocated dentries (dcache entries)
+    /// The number of allocated dentries (dcache entries)
     ///
     /// Unused in Linux 2.2
     pub nr_dentry: u32,
