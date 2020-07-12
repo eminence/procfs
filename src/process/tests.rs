@@ -128,6 +128,11 @@ fn test_all() {
         check_unwrap(&prc, prc.mountinfo());
         check_unwrap(&prc, prc.mountstats());
         check_unwrap(&prc, prc.oom_score());
+
+        for task in prc.tasks().unwrap() {
+            let task = task.unwrap();
+            check_unwrap(&prc, task.stat());
+        }
     }
 }
 
