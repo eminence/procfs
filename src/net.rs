@@ -52,7 +52,7 @@ use crate::FileWrapper;
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Debug, PartialEq)]
 pub enum TcpState {
@@ -379,6 +379,132 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
     Ok(vec)
 }
 
+/// An entry in the ARP table
+#[derive(Debug)]
+pub struct ARPEntry {
+    /// IPv4 address
+    pub ip_address: Ipv4Addr,
+    /// Hardware type
+    ///
+    /// This will almost always be ETHER (or maybe INFINIBAND)
+    pub hw_type: ARPHardware,
+    /// Internal kernel flags
+    pub flags: ARPFlags,
+    /// MAC Address
+    pub hw_address: Option<[u8; 6]>,
+    /// Device name
+    pub device: String,
+}
+
+bitflags! {
+    /// Hardware type for an ARP table entry.
+    // source: include/uapi/linux/if_arp.h
+    pub struct ARPHardware: u32 {
+        /// NET/ROM pseudo
+        const NETROM = 0;
+        /// Ethernet
+        const ETHER = 1;
+        /// Experimental ethernet
+        const EETHER = 2;
+        /// AX.25 Level 2
+        const AX25 = 3;
+        /// PROnet token ring
+        const PRONET = 4;
+        /// Chaosnet
+        const CHAOS = 5;
+        /// IEEE 802.2 Ethernet/TR/TB
+        const IEEE802 = 6;
+        /// Arcnet
+        const ARCNET = 7;
+        /// APPLEtalk
+        const APPLETLK = 8;
+        /// Frame Relay DLCI
+        const DLCI = 15;
+        /// ATM
+        const ATM = 19;
+        /// Metricom STRIP
+        const METRICOM = 23;
+        //// IEEE 1394 IPv4 - RFC 2734
+        const IEEE1394 = 24;
+        /// EUI-64
+        const EUI64 = 27;
+        /// InfiniBand
+        const INFINIBAND = 32;
+    }
+}
+
+bitflags! {
+    /// Flags for ARP entries
+    // source: include/uapi/linux/if_arp.h
+    pub struct ARPFlags: u32 {
+            /// Completed entry
+            const COM = 0x02;
+            /// Permanent entry
+            const PERM = 0x04;
+            /// Publish entry
+            const PUBL = 0x08;
+            /// Has requested trailers
+            const USETRAILERS = 0x10;
+            /// Want to use a netmask (only for proxy entries)
+            const NETMASK = 0x20;
+            // Don't answer this address
+            const DONTPUB = 0x40;
+    }
+}
+
+/// Reads the ARP table
+pub fn arp() -> ProcResult<Vec<ARPEntry>> {
+    let file = FileWrapper::open("/proc/net/arp")?;
+    let reader = BufReader::new(file);
+
+    let mut vec = Vec::new();
+
+    // first line is a header we need to skip
+    for line in reader.lines().skip(1) {
+        let line = line?;
+        let mut s = line.split_whitespace();
+        let ip_address = expect!(Ipv4Addr::from_str(expect!(s.next())));
+        let hw = from_str!(u32, &expect!(s.next())[2..], 16);
+        let hw = ARPHardware::from_bits_truncate(hw);
+        let flags = from_str!(u32, &expect!(s.next())[2..], 16);
+        let flags = ARPFlags::from_bits_truncate(flags);
+
+        let mac = expect!(s.next());
+        let mut mac: Vec<Result<u8, _>> =
+            mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
+
+        let mac = if mac.len() == 6 {
+            let f = mac.pop().unwrap()?;
+            let e = mac.pop().unwrap()?;
+            let d = mac.pop().unwrap()?;
+            let c = mac.pop().unwrap()?;
+            let b = mac.pop().unwrap()?;
+            let a = mac.pop().unwrap()?;
+            if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 {
+                None
+            } else {
+                Some([a, b, c, d, e, f])
+            }
+        } else {
+            None
+        };
+
+        // mask is always "*"
+        let _mask = expect!(s.next());
+        let dev = expect!(s.next());
+
+        vec.push(ARPEntry {
+            ip_address,
+            hw_type: hw,
+            flags: flags,
+            hw_address: mac,
+            device: dev.to_string(),
+        })
+    }
+
+    Ok(vec)
+}
+
 /// General statistics for a network interface/device
 ///
 /// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
@@ -571,5 +697,12 @@ mod tests {
     fn test_dev_status() {
         let status = dev_status().unwrap();
         println!("{:#?}", status);
+    }
+
+    #[test]
+    fn test_arp() {
+        for entry in arp().unwrap() {
+            println!("{:?}", entry);
+        }
     }
 }
