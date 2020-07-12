@@ -6,7 +6,7 @@ pub fn enabled() -> ProcResult<bool> {
     Ok(val == "enabled")
 }
 
-pub struct BinFmtEntry {
+struct BinFmtEntry {
     pub enabled: bool,
     pub interpreter: String,
     pub flags: (),
