@@ -443,7 +443,6 @@ pub enum FDTarget {
 impl FromStr for FDTarget {
     type Err = ProcError;
     fn from_str(s: &str) -> Result<FDTarget, ProcError> {
-
         // helper function that removes the first and last character
         fn strip_first_last(s: &str) -> ProcResult<&str> {
             if s.len() > 2 {

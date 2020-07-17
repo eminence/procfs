@@ -1,6 +1,5 @@
 use procfs::process::{all_processes, Process};
 
-
 /// Print all processes as a tree.
 /// The tree reflects the hierarchical relationship between parent and child processes.
 fn main() {
@@ -51,7 +50,6 @@ fn print_process(process: &Process, all_processes: &Vec<Process>, depth: usize) 
         print_process(child, &all_processes, depth + 1);
     }
 }
-
 
 /// Get all children of a specific process, by iterating through all processes and
 /// checking their parent pid.
