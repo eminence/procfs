@@ -16,6 +16,13 @@ fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) {
     }
 }
 
+#[test]
+fn test_main_thread_task() {
+    let myself = Process::myself().unwrap();
+    let task = myself.task_main_thread().unwrap();
+    check_unwrap(&myself, task.stat());
+}
+
 #[allow(clippy::cognitive_complexity)]
 #[test]
 fn test_self_proc() {

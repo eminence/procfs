@@ -888,6 +888,11 @@ impl Process {
         StatM::from_reader(file)
     }
 
+    /// Return a task for the main thread of this process
+    pub fn task_main_thread(&self) -> ProcResult<Task> {
+        Task::from_rel_path(self.pid, Path::new(&format!("{}", self.pid)))
+    }
+
     /// Iterate over all the [`Task`]s (aka Threads) in this process
     ///
     /// Note that the iterator does not receive a snapshot of tasks, it is a
