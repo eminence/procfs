@@ -58,8 +58,10 @@ use crate::from_iter;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Read};
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "android")))]
 use std::os::linux::fs::MetadataExt;
+#[cfg(target_os = "android")]
+use std::os::android::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -178,7 +180,7 @@ bitflags! {
 
 bitflags! {
     /// The mode (read/write permissions) for an open file descriptor
-    pub struct FDPermissions: u32 {
+    pub struct FDPermissions: libc::mode_t {
         const READ = libc::S_IRUSR;
         const WRITE = libc::S_IWUSR;
         const EXECUTE = libc::S_IXUSR;
@@ -501,7 +503,7 @@ pub struct FDInfo {
     ///
     /// **Note**: this field is only the owner read/write/execute bits.  All the other bits
     /// (include filetype bits) are masked out.  See also the `mode()` method.
-    pub mode: u32,
+    pub mode: libc::mode_t,
     pub target: FDTarget,
 }
 
@@ -760,7 +762,7 @@ impl Process {
                 let link_os: &OsStr = link.as_ref();
                 vec.push(FDInfo {
                     fd,
-                    mode: md.st_mode() & libc::S_IRWXU,
+                    mode: (md.st_mode() as libc::mode_t) & libc::S_IRWXU,
                     target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
                 });
             }
