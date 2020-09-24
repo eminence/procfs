@@ -77,9 +77,9 @@ mod tests {
                 zero.take(bytes_to_read).read_to_end(&mut vec).unwrap();
                 assert_eq!(vec.len(), bytes_to_read as usize);
 
-                // spin for about 51 ticks (utime accounting isn't perfectly accurate)
+                // spin for about 52 ticks (utime accounting isn't perfectly accurate)
                 let dur = std::time::Duration::from_millis(
-                    51 * (1000 / crate::ticks_per_second().unwrap()) as u64,
+                    52 * (1000 / crate::ticks_per_second().unwrap()) as u64,
                 );
                 let start = std::time::Instant::now();
                 while start.elapsed() <= dur {
