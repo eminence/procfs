@@ -459,17 +459,18 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
 
     let mut vec = Vec::new();
 
-    // first line is a header we need to skip
+    // First line is a header we need to skip
     for line in reader.lines().skip(1) {
+        // Check if there might have been an IO error.
         let line = line?;
-        let mut s = line.split_whitespace();
-        let ip_address = expect!(Ipv4Addr::from_str(expect!(s.next())));
-        let hw = from_str!(u32, &expect!(s.next())[2..], 16);
+        let mut line = line.split_whitespace();
+        let ip_address = expect!(Ipv4Addr::from_str(expect!(line.next())));
+        let hw = from_str!(u32, &expect!(line.next())[2..], 16);
         let hw = ARPHardware::from_bits_truncate(hw);
-        let flags = from_str!(u32, &expect!(s.next())[2..], 16);
+        let flags = from_str!(u32, &expect!(line.next())[2..], 16);
         let flags = ARPFlags::from_bits_truncate(flags);
 
-        let mac = expect!(s.next());
+        let mac = expect!(line.next());
         let mut mac: Vec<Result<u8, _>> =
             mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
 
@@ -490,13 +491,13 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
         };
 
         // mask is always "*"
-        let _mask = expect!(s.next());
-        let dev = expect!(s.next());
+        let _mask = expect!(line.next());
+        let dev = expect!(line.next());
 
         vec.push(ARPEntry {
             ip_address,
             hw_type: hw,
-            flags: flags,
+            flags,
             hw_address: mac,
             device: dev.to_string(),
         })
