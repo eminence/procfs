@@ -233,13 +233,13 @@ fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
 
         let ip = Ipv6Addr::new(
             ((ip_a >> 16) & 0xffff) as u16,
-            ((ip_a >> 0) & 0xffff) as u16,
+            (ip_a & 0xffff) as u16,
             ((ip_b >> 16) & 0xffff) as u16,
-            ((ip_b >> 0) & 0xffff) as u16,
+            (ip_b & 0xffff) as u16,
             ((ip_c >> 16) & 0xffff) as u16,
-            ((ip_c >> 0) & 0xffff) as u16,
+            (ip_c & 0xffff) as u16,
             ((ip_d >> 16) & 0xffff) as u16,
-            ((ip_d >> 0) & 0xffff) as u16,
+            (ip_d & 0xffff) as u16,
         );
 
         Ok(SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
