@@ -1,18 +1,20 @@
 use super::*;
 
-fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) {
+fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
-        Ok(_t) => {}
+        Ok(t) => Some(t),
         Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
             // we are not root, and so a permission denied error is OK
+            None
         }
         Err(ProcError::NotFound(path)) => {
             // a common reason for this error is that the process isn't running anymore
             if prc.is_alive() {
                 panic!("{:?} not found", path)
             }
+            None
         }
-        Err(err) => panic!("{:?}", err),
+        Err(err) => panic!("check_unwrap error for {} {:?}", prc.pid, err),
     }
 }
 
@@ -136,9 +138,11 @@ fn test_all() {
         check_unwrap(&prc, prc.mountstats());
         check_unwrap(&prc, prc.oom_score());
 
-        for task in prc.tasks().unwrap() {
-            let task = task.unwrap();
-            check_unwrap(&prc, task.stat());
+        if let Some(tasks) = check_unwrap(&prc, prc.tasks()) {
+            for task in tasks {
+                let task = task.unwrap();
+                check_unwrap(&prc, task.stat());
+            }
         }
     }
 }
