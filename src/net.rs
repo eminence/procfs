@@ -662,6 +662,7 @@ mod tests {
     fn test_tcp() {
         for entry in tcp().unwrap() {
             println!("{:?}", entry);
+            assert_eq!(entry.state, TcpState::from_u8(entry.state.to_u8()).unwrap());
         }
     }
 
@@ -669,6 +670,7 @@ mod tests {
     fn test_tcp6() {
         for entry in tcp6().unwrap() {
             println!("{:?}", entry);
+            assert_eq!(entry.state, TcpState::from_u8(entry.state.to_u8()).unwrap());
         }
     }
 
@@ -676,6 +678,7 @@ mod tests {
     fn test_udp() {
         for entry in udp().unwrap() {
             println!("{:?}", entry);
+            assert_eq!(entry.state, UdpState::from_u8(entry.state.to_u8()).unwrap());
         }
     }
 
