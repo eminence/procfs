@@ -36,6 +36,9 @@ jobs:
       if: matrix.toolchain == '1.33.0'
       run: cargo +${{ matrix.toolchain }} doc
 
+    - name: Run cargo fmt
+      if: matrix.toolchain == 'stable'
+      run: cargo +${{ matrix.toolchain }} fmt -- --check
 
   android-check:
     strategy:

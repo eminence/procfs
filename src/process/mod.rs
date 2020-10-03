@@ -58,10 +58,10 @@ use crate::from_iter;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Read};
-#[cfg(all(unix, not(target_os = "android")))]
-use std::os::linux::fs::MetadataExt;
 #[cfg(target_os = "android")]
 use std::os::android::fs::MetadataExt;
+#[cfg(all(unix, not(target_os = "android")))]
+use std::os::linux::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
