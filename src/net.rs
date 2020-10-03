@@ -475,16 +475,29 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
             mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
 
         let mac = if mac.len() == 6 {
-            let f = mac.pop().unwrap()?;
-            let e = mac.pop().unwrap()?;
-            let d = mac.pop().unwrap()?;
-            let c = mac.pop().unwrap()?;
-            let b = mac.pop().unwrap()?;
-            let a = mac.pop().unwrap()?;
-            if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 {
+            let mac_block_f = mac.pop().unwrap()?;
+            let mac_block_e = mac.pop().unwrap()?;
+            let mac_block_d = mac.pop().unwrap()?;
+            let mac_block_c = mac.pop().unwrap()?;
+            let mac_block_b = mac.pop().unwrap()?;
+            let mac_block_a = mac.pop().unwrap()?;
+            if mac_block_a == 0
+                && mac_block_b == 0
+                && mac_block_c == 0
+                && mac_block_d == 0
+                && mac_block_e == 0
+                && mac_block_f == 0
+            {
                 None
             } else {
-                Some([a, b, c, d, e, f])
+                Some([
+                    mac_block_a,
+                    mac_block_b,
+                    mac_block_c,
+                    mac_block_d,
+                    mac_block_e,
+                    mac_block_f,
+                ])
             }
         } else {
             None
