@@ -42,17 +42,8 @@
 //! [examples](https://github.com/eminence/procfs/tree/master/examples) folder of the code repository.
 //!
 
-#[cfg(unix)]
-extern crate libc;
-#[macro_use]
-extern crate bitflags;
-
-#[macro_use]
-extern crate lazy_static;
-extern crate byteorder;
-extern crate hex;
-extern crate libflate;
-
+use bitflags::bitflags;
+use lazy_static::lazy_static;
 use libc::pid_t;
 use libc::sysconf;
 use libc::{_SC_CLK_TCK, _SC_PAGESIZE};

@@ -4,6 +4,7 @@
 //!
 //! Additional functions can be found in the [kernel::keys](crate::sys::kernel::keys) module.
 use crate::{FileWrapper, ProcResult};
+use bitflags::bitflags;
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
