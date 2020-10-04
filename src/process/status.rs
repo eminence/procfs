@@ -11,8 +11,11 @@ use std::io::{BufRead, BufReader, Read};
 /// isn't totally reliable, since some kernels might backport certain fields, or fields might
 /// only be present if certain kernel configuration options are enabled.  Be prepared to
 /// handle `None` values.
+///
+/// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
 pub struct Status {
+    _private: (),
     /// Command run by this process.
     pub name: String,
     /// Process umask, expressed in octal with a leading zero; see umask(2).  (Since Linux 4.7.)
@@ -189,6 +192,7 @@ impl Status {
         }
 
         let status = Status {
+            _private: (),
             name: expect!(map.remove("Name")),
             umask: map
                 .remove("Umask")
