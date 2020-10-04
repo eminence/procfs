@@ -51,6 +51,7 @@ mod tests {
     use std::sync::{Arc, Barrier};
 
     #[test]
+    #[cfg(not(tarpaulin))] // this test is unstable under tarpaulin, and i'm yet sure why
     fn test_task() {
         use std::io::Read;
 

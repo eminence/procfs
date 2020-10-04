@@ -98,3 +98,30 @@ pub fn root_maxkeys() -> ProcResult<u32> {
 pub fn set_root_maxkeys(keys: u32) -> ProcResult<()> {
     write_value("/proc/sys/kernel/keys/root_maxkeys", keys)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{ProcError, ProcResult};
+
+    fn check_unwrap<T>(val: ProcResult<T>) {
+        match val {
+            Ok(_) => {}
+            Err(ProcError::NotFound(_)) => {
+                // ok to ignore
+            }
+            Err(e) => {
+                panic!("Unexpected proc error: {:?}", e);
+            }
+        }
+    }
+
+    #[test]
+    fn test_keys() {
+        check_unwrap(super::gc_delay());
+        check_unwrap(super::persistent_keyring_expiry());
+        check_unwrap(super::maxbytes());
+        check_unwrap(super::maxkeys());
+        check_unwrap(super::root_maxbytes());
+        check_unwrap(super::root_maxkeys());
+    }
+}
