@@ -22,9 +22,15 @@ use super::{convert_to_kibibytes, FileWrapper, ProcResult};
 /// This imprecision in /proc/meminfo is known,
 /// but is not corrected due to legacy concerns -
 /// programs rely on /proc/meminfo to specify size with the "kB" string.
+///
+/// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct Meminfo {
+    // this private field prevents clients from directly constructing this object.
+    // this allows us (procfs) to add fields in a semver compatible way
+    _private: (),
+
     /// Total usable RAM (i.e., physical RAM minus a few reserved bits and the kernel binary code).
     pub mem_total: u64,
     /// The sum of [LowFree](#structfield.low_free) + [HighFree](#structfield.high_free).
@@ -302,6 +308,7 @@ impl Meminfo {
         // if there's anything still left in the map at the end, that
         // means we probably have a bug/typo, or are out-of-date
         let meminfo = Meminfo {
+            _private: (),
             mem_total: expect!(map.remove("MemTotal")),
             mem_free: expect!(map.remove("MemFree")),
             mem_available: map.remove("MemAvailable"),
