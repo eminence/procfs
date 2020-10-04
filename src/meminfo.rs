@@ -266,6 +266,16 @@ pub struct Meminfo {
     ///
     /// Includes s_reclaimable, and other direct allocations with a shrinker.
     pub k_reclaimable: Option<u64>,
+
+    /// Undocumented field
+    ///
+    /// (CONFIG_TRANSPARENT_HUGEPAGE is requried.  Since Linux 5.4)
+    pub file_pmd_mapped: Option<u64>,
+
+    /// Undocumented field
+    ///
+    /// (CONFIG_TRANSPARENT_HUGEPAGE is required.  Since Linux 5.4)
+    pub file_huge_pages: Option<u64>,
 }
 
 impl Meminfo {
@@ -367,6 +377,8 @@ impl Meminfo {
             k_reclaimable: map.remove("KReclaimable"),
             per_cpu: map.remove("Percpu"),
             hugetlb: map.remove("Hugetlb"),
+            file_pmd_mapped: map.remove("FilePmdMapped"),
+            file_huge_pages: map.remove("FileHugePages"),
         };
 
         if cfg!(test) && !map.is_empty() {
