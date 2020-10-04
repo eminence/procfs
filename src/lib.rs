@@ -672,11 +672,11 @@ pub enum ConfigSetting {
 /// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
 /// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
-    use libflate::gzip::Decoder;
+    use flate2::read::GzDecoder;
 
     let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
         let file = FileWrapper::open(PROC_CONFIG_GZ)?;
-        let decoder = Decoder::new(file)?;
+        let decoder = GzDecoder::new(file);
         Box::new(BufReader::new(decoder))
     } else {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
