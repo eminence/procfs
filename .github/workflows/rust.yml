@@ -8,7 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
-        toolchain: ["1.33.0", "1.38.0", "stable", "beta", "nightly"]
+        toolchain: ["1.34.0", "1.38.0", "stable", "beta", "nightly"]
     runs-on: ubuntu-latest
 
     steps:
@@ -25,15 +25,15 @@ jobs:
       run: cargo +${{ matrix.toolchain }} test --verbose
 
     - name: Run more tests
-      if: matrix.toolchain != '1.33.0'
+      if: matrix.toolchain != '1.34.0'
       run: cargo +${{ matrix.toolchain }} test -p --manifest-path procfs-tests/Cargo.toml -p procfs-tests
 
     - name: Build docs (all features)
-      if: matrix.toolchain != '1.33.0'
+      if: matrix.toolchain != '1.34.0'
       run: cargo +${{ matrix.toolchain }} doc --all-features
 
     - name: Build docs
-      if: matrix.toolchain == '1.33.0'
+      if: matrix.toolchain == '1.34.0'
       run: cargo +${{ matrix.toolchain }} doc
 
 
