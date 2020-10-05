@@ -1,5 +1,6 @@
 // Don't throw clippy warnings for manual string stripping.
 // The suggested fix with `strip_prefix` removes support for Rust 1.33 and 1.38
+#![allow(clippy::unknown_clippy_lints)]
 #![allow(clippy::manual_strip)]
 // Don't throw rustc lint warnings for the deprecated name `intra_doc_link_resolution_failure`.
 // The suggested rename to `broken_intra_doc_links` removes support for Rust 1.33 and 1.38.
