@@ -1,3 +1,8 @@
+// Don't throw clippy warnings for manual string stripping.
+// The suggested fix with `strip_prefix` removes support for Rust 1.33 and 1.38
+#![allow(clippy::unknown_clippy_lints)]
+#![allow(clippy::manual_strip)]
+
 //! Information about the networking layer.
 //!
 //! This module corresponds to the `/proc/net` directory and contains various information about the
@@ -233,13 +238,13 @@ fn parse_addressport_str(s: &str) -> ProcResult<SocketAddr> {
 
         let ip = Ipv6Addr::new(
             ((ip_a >> 16) & 0xffff) as u16,
-            ((ip_a >> 0) & 0xffff) as u16,
+            (ip_a & 0xffff) as u16,
             ((ip_b >> 16) & 0xffff) as u16,
-            ((ip_b >> 0) & 0xffff) as u16,
+            (ip_b & 0xffff) as u16,
             ((ip_c >> 16) & 0xffff) as u16,
-            ((ip_c >> 0) & 0xffff) as u16,
+            (ip_c & 0xffff) as u16,
             ((ip_d >> 16) & 0xffff) as u16,
-            ((ip_d >> 0) & 0xffff) as u16,
+            (ip_d & 0xffff) as u16,
         );
 
         Ok(SocketAddr::V6(SocketAddrV6::new(ip, port, 0, 0)))
@@ -459,44 +464,58 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
 
     let mut vec = Vec::new();
 
-    // first line is a header we need to skip
+    // First line is a header we need to skip
     for line in reader.lines().skip(1) {
+        // Check if there might have been an IO error.
         let line = line?;
-        let mut s = line.split_whitespace();
-        let ip_address = expect!(Ipv4Addr::from_str(expect!(s.next())));
-        let hw = from_str!(u32, &expect!(s.next())[2..], 16);
+        let mut line = line.split_whitespace();
+        let ip_address = expect!(Ipv4Addr::from_str(expect!(line.next())));
+        let hw = from_str!(u32, &expect!(line.next())[2..], 16);
         let hw = ARPHardware::from_bits_truncate(hw);
-        let flags = from_str!(u32, &expect!(s.next())[2..], 16);
+        let flags = from_str!(u32, &expect!(line.next())[2..], 16);
         let flags = ARPFlags::from_bits_truncate(flags);
 
-        let mac = expect!(s.next());
+        let mac = expect!(line.next());
         let mut mac: Vec<Result<u8, _>> =
             mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
 
         let mac = if mac.len() == 6 {
-            let f = mac.pop().unwrap()?;
-            let e = mac.pop().unwrap()?;
-            let d = mac.pop().unwrap()?;
-            let c = mac.pop().unwrap()?;
-            let b = mac.pop().unwrap()?;
-            let a = mac.pop().unwrap()?;
-            if a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 {
+            let mac_block_f = mac.pop().unwrap()?;
+            let mac_block_e = mac.pop().unwrap()?;
+            let mac_block_d = mac.pop().unwrap()?;
+            let mac_block_c = mac.pop().unwrap()?;
+            let mac_block_b = mac.pop().unwrap()?;
+            let mac_block_a = mac.pop().unwrap()?;
+            if mac_block_a == 0
+                && mac_block_b == 0
+                && mac_block_c == 0
+                && mac_block_d == 0
+                && mac_block_e == 0
+                && mac_block_f == 0
+            {
                 None
             } else {
-                Some([a, b, c, d, e, f])
+                Some([
+                    mac_block_a,
+                    mac_block_b,
+                    mac_block_c,
+                    mac_block_d,
+                    mac_block_e,
+                    mac_block_f,
+                ])
             }
         } else {
             None
         };
 
         // mask is always "*"
-        let _mask = expect!(s.next());
-        let dev = expect!(s.next());
+        let _mask = expect!(line.next());
+        let dev = expect!(line.next());
 
         vec.push(ARPEntry {
             ip_address,
             hw_type: hw,
-            flags: flags,
+            flags,
             hw_address: mac,
             device: dev.to_string(),
         })
