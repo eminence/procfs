@@ -167,9 +167,9 @@ fn test_error_handling() {
     // getting the proc struct should be OK
     let init = Process::new(1).unwrap();
 
-    let i_am_root = unsafe { libc::geteuid() } == 0;
+    let i_have_access = unsafe { libc::geteuid() } == init.owner;
 
-    if !i_am_root {
+    if !i_have_access {
         // but accessing data should result in an error (unless we are running as root!)
         assert!(!init.cwd().is_ok());
         assert!(!init.environ().is_ok());
