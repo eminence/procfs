@@ -397,8 +397,6 @@ mod test {
     #[allow(clippy::cognitive_complexity)]
     #[test]
     fn test_meminfo() {
-        use std::path::Path;
-
         // TRAVIS
         // we don't have access to the kernel_config on travis, so skip that test there
         match ::std::env::var("TRAVIS") {
@@ -519,7 +517,9 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 32)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_MEMORY_FAILURE"))
+                .map_or(std::path::Path::new("/proc/kpagecgroup").exists(), |cfg| {
+                    cfg.contains_key("CONFIG_MEMORY_FAILURE")
+                })
         {
             assert!(meminfo.hardware_corrupted.is_some());
         } else {
@@ -540,7 +540,7 @@ mod test {
         if kernel >= KernelVersion::new(4, 8, 0)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE"))
+                .map_or(true, |cfg| cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE"))
         {
             assert!(meminfo.shmem_hugepages.is_some());
             assert!(meminfo.shmem_pmd_mapped.is_some());
@@ -552,7 +552,7 @@ mod test {
         if kernel >= KernelVersion::new(3, 1, 0)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_CMA"))
+                .map_or(true, |cfg| cfg.contains_key("CONFIG_CMA"))
         {
             assert!(meminfo.cma_total.is_some());
             assert!(meminfo.cma_free.is_some());
@@ -563,7 +563,7 @@ mod test {
 
         if config
             .as_ref()
-            .map_or(false, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+            .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_total.is_some());
             assert!(meminfo.hugepages_free.is_some());
@@ -577,7 +577,7 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 17)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+                .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_rsvd.is_some());
         } else {
@@ -587,7 +587,7 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 24)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+                .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_surp.is_some());
         } else {

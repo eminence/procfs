@@ -18,6 +18,10 @@ struct BinFmtEntry {
 mod tests {
     #[test]
     fn enabled() {
-        println!("{}", super::enabled().unwrap());
+        match super::enabled() {
+            Ok(_) => {}
+            Err(crate::ProcError::NotFound(_)) => {}
+            Err(e) => panic!("{}", e),
+        }
     }
 }

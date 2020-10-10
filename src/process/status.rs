@@ -383,7 +383,16 @@ mod tests {
 
     #[test]
     fn test_proc_status_for_kthreadd() {
-        let kthreadd = process::Process::new(2).unwrap();
+        // when running in a container, pid2 probably isn't kthreadd, so check
+        let kthreadd = match process::Process::new(2) {
+            Ok(p) => p,
+            Err(ProcError::NotFound(_)) => {
+                return; // ok we can ignore
+            }
+            Err(e) => {
+                panic!("{}", e);
+            }
+        };
         let status = kthreadd.status().unwrap();
         println!("{:?}", status);
 
