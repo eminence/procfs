@@ -743,6 +743,13 @@ impl Process {
         Ok(vec)
     }
 
+    /// Gets the number of open file descriptors for a process
+    pub fn fd_count(&self) -> ProcResult<usize> {
+        let path = self.root.join("fd");
+
+        Ok(wrap_io_error!(path, path.read_dir())?.count())
+    }
+
     /// Gets a list of open file descriptors for a process
     pub fn fd(&self) -> ProcResult<Vec<FDInfo>> {
         use std::ffi::OsStr;
