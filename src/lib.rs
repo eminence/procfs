@@ -64,7 +64,6 @@ use libc::pid_t;
 use libc::sysconf;
 use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 
-use std::collections::HashMap;
 use std::ffi::CStr;
 use std::fmt;
 use std::fs::File;
@@ -73,6 +72,7 @@ use std::mem;
 use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::{collections::HashMap, time::Duration};
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
@@ -738,18 +738,25 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     Ok(map)
 }
 
-/// The amount of time, measured in seconds, the CPU has been in specific states
+/// The amount of time, measured in ticks, the CPU has been in specific states
+///
+/// These fields are measured in ticks because the underlying data from the kernel is measured in ticks.
+/// The number of ticks per second can be returned by [`ticks_per_second()`](crate::ticks_per_second)
+/// and is generally 100 on most systems.
+
+/// To convert this value to seconds, you can divide by the tps.  There are also convenience methods
+/// that you can use too.
 #[derive(Debug)]
 pub struct CpuTime {
-    /// Seconds spent in user mode
-    pub user: f32,
-    /// Seconds spent in user mode with low priority (nice)
-    pub nice: f32,
-    /// Seconds spent in system mode
-    pub system: f32,
-    /// Seconds spent in the idle state
-    pub idle: f32,
-    /// Seconds waiting for I/O to complete
+    /// Ticks spent in user mode
+    pub user: u64,
+    /// Ticks spent in user mode with low priority (nice)
+    pub nice: u64,
+    /// Ticks spent in system mode
+    pub system: u64,
+    /// Ticks spent in the idle state
+    pub idle: u64,
+    /// Ticks waiting for I/O to complete
     ///
     /// This value is not reliable, for the following reasons:
     ///
@@ -763,67 +770,55 @@ pub struct CpuTime {
     /// 3. The value in this field may *decrease* in certain conditions.
     ///
     /// (Since Linux 2.5.41)
-    pub iowait: Option<f32>,
-    /// Seconds servicing interrupts
+    pub iowait: Option<u64>,
+    /// Ticks servicing interrupts
     ///
     /// (Since Linux 2.6.0)
-    pub irq: Option<f32>,
-    /// Seconds servicing softirqs
+    pub irq: Option<u64>,
+    /// Ticks servicing softirqs
     ///
     /// (Since Linux 2.6.0)
-    pub softirq: Option<f32>,
-    /// Seconds of stolen time.
+    pub softirq: Option<u64>,
+    /// Ticks of stolen time.
     ///
     /// Stolen time is the time spent in other operating systems when running in
     /// a virtualized environment.
     ///
     /// (Since Linux 2.6.11)
-    pub steal: Option<f32>,
-    /// Seconds spent running a virtual CPU for guest operating systems under control
+    pub steal: Option<u64>,
+    /// Ticks spent running a virtual CPU for guest operating systems under control
     /// of the linux kernel
     ///
     /// (Since Linux 2.6.24)
-    pub guest: Option<f32>,
-    /// Seconds spent running a niced guest
+    pub guest: Option<u64>,
+    /// Ticks spent running a niced guest
     ///
     /// (Since Linux 2.6.33)
-    pub guest_nice: Option<f32>,
+    pub guest_nice: Option<u64>,
+
+    tps: u64,
 }
 
 impl CpuTime {
     fn from_str(s: &str) -> ProcResult<CpuTime> {
         let mut s = s.split_whitespace();
 
-        s.next();
-        let user = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let nice = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let system = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
-        let idle = from_str!(u64, expect!(s.next())) as f32 / *TICKS_PER_SECOND as f32;
+        // Store this field in the struct so we don't have to attempt to unwrap ticks_per_second() when we convert
+        // from ticks into other time units
+        let tps = crate::ticks_per_second()? as u64;
 
-        let iowait = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
-        let irq = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
-        let softirq = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
-        let steal = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
-        let guest = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
-        let guest_nice = s
-            .next()
-            .map(|s| Ok(from_str!(u64, s) as f32 / *TICKS_PER_SECOND as f32))
-            .transpose()?;
+        s.next();
+        let user = from_str!(u64, expect!(s.next()));
+        let nice = from_str!(u64, expect!(s.next()));
+        let system = from_str!(u64, expect!(s.next()));
+        let idle = from_str!(u64, expect!(s.next()));
+
+        let iowait = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
+        let irq = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
+        let softirq = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
+        let steal = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
+        let guest = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
+        let guest_nice = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
 
         Ok(CpuTime {
             user,
@@ -836,7 +831,118 @@ impl CpuTime {
             steal,
             guest,
             guest_nice,
+            tps,
         })
+    }
+
+    /// Milliseconds spent in user mode
+    pub fn user_ms(&self) -> u64 {
+        let ms_per_tick = 1000 / self.tps;
+        self.user * ms_per_tick
+    }
+
+    /// Time spent in user mode
+    pub fn user_duration(&self) -> Duration {
+        Duration::from_millis(self.user_ms())
+    }
+
+    /// Milliseconds spent in user mode with low priority (nice)
+    pub fn nice_ms(&self) -> u64 {
+        let ms_per_tick = 1000 / self.tps;
+        self.nice * ms_per_tick
+    }
+
+    /// Time spent in user mode with low priority (nice)
+    pub fn nice_duration(&self) -> Duration {
+        Duration::from_millis(self.nice_ms())
+    }
+
+    /// Milliseconds spent in system mode
+    pub fn system_ms(&self) -> u64 {
+        let ms_per_tick = 1000 / self.tps;
+        self.system * ms_per_tick
+    }
+
+    /// Time spent in system mode
+    pub fn system_duration(&self) -> Duration {
+        Duration::from_millis(self.system_ms())
+    }
+
+    /// Milliseconds spent in the idle state
+    pub fn idle_ms(&self) -> u64 {
+        let ms_per_tick = 1000 / self.tps;
+        self.idle * ms_per_tick
+    }
+
+    /// Time spent in the idle state
+    pub fn idle_duration(&self) -> Duration {
+        Duration::from_millis(self.idle_ms())
+    }
+
+    /// Milliseconds spent waiting for I/O to complete
+    pub fn iowait_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.iowait.map(|io| io * ms_per_tick)
+    }
+
+    /// Time spent waiting for I/O to complete
+    pub fn iowait_duration(&self) -> Option<Duration> {
+        self.iowait_ms().map(|io| Duration::from_millis(io))
+    }
+
+    /// Milliseconds spent servicing interrupts
+    pub fn irq_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.irq.map(|ms| ms * ms_per_tick)
+    }
+
+    /// Time spent servicing interrupts
+    pub fn irq_duration(&self) -> Option<Duration> {
+        self.irq_ms().map(|ms| Duration::from_millis(ms))
+    }
+
+    /// Milliseconds spent servicing softirqs
+    pub fn softirq_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.softirq.map(|ms| ms * ms_per_tick)
+    }
+
+    /// Time spent servicing softirqs
+    pub fn softirq_duration(&self) -> Option<Duration> {
+        self.softirq_ms().map(|ms| Duration::from_millis(ms))
+    }
+
+    /// Milliseconds of stolen time
+    pub fn steal_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.steal.map(|ms| ms * ms_per_tick)
+    }
+
+    /// Amount of stolen time
+    pub fn steal_duration(&self) -> Option<Duration> {
+        self.steal_ms().map(|ms| Duration::from_millis(ms))
+    }
+
+    /// Milliseconds spent running a virtual CPU for guest operating systems under control of the linux kernel
+    pub fn guest_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.guest.map(|ms| ms * ms_per_tick)
+    }
+
+    /// Time spent running a virtual CPU for guest operating systems under control of the linux kernel
+    pub fn guest_duration(&self) -> Option<Duration> {
+        self.guest_ms().map(|ms| Duration::from_millis(ms))
+    }
+
+    /// Milliseconds spent running a niced guest
+    pub fn guest_nice_ms(&self) -> Option<u64> {
+        let ms_per_tick = 1000 / self.tps;
+        self.guest_nice.map(|ms| ms * ms_per_tick)
+    }
+
+    /// Time spent running a niced guest
+    pub fn guest_nice_duration(&self) -> Option<Duration> {
+        self.guest_nice_ms().map(|ms| Duration::from_millis(ms))
     }
 }
 
@@ -1166,35 +1272,37 @@ mod tests {
 
         // the sum of each individual CPU should be equal to the total cpu entry
         // note: on big machines with 128 cores, it seems that the differences can be rather high,
-        // especially when heavily loaded.  So this test tolerates a 60-second discrepancy
+        // especially when heavily loaded.  So this test tolerates a 6000-tick discrepancy
+        // (60 seconds in a 100-tick-per-second kernel)
 
-        let user: f32 = stat.cpu_time.iter().map(|i| i.user).sum();
-        let nice: f32 = stat.cpu_time.iter().map(|i| i.nice).sum();
-        let system: f32 = stat.cpu_time.iter().map(|i| i.system).sum();
+        let user: u64 = stat.cpu_time.iter().map(|i| i.user).sum();
+        let nice: u64 = stat.cpu_time.iter().map(|i| i.nice).sum();
+        let system: u64 = stat.cpu_time.iter().map(|i| i.system).sum();
         assert!(
-            (stat.total.user - user).abs() < 60.0,
+            (stat.total.user as i64 - user as i64).abs() < 6000,
             "sum:{} total:{} diff:{}",
             stat.total.user,
             user,
             stat.total.user - user
         );
         assert!(
-            (stat.total.nice - nice).abs() < 60.0,
+            (stat.total.nice as i64 - nice as i64).abs() < 6000,
             "sum:{} total:{} diff:{}",
             stat.total.nice,
             nice,
             stat.total.nice - nice
         );
         assert!(
-            (stat.total.system - system).abs() < 60.0,
+            (stat.total.system as i64 - system as i64).abs() < 6000,
             "sum:{} total:{} diff:{}",
             stat.total.system,
             system,
             stat.total.system - system
         );
 
-        let diff = stat.total.idle - stat.cpu_time.iter().map(|i| i.idle).sum::<f32>().abs();
-        assert!(diff < 10.0, "idle time difference too high: {}", diff);
+        let diff = stat.total.idle as i64
+            - (stat.cpu_time.iter().map(|i| i.idle).sum::<u64>() as i64).abs();
+        assert!(diff < 1000, "idle time difference too high: {}", diff);
     }
 
     #[test]
@@ -1209,5 +1317,11 @@ mod tests {
         for module in mods.values() {
             println!("{:?}", module);
         }
+    }
+
+    #[test]
+    fn tests_tps() {
+        let tps = ticks_per_second().unwrap();
+        println!("{} ticks per second", tps);
     }
 }
