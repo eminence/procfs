@@ -146,12 +146,6 @@ impl CpuInfo {
     }
 }
 
-/// Get CPU info, from /proc/cpuinfo
-#[deprecated(note = "Please use the CpuInfo::new() method instead")]
-pub fn cpuinfo() -> ProcResult<CpuInfo> {
-    CpuInfo::new()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
