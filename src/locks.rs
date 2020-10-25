@@ -146,7 +146,15 @@ impl Lock {
         let mut s = line.trim().split_whitespace();
 
         let _ = expect!(s.next());
-        let typ = From::from(expect!(s.next()));
+        let typ = {
+            let t = expect!(s.next());
+            if t == "->" {
+                // some locks start a "->" which apparently means they are "blocked" (but i'm not sure what that actually means)
+                From::from(expect!(s.next()))
+            } else {
+                From::from(t)
+            }
+        };
         let mode = From::from(expect!(s.next()));
         let kind = From::from(expect!(s.next()));
         let pid = expect!(s.next());
@@ -215,6 +223,32 @@ mod tests {
             if let LockMode::Other(s) = lock.mode {
                 panic!("Found an unknown lock mode {:?}", s);
             }
+        }
+    }
+
+    #[test]
+    fn test_blocked() {
+        let data = r#"1: POSIX  ADVISORY  WRITE 723 00:14:16845 0 EOF
+        2: FLOCK  ADVISORY  WRITE 652 00:14:16763 0 EOF
+        3: FLOCK  ADVISORY  WRITE 1594 fd:00:396528 0 EOF
+        4: FLOCK  ADVISORY  WRITE 1594 fd:00:396527 0 EOF
+        5: FLOCK  ADVISORY  WRITE 2851 fd:00:529372 0 EOF
+        6: POSIX  ADVISORY  WRITE 1280 00:14:16200 0 0
+        6: -> POSIX  ADVISORY  WRITE 1281 00:14:16200 0 0
+        6: -> POSIX  ADVISORY  WRITE 1279 00:14:16200 0 0
+        6: -> POSIX  ADVISORY  WRITE 1282 00:14:16200 0 0
+        6: -> POSIX  ADVISORY  WRITE 1283 00:14:16200 0 0
+        7: OFDLCK ADVISORY  READ  -1 00:06:1028 0 EOF
+        8: FLOCK  ADVISORY  WRITE 6471 fd:00:529426 0 EOF
+        9: FLOCK  ADVISORY  WRITE 6471 fd:00:529424 0 EOF
+        10: FLOCK  ADVISORY  WRITE 6471 fd:00:529420 0 EOF
+        11: FLOCK  ADVISORY  WRITE 6471 fd:00:529418 0 EOF
+        12: POSIX  ADVISORY  WRITE 1279 00:14:23553 0 EOF
+        13: FLOCK  ADVISORY  WRITE 6471 fd:00:393838 0 EOF
+        14: POSIX  ADVISORY  WRITE 655 00:14:16146 0 EOF"#;
+
+        for line in data.lines() {
+            super::Lock::from_line(line.trim()).unwrap();
         }
     }
 }
