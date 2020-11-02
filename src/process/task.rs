@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{FileWrapper, Io, ProcError, Stat};
+use super::{FileWrapper, Io, ProcError, Stat, Status};
 use crate::ProcResult;
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
@@ -35,6 +35,13 @@ impl Task {
     /// Many of the returned fields will be the same as the parent process, but some fields like `utime` and `stime` will be per-task
     pub fn stat(&self) -> ProcResult<Stat> {
         Stat::from_reader(FileWrapper::open(self.root.join("stat"))?)
+    }
+
+    /// Thread info from `/proc/<pid>/task/<tid>/status`
+    ///
+    /// Many of the returned fields will be the same as the parent process 
+    pub fn status(&self) -> ProcResult<Status> {
+        Status::from_reader(FileWrapper::open(self.root.join("status"))?)
     }
 
     /// Thread IO info from `/proc/<pid>/task/<tid>/io`
@@ -117,6 +124,7 @@ mod tests {
         for task in me.tasks().unwrap() {
             let task = task.unwrap();
             let stat = task.stat().unwrap();
+            let status = task.status().unwrap();
             let io = task.io().unwrap();
 
             summed_io.rchar += io.rchar;
@@ -127,12 +135,12 @@ mod tests {
             summed_io.write_bytes += io.write_bytes;
             summed_io.cancelled_write_bytes += io.cancelled_write_bytes;
 
-            if stat.comm == "one" {
+            if stat.comm == "one" && status.name == "one" {
                 found_one = true;
                 assert!(io.rchar >= bytes_to_read);
                 assert!(stat.utime >= 50, "utime({}) too small", stat.utime);
             }
-            if stat.comm == "two" {
+            if stat.comm == "two" && status.name == "two" {
                 found_two = true;
                 assert_eq!(io.rchar, 0);
                 assert_eq!(stat.utime, 0);
