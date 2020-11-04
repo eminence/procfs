@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use super::{FileWrapper, Io, ProcError, Stat, Status};
+use super::{FileWrapper, Io, ProcError, Schedstat, Stat, Status};
 use crate::ProcResult;
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
@@ -49,6 +49,13 @@ impl Task {
     /// This data will be unique per task.
     pub fn io(&self) -> ProcResult<Io> {
         Io::from_reader(FileWrapper::open(self.root.join("io"))?)
+    }
+
+    /// Thread scheduler info from `/proc/<pid>/task/<tid>/schedstat`
+    ///
+    /// This data will be unique per task.
+    pub fn schedstat(&self) -> ProcResult<Schedstat> {
+        Schedstat::from_reader(FileWrapper::open(self.root.join("schedstat"))?)
     }
 }
 

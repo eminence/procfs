@@ -77,6 +77,9 @@ pub use mount::*;
 mod status;
 pub use status::*;
 
+mod schedstat;
+pub use schedstat::*;
+
 mod task;
 pub use task::*;
 
@@ -879,6 +882,13 @@ impl Process {
     /// Return a task for the main thread of this process
     pub fn task_main_thread(&self) -> ProcResult<Task> {
         Task::from_rel_path(self.pid, Path::new(&format!("{}", self.pid)))
+    }
+
+    /// Return the `Schedstat` for this process, based on the `/proc/<pid>/schedstat` file.
+    pub fn schedstat(&self) -> ProcResult<Schedstat> {
+        let path = self.root.join("schedstat");
+        let file = FileWrapper::open(&path)?;
+        Schedstat::from_reader(file)
     }
 
     /// Iterate over all the [`Task`]s (aka Threads) in this process

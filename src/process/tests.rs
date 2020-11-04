@@ -178,6 +178,7 @@ fn test_all() {
                 check_unwrap_task(&prc, task.stat());
                 check_unwrap_task(&prc, task.status());
                 check_unwrap_task(&prc, task.io());
+                check_unwrap_task(&prc, task.schedstat());
             }
         }
     }
@@ -332,6 +333,13 @@ fn test_statm() {
     let me = Process::myself().unwrap();
     let statm = me.statm().unwrap();
     println!("{:#?}", statm);
+}
+
+#[test]
+fn test_schedstat() {
+    let me = Process::myself().unwrap();
+    let schedstat = me.schedstat().unwrap();
+    println!("{:#?}", schedstat);
 }
 
 #[test]
