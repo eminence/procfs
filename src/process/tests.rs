@@ -142,6 +142,8 @@ fn test_all() {
             for task in tasks {
                 let task = task.unwrap();
                 check_unwrap(&prc, task.stat());
+                check_unwrap(&prc, task.status());
+                check_unwrap(&prc, task.io());
             }
         }
     }

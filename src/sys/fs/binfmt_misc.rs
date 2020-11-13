@@ -6,6 +6,7 @@ pub fn enabled() -> ProcResult<bool> {
     Ok(val == "enabled")
 }
 
+/*
 struct BinFmtEntry {
     pub enabled: bool,
     pub interpreter: String,
@@ -13,6 +14,7 @@ struct BinFmtEntry {
     pub offset: u8,
     pub magic: Vec<u8>,
 }
+*/
 
 #[cfg(test)]
 mod tests {
