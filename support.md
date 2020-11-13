@@ -126,7 +126,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/sys/debug`
   * [ ] `/proc/sys/dev`
   * [ ] `/proc/sys/fs`
-	* [ ] `/proc/sys/fs/binfmt_misc`
+	* [x] `/proc/sys/fs/binfmt_misc`
 	* [x] `/proc/sys/fs/dentry-state`
 	* [ ] `/proc/sys/fs/dir-notify-enable`
 	* [ ] `/proc/sys/fs/dquot-max`
