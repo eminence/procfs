@@ -227,10 +227,10 @@ macro_rules! wrap_io_error {
             Ok(v) => Ok(v),
             Err(e) => {
                 let kind = e.kind();
-                Err(io::Error::new(
+                Err(::std::io::Error::new(
                     kind,
-                    IoErrorWrapper {
-                        path: $path.clone(),
+                    crate::IoErrorWrapper {
+                        path: $path.to_owned(),
                         inner: e.into_inner(),
                     },
                 ))
