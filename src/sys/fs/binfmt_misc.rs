@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use std::path::Path;
 
 use crate::{read_value, ProcResult};
