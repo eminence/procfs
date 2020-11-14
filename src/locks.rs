@@ -171,11 +171,7 @@ impl Lock {
             lock_type: typ,
             mode,
             kind,
-            pid: if pid == "-1" {
-                None
-            } else {
-                Some(from_str!(i32, pid))
-            },
+            pid: if pid == "-1" { None } else { Some(from_str!(i32, pid)) },
             devmaj,
             devmin,
             inode,

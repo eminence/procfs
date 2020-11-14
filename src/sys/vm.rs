@@ -72,16 +72,14 @@ impl str::FromStr for DropCache {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse()
-            .map_err(|_| "Fail to parse drop cache")
-            .and_then(|n| match n {
-                0 => Ok(DropCache::Default),
-                1 => Ok(DropCache::PageCache),
-                2 => Ok(DropCache::Inodes),
-                3 => Ok(DropCache::All),
-                4 => Ok(DropCache::Disable),
-                _ => Err("Unknown drop cache value"),
-            })
+        s.parse().map_err(|_| "Fail to parse drop cache").and_then(|n| match n {
+            0 => Ok(DropCache::Default),
+            1 => Ok(DropCache::PageCache),
+            2 => Ok(DropCache::Inodes),
+            3 => Ok(DropCache::All),
+            4 => Ok(DropCache::Disable),
+            _ => Err("Unknown drop cache value"),
+        })
     }
 }
 

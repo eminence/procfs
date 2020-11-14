@@ -1,12 +1,7 @@
 use std::collections::HashMap;
 
 fn print(name: &str, indent: usize, mods: &HashMap<&str, Vec<&str>>) {
-    println!(
-        "{}{} {}",
-        if indent == 0 { "-" } else { " " },
-        " ".repeat(indent),
-        name
-    );
+    println!("{}{} {}", if indent == 0 { "-" } else { " " }, " ".repeat(indent), name);
 
     if let Some(uses_list) = mods.get(name) {
         for name in uses_list {

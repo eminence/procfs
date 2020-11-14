@@ -370,12 +370,8 @@ impl Stat {
     }
 
     pub fn state(&self) -> ProcResult<ProcState> {
-        ProcState::from_char(self.state).ok_or_else(|| {
-            build_internal_error!(format!(
-                "{:?} is not a recognized process state",
-                self.state
-            ))
-        })
+        ProcState::from_char(self.state)
+            .ok_or_else(|| build_internal_error!(format!("{:?} is not a recognized process state", self.state)))
     }
 
     pub fn tty_nr(&self) -> (i32, i32) {
@@ -393,12 +389,8 @@ impl Stat {
     ///
     /// See also the [Stat::flags](struct.Stat.html#structfield.flags) field.
     pub fn flags(&self) -> ProcResult<StatFlags> {
-        StatFlags::from_bits(self.flags).ok_or_else(|| {
-            build_internal_error!(format!(
-                "Can't construct flags bitfield from {:?}",
-                self.flags
-            ))
-        })
+        StatFlags::from_bits(self.flags)
+            .ok_or_else(|| build_internal_error!(format!("Can't construct flags bitfield from {:?}", self.flags)))
     }
 
     /// Get the starttime of the process as a `DateTime` object.

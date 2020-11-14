@@ -16,10 +16,7 @@ fn main() {
         if prc.stat.tty_nr == me.stat.tty_nr {
             // total_time is in seconds
             let total_time = (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
-            println!(
-                "{: >5} {: <8} {: >8} {}",
-                prc.stat.pid, tty, total_time, prc.stat.comm
-            );
+            println!("{: >5} {: <8} {: >8} {}", prc.stat.pid, tty, total_time, prc.stat.comm);
         }
     }
 }

@@ -160,8 +160,7 @@ mod test {
 
     #[test]
     fn test_parse_pressure_record() {
-        let record =
-            parse_pressure_record("full avg10=2.10 avg60=0.12 avg300=0.00 total=391926").unwrap();
+        let record = parse_pressure_record("full avg10=2.10 avg60=0.12 avg300=0.00 total=391926").unwrap();
 
         assert!(record.avg10 - 2.10 < EPSILON);
         assert!(record.avg60 - 0.12 < EPSILON);

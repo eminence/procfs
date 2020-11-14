@@ -194,16 +194,10 @@ impl Status {
         let status = Status {
             _private: (),
             name: expect!(map.remove("Name")),
-            umask: map
-                .remove("Umask")
-                .map(|x| Ok(from_str!(u32, &x, 8)))
-                .transpose()?,
+            umask: map.remove("Umask").map(|x| Ok(from_str!(u32, &x, 8))).transpose()?,
             state: expect!(map.remove("State")),
             tgid: from_str!(i32, &expect!(map.remove("Tgid"))),
-            ngid: map
-                .remove("Ngid")
-                .map(|x| Ok(from_str!(i32, &x)))
-                .transpose()?,
+            ngid: map.remove("Ngid").map(|x| Ok(from_str!(i32, &x))).transpose()?,
             pid: from_str!(i32, &expect!(map.remove("Pid"))),
             ppid: from_str!(i32, &expect!(map.remove("PPid"))),
             tracerpid: from_str!(i32, &expect!(map.remove("TracerPid"))),
@@ -217,22 +211,10 @@ impl Status {
             fgid: expect!(Status::parse_uid_gid(&expect!(map.remove("Gid")), 3)),
             fdsize: from_str!(u32, &expect!(map.remove("FDSize"))),
             groups: Status::parse_list(&expect!(map.remove("Groups")))?,
-            nstgid: map
-                .remove("NStgid")
-                .map(|x| Status::parse_list(&x))
-                .transpose()?,
-            nspid: map
-                .remove("NSpid")
-                .map(|x| Status::parse_list(&x))
-                .transpose()?,
-            nspgid: map
-                .remove("NSpgid")
-                .map(|x| Status::parse_list(&x))
-                .transpose()?,
-            nssid: map
-                .remove("NSsid")
-                .map(|x| Status::parse_list(&x))
-                .transpose()?,
+            nstgid: map.remove("NStgid").map(|x| Status::parse_list(&x)).transpose()?,
+            nspid: map.remove("NSpid").map(|x| Status::parse_list(&x)).transpose()?,
+            nspgid: map.remove("NSpgid").map(|x| Status::parse_list(&x)).transpose()?,
+            nssid: map.remove("NSsid").map(|x| Status::parse_list(&x)).transpose()?,
             vmpeak: Status::parse_with_kb(map.remove("VmPeak"))?,
             vmsize: Status::parse_with_kb(map.remove("VmSize"))?,
             vmlck: Status::parse_with_kb(map.remove("VmLck"))?,
@@ -259,22 +241,10 @@ impl Status {
             capinh: from_str!(u64, &expect!(map.remove("CapInh")), 16),
             capprm: from_str!(u64, &expect!(map.remove("CapPrm")), 16),
             capeff: from_str!(u64, &expect!(map.remove("CapEff")), 16),
-            capbnd: map
-                .remove("CapBnd")
-                .map(|x| Ok(from_str!(u64, &x, 16)))
-                .transpose()?,
-            capamb: map
-                .remove("CapAmb")
-                .map(|x| Ok(from_str!(u64, &x, 16)))
-                .transpose()?,
-            nonewprivs: map
-                .remove("NoNewPrivs")
-                .map(|x| Ok(from_str!(u64, &x)))
-                .transpose()?,
-            seccomp: map
-                .remove("Seccomp")
-                .map(|x| Ok(from_str!(u32, &x)))
-                .transpose()?,
+            capbnd: map.remove("CapBnd").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
+            capamb: map.remove("CapAmb").map(|x| Ok(from_str!(u64, &x, 16))).transpose()?,
+            nonewprivs: map.remove("NoNewPrivs").map(|x| Ok(from_str!(u64, &x))).transpose()?,
+            seccomp: map.remove("Seccomp").map(|x| Ok(from_str!(u32, &x))).transpose()?,
             speculation_store_bypass: map.remove("Speculation_Store_Bypass"),
             cpus_allowed: map
                 .remove("Cpus_allowed")

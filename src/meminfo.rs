@@ -439,9 +439,7 @@ mod test {
         }
 
         if kernel >= KernelVersion::new(2, 6, 19)
-            && config
-                .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_HIGHMEM"))
+            && config.as_ref().map_or(false, |cfg| cfg.contains_key("CONFIG_HIGHMEM"))
         {
             assert!(meminfo.high_total.is_some());
             assert!(meminfo.high_free.is_some());
@@ -549,11 +547,7 @@ mod test {
             assert!(meminfo.shmem_pmd_mapped.is_none());
         }
 
-        if kernel >= KernelVersion::new(3, 1, 0)
-            && config
-                .as_ref()
-                .map_or(true, |cfg| cfg.contains_key("CONFIG_CMA"))
-        {
+        if kernel >= KernelVersion::new(3, 1, 0) && config.as_ref().map_or(true, |cfg| cfg.contains_key("CONFIG_CMA")) {
             assert!(meminfo.cma_total.is_some());
             assert!(meminfo.cma_free.is_some());
         } else {

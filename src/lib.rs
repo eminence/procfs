@@ -186,24 +186,14 @@ macro_rules! from_str {
         let e = $e;
         expect!(
             $t::from_str_radix(e, 10),
-            format!(
-                "Failed to parse {} ({:?}) as a {}",
-                stringify!($e),
-                e,
-                stringify!($t),
-            )
+            format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t),)
         )
     }};
     ($t:tt, $e:expr, $radix:expr) => {{
         let e = $e;
         expect!(
             $t::from_str_radix(e, $radix),
-            format!(
-                "Failed to parse {} ({:?}) as a {}",
-                stringify!($e),
-                e,
-                stringify!($t)
-            )
+            format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t))
         )
     }};
     ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
@@ -335,10 +325,7 @@ fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
         "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
         "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
         "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
-        unknown => Err(build_internal_error!(format!(
-            "Unknown unit type {}",
-            unknown
-        ))),
+        unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
     }
 }
 
@@ -1300,8 +1287,7 @@ mod tests {
             stat.total.system - system
         );
 
-        let diff = stat.total.idle as i64
-            - (stat.cpu_time.iter().map(|i| i.idle).sum::<u64>() as i64).abs();
+        let diff = stat.total.idle as i64 - (stat.cpu_time.iter().map(|i| i.idle).sum::<u64>() as i64).abs();
         assert!(diff < 1000, "idle time difference too high: {}", diff);
     }
 

@@ -243,15 +243,9 @@ fn test_proc_maps() {
 #[test]
 fn test_mmap_path() {
     assert_eq!(MMapPath::from("[stack]").unwrap(), MMapPath::Stack);
-    assert_eq!(
-        MMapPath::from("[foo]").unwrap(),
-        MMapPath::Other("foo".to_owned())
-    );
+    assert_eq!(MMapPath::from("[foo]").unwrap(), MMapPath::Other("foo".to_owned()));
     assert_eq!(MMapPath::from("").unwrap(), MMapPath::Anonymous);
-    assert_eq!(
-        MMapPath::from("[stack:154]").unwrap(),
-        MMapPath::TStack(154)
-    );
+    assert_eq!(MMapPath::from("[stack:154]").unwrap(), MMapPath::TStack(154));
     assert_eq!(
         MMapPath::from("/lib/libfoo.so").unwrap(),
         MMapPath::Path(PathBuf::from("/lib/libfoo.so"))

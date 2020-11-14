@@ -84,11 +84,7 @@ pub fn file_nr() -> ProcResult<FileState> {
     let free = from_str!(u64, expect!(s.next()));
     let max = from_str!(u64, expect!(s.next()));
 
-    Ok(FileState {
-        allocated,
-        free,
-        max,
-    })
+    Ok(FileState { allocated, free, max })
 }
 
 #[cfg(test)]

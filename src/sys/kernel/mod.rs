@@ -20,11 +20,7 @@ pub struct Version {
 
 impl Version {
     pub fn new(major: u8, minor: u8, patch: u8) -> Version {
-        Version {
-            major,
-            minor,
-            patch,
-        }
+        Version { major, minor, patch }
     }
 
     /// Returns the kernel version of the currently running kernel.
@@ -58,25 +54,15 @@ impl Version {
         };
         let mut kernel_split = kernel.split('.');
 
-        let major = kernel_split
-            .next()
-            .ok_or("Missing major version component")?;
-        let minor = kernel_split
-            .next()
-            .ok_or("Missing minor version component")?;
-        let patch = kernel_split
-            .next()
-            .ok_or("Missing patch version component")?;
+        let major = kernel_split.next().ok_or("Missing major version component")?;
+        let minor = kernel_split.next().ok_or("Missing minor version component")?;
+        let patch = kernel_split.next().ok_or("Missing patch version component")?;
 
         let major = major.parse().map_err(|_| "Failed to parse major version")?;
         let minor = minor.parse().map_err(|_| "Failed to parse minor version")?;
         let patch = patch.parse().map_err(|_| "Failed to parse patch version")?;
 
-        Ok(Version {
-            major,
-            minor,
-            patch,
-        })
+        Ok(Version { major, minor, patch })
     }
 }
 

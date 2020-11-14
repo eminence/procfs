@@ -108,22 +108,17 @@ pub struct Permissions {
 }
 impl Permissions {
     fn from_str(s: &str) -> ProcResult<Permissions> {
-        let possessor =
-            PermissionFlags::from_bits(from_str!(u32, &s[0..2], 16)).ok_or_else(|| {
-                build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s))
-            })?;
+        let possessor = PermissionFlags::from_bits(from_str!(u32, &s[0..2], 16))
+            .ok_or_else(|| build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s)))?;
 
-        let user = PermissionFlags::from_bits(from_str!(u32, &s[2..4], 16)).ok_or_else(|| {
-            build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s))
-        })?;
+        let user = PermissionFlags::from_bits(from_str!(u32, &s[2..4], 16))
+            .ok_or_else(|| build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s)))?;
 
-        let group = PermissionFlags::from_bits(from_str!(u32, &s[4..6], 16)).ok_or_else(|| {
-            build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s))
-        })?;
+        let group = PermissionFlags::from_bits(from_str!(u32, &s[4..6], 16))
+            .ok_or_else(|| build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s)))?;
 
-        let other = PermissionFlags::from_bits(from_str!(u32, &s[6..8], 16)).ok_or_else(|| {
-            build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s))
-        })?;
+        let other = PermissionFlags::from_bits(from_str!(u32, &s[6..8], 16))
+            .ok_or_else(|| build_internal_error!(format!("Unable to parse {:?} as PermissionFlags", s)))?;
 
         Ok(Permissions {
             possessor,
@@ -155,13 +150,8 @@ impl KeyTimeout {
                 "m" => Ok(KeyTimeout::Timeout(Duration::from_secs(val * 60))),
                 "h" => Ok(KeyTimeout::Timeout(Duration::from_secs(val * 60 * 60))),
                 "d" => Ok(KeyTimeout::Timeout(Duration::from_secs(val * 60 * 60 * 24))),
-                "w" => Ok(KeyTimeout::Timeout(Duration::from_secs(
-                    val * 60 * 60 * 24 * 7,
-                ))),
-                _ => Err(build_internal_error!(format!(
-                    "Unable to parse keytimeout of {:?}",
-                    s
-                ))),
+                "w" => Ok(KeyTimeout::Timeout(Duration::from_secs(val * 60 * 60 * 24 * 7))),
+                _ => Err(build_internal_error!(format!("Unable to parse keytimeout of {:?}", s))),
             }
         }
     }
@@ -342,24 +332,15 @@ impl KeyUser {
 
         let (nkeys, nikeys) = {
             let mut s = keys.split('/');
-            (
-                from_str!(u32, expect!(s.next())),
-                from_str!(u32, expect!(s.next())),
-            )
+            (from_str!(u32, expect!(s.next())), from_str!(u32, expect!(s.next())))
         };
         let (qnkeys, maxkeys) = {
             let mut s = qkeys.split('/');
-            (
-                from_str!(u32, expect!(s.next())),
-                from_str!(u32, expect!(s.next())),
-            )
+            (from_str!(u32, expect!(s.next())), from_str!(u32, expect!(s.next())))
         };
         let (qnbytes, maxbytes) = {
             let mut s = qbytes.split('/');
-            (
-                from_str!(u32, expect!(s.next())),
-                from_str!(u32, expect!(s.next())),
-            )
+            (from_str!(u32, expect!(s.next())), from_str!(u32, expect!(s.next())))
         };
 
         Ok(KeyUser {
@@ -396,10 +377,7 @@ mod tests {
     #[test]
     fn key_flags() {
         assert_eq!(KeyFlags::from_str("I------"), KeyFlags::INSTANTIATED);
-        assert_eq!(
-            KeyFlags::from_str("IR"),
-            KeyFlags::INSTANTIATED | KeyFlags::REVOKED
-        );
+        assert_eq!(KeyFlags::from_str("IR"), KeyFlags::INSTANTIATED | KeyFlags::REVOKED);
         assert_eq!(KeyFlags::from_str("IRDQUNi"), KeyFlags::all());
     }
 

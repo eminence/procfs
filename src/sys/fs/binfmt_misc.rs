@@ -31,11 +31,7 @@ pub enum BinFmtData {
     /// A BinFmt entry based on a file extension (does not include the period)
     Extension(String),
     /// A BinFmt entry based on magic string matching
-    Magic {
-        offset: u8,
-        magic: Vec<u8>,
-        mask: Vec<u8>,
-    },
+    Magic { offset: u8, magic: Vec<u8>, mask: Vec<u8> },
 }
 
 /// A registered binary format entry
@@ -100,11 +96,7 @@ impl BinFmtEntry {
             data: if let Some(ext) = ext {
                 BinFmtData::Extension(ext)
             } else {
-                BinFmtData::Magic {
-                    magic,
-                    mask,
-                    offset,
-                }
+                BinFmtData::Magic { magic, mask, offset }
             },
         })
     }
@@ -245,25 +237,17 @@ mask ffffffffffffff00fffffffffffffffffeffffff"#;
 
         let entry = BinFmtEntry::from_string("test".to_owned(), &data).unwrap();
         println!("{:#?}", entry);
-        assert_eq!(
-            entry.flags,
-            BinFmtFlags::F | BinFmtFlags::C | BinFmtFlags::O
-        );
+        assert_eq!(entry.flags, BinFmtFlags::F | BinFmtFlags::C | BinFmtFlags::O);
         assert!(entry.enabled);
         assert_eq!(entry.interpreter, "/usr/bin/qemu-riscv64-static");
-        if let BinFmtData::Magic {
-            offset,
-            magic,
-            mask,
-        } = entry.data
-        {
+        if let BinFmtData::Magic { offset, magic, mask } = entry.data {
             assert_eq!(offset, 12);
             assert_eq!(magic.len(), mask.len());
             assert_eq!(
                 magic,
                 vec![
-                    0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x02, 0x00, 0xf3, 0x00
+                    0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x02, 0x00, 0xf3, 0x00
                 ]
             );
         } else {

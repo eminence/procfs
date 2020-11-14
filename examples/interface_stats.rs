@@ -29,13 +29,9 @@ fn main() {
                 "{:>16}: {:<20}  {:>6.1} kbps  {:<20}  {:>6.1} kbps ",
                 stat.name,
                 stat.recv_bytes,
-                (stat.recv_bytes - prev_stats.get(&stat.name).unwrap().recv_bytes) as f32
-                    / dt
-                    / 1000.0,
+                (stat.recv_bytes - prev_stats.get(&stat.name).unwrap().recv_bytes) as f32 / dt / 1000.0,
                 stat.sent_bytes,
-                (stat.sent_bytes - prev_stats.get(&stat.name).unwrap().sent_bytes) as f32
-                    / dt
-                    / 1000.0
+                (stat.sent_bytes - prev_stats.get(&stat.name).unwrap().sent_bytes) as f32 / dt / 1000.0
             );
         }
 

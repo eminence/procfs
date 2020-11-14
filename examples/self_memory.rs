@@ -45,10 +45,7 @@ fn main() {
             "Total virtual memory used: {} bytes",
             status.vmsize.expect("vmsize") * 1024
         );
-        println!(
-            "Total resident set: {} bytes",
-            status.vmrss.expect("vmrss") * 1024
-        );
+        println!("Total resident set: {} bytes", status.vmrss.expect("vmrss") * 1024);
         println!(
             "Total shared memory: {} bytes",
             status.rssfile.expect("rssfile") * 1024 + status.rssshmem.expect("rssshmem") * 1024

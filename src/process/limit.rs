@@ -126,26 +126,22 @@ impl Limits {
             let s: Vec<_> = line.split_whitespace().collect();
             let l = s.len();
 
-            let (hard_limit, soft_limit, name) = if line.starts_with("Max nice priority")
-                || line.starts_with("Max realtime priority")
-            {
-                // these two limits don't have units, and so need different offsets:
-                let hard_limit = expect!(s.get(l - 1)).to_owned();
-                let soft_limit = expect!(s.get(l - 2)).to_owned();
-                let name = s[0..l - 2].join(" ");
-                (hard_limit, soft_limit, name)
-            } else {
-                let hard_limit = expect!(s.get(l - 2)).to_owned();
-                let soft_limit = expect!(s.get(l - 3)).to_owned();
-                let name = s[0..l - 3].join(" ");
-                (hard_limit, soft_limit, name)
-            };
+            let (hard_limit, soft_limit, name) =
+                if line.starts_with("Max nice priority") || line.starts_with("Max realtime priority") {
+                    // these two limits don't have units, and so need different offsets:
+                    let hard_limit = expect!(s.get(l - 1)).to_owned();
+                    let soft_limit = expect!(s.get(l - 2)).to_owned();
+                    let name = s[0..l - 2].join(" ");
+                    (hard_limit, soft_limit, name)
+                } else {
+                    let hard_limit = expect!(s.get(l - 2)).to_owned();
+                    let soft_limit = expect!(s.get(l - 3)).to_owned();
+                    let name = s[0..l - 3].join(" ");
+                    (hard_limit, soft_limit, name)
+                };
             let _units = expect!(s.get(l - 1));
 
-            map.insert(
-                name.to_owned(),
-                (soft_limit.to_owned(), hard_limit.to_owned()),
-            );
+            map.insert(name.to_owned(), (soft_limit.to_owned(), hard_limit.to_owned()));
         }
 
         let limits = Limits {
@@ -232,227 +228,83 @@ mod tests {
         };
 
         // Max cpu time
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_CPU, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_cpu_time.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_cpu_time.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_CPU, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_cpu_time.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_cpu_time.hard_limit.as_rlim_t());
 
         // Max file size
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_file_size.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_file_size.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_file_size.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_file_size.hard_limit.as_rlim_t());
 
         // Max data size
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_DATA, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_data_size.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_data_size.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_DATA, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_data_size.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_data_size.hard_limit.as_rlim_t());
 
         // Max stack size
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_STACK, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_stack_size.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_stack_size.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_STACK, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_stack_size.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_stack_size.hard_limit.as_rlim_t());
 
         // Max core file size
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_CORE, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_core_file_size.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_core_file_size.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_CORE, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_core_file_size.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_core_file_size.hard_limit.as_rlim_t());
 
         // Max resident set
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_RSS, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_resident_set.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_resident_set.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RSS, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_resident_set.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_resident_set.hard_limit.as_rlim_t());
 
         // Max processes
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_NPROC, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_processes.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_processes.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NPROC, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_processes.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_processes.hard_limit.as_rlim_t());
 
         // Max open files
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_open_files.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_open_files.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_open_files.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_open_files.hard_limit.as_rlim_t());
 
         // Max locked memory
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_MEMLOCK, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_locked_memory.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_locked_memory.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_MEMLOCK, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_locked_memory.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_locked_memory.hard_limit.as_rlim_t());
 
         // Max address space
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_AS, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_address_space.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_address_space.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_AS, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_address_space.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_address_space.hard_limit.as_rlim_t());
 
         // Max file locks
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_LOCKS, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_file_locks.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_file_locks.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_LOCKS, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_file_locks.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_file_locks.hard_limit.as_rlim_t());
 
         // Max pending signals
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_SIGPENDING, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_pending_signals.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_pending_signals.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_SIGPENDING, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_pending_signals.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_pending_signals.hard_limit.as_rlim_t());
 
         // Max msgqueue size
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_MSGQUEUE, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_msgqueue_size.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_msgqueue_size.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_MSGQUEUE, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_msgqueue_size.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_msgqueue_size.hard_limit.as_rlim_t());
 
         // Max nice priority
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_NICE, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_nice_priority.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_nice_priority.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NICE, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_nice_priority.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_nice_priority.hard_limit.as_rlim_t());
 
         // Max realtime priority
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_RTPRIO, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_realtime_priority.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_realtime_priority.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RTPRIO, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_realtime_priority.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_realtime_priority.hard_limit.as_rlim_t());
 
         // Max realtime timeout
-        assert_eq!(
-            unsafe { libc::getrlimit(libc::RLIMIT_RTTIME, &mut libc_lim) },
-            0
-        );
-        assert_eq!(
-            libc_lim.rlim_cur,
-            limits.max_realtime_timeout.soft_limit.as_rlim_t()
-        );
-        assert_eq!(
-            libc_lim.rlim_max,
-            limits.max_realtime_timeout.hard_limit.as_rlim_t()
-        );
+        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RTTIME, &mut libc_lim) }, 0);
+        assert_eq!(libc_lim.rlim_cur, limits.max_realtime_timeout.soft_limit.as_rlim_t());
+        assert_eq!(libc_lim.rlim_max, limits.max_realtime_timeout.hard_limit.as_rlim_t());
     }
 }

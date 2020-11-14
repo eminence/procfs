@@ -476,8 +476,7 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
         let flags = ARPFlags::from_bits_truncate(flags);
 
         let mac = expect!(line.next());
-        let mut mac: Vec<Result<u8, _>> =
-            mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
+        let mut mac: Vec<Result<u8, _>> = mac.split(':').map(|s| Ok(from_str!(u8, s, 16))).collect();
 
         let mac = if mac.len() == 6 {
             let mac_block_f = mac.pop().unwrap()?;
@@ -650,10 +649,7 @@ mod tests {
         let addr = parse_addressport_str("5014002A14080140000000000E200000:0050").unwrap();
         assert_eq!(addr.port(), 80);
         match addr.ip() {
-            IpAddr::V6(addr) => assert_eq!(
-                addr,
-                Ipv6Addr::from_str("2a00:1450:4001:814::200e").unwrap()
-            ),
+            IpAddr::V6(addr) => assert_eq!(addr, Ipv6Addr::from_str("2a00:1450:4001:814::200e").unwrap()),
             _ => panic!("Not IPv6"),
         }
 
@@ -661,10 +657,7 @@ mod tests {
         let addr = parse_addressport_str("B80D01200000000067452301EFCDAB89:0").unwrap();
         assert_eq!(addr.port(), 0);
         match addr.ip() {
-            IpAddr::V6(addr) => assert_eq!(
-                addr,
-                Ipv6Addr::from_str("2001:db8::123:4567:89ab:cdef").unwrap()
-            ),
+            IpAddr::V6(addr) => assert_eq!(addr, Ipv6Addr::from_str("2001:db8::123:4567:89ab:cdef").unwrap()),
             _ => panic!("Not IPv6"),
         }
 

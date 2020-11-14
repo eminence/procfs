@@ -39,7 +39,7 @@ impl Task {
 
     /// Thread info from `/proc/<pid>/task/<tid>/status`
     ///
-    /// Many of the returned fields will be the same as the parent process 
+    /// Many of the returned fields will be the same as the parent process
     pub fn status(&self) -> ProcResult<Status> {
         Status::from_reader(FileWrapper::open(self.root.join("status"))?)
     }
@@ -86,9 +86,7 @@ mod tests {
                 assert_eq!(vec.len(), bytes_to_read as usize);
 
                 // spin for about 52 ticks (utime accounting isn't perfectly accurate)
-                let dur = std::time::Duration::from_millis(
-                    52 * (1000 / crate::ticks_per_second().unwrap()) as u64,
-                );
+                let dur = std::time::Duration::from_millis(52 * (1000 / crate::ticks_per_second().unwrap()) as u64);
                 let start = std::time::Instant::now();
                 while start.elapsed() <= dur {
                     // spin
