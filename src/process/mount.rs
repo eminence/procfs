@@ -1,3 +1,5 @@
+use bitflags::bitflags;
+
 use crate::{from_iter, FileWrapper, ProcResult};
 
 use std::collections::HashMap;

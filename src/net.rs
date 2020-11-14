@@ -54,6 +54,7 @@ use crate::ProcResult;
 use std::collections::HashMap;
 
 use crate::FileWrapper;
+use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};

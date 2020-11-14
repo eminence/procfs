@@ -3,7 +3,7 @@ procfs
 
 [![Crate](https://img.shields.io/crates/v/procfs.svg)](https://crates.io/crates/procfs)
 [![Docs](https://docs.rs/procfs/badge.svg)](https://docs.rs/procfs)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.33+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.34+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
 
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
@@ -71,7 +71,7 @@ The following cargo features are available:
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of 1.33.0 (2019-02-28), though if you use the optional `backtrace` feature,
+This crate requires a minimum rust version of 1.34.0 (2019-04-11), though if you use the optional `backtrace` feature,
 rust 1.38.0 is required (2019-09-23).
 
 ## License

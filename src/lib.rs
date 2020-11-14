@@ -49,17 +49,8 @@
 //! [examples](https://github.com/eminence/procfs/tree/master/examples) folder of the code repository.
 //!
 
-#[cfg(unix)]
-extern crate libc;
-#[macro_use]
-extern crate bitflags;
-
-#[macro_use]
-extern crate lazy_static;
-extern crate byteorder;
-extern crate hex;
-extern crate libflate;
-
+use bitflags::bitflags;
+use lazy_static::lazy_static;
 use libc::pid_t;
 use libc::sysconf;
 use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
@@ -675,11 +666,11 @@ pub enum ConfigSetting {
 /// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
 /// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
-    use libflate::gzip::Decoder;
+    use flate2::read::GzDecoder;
 
     let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
         let file = FileWrapper::open(PROC_CONFIG_GZ)?;
-        let decoder = Decoder::new(file)?;
+        let decoder = GzDecoder::new(file);
         Box::new(BufReader::new(decoder))
     } else {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
