@@ -19,7 +19,7 @@
 //! releases, and other fields are only present in certain kernel configuration options are
 //! enabled.  These are represented as `Option` fields in this crate.
 //!
-//! This crate aims to support all 2.6 kernels (and newer).
+//! This crate aims to support all 2.6 kernels (and newer).  WSL2 is also supported.
 //!
 //! # Documentation
 //!

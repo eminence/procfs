@@ -25,7 +25,7 @@ fn check_unwrap_task<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
             // we are not root, and so a permission denied error is OK
             None
         }
-        Err(ProcError::NotFound(path)) => {
+        Err(ProcError::NotFound(_path)) => {
             // tasks can be more short-lived thanks processes, and it seems that accessing
             // the /status and /stat files for tasks is quite unreliable
             None
@@ -122,6 +122,18 @@ fn test_self_proc() {
 
 #[test]
 fn test_all() {
+    let is_wsl2 = kernel_config()
+        .ok()
+        .and_then(|cfg| {
+            cfg.get("CONFIG_LOCALVERSION").and_then(|ver| {
+                if let ConfigSetting::Value(s) = ver {
+                    Some(s == "\"-microsoft-standard\"")
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap_or(false);
     for prc in all_processes().unwrap() {
         // note: this test doesn't unwrap, since some of this data requires root to access
         // so permission denied errors are common.  The check_unwrap helper function handles
@@ -145,7 +157,13 @@ fn test_all() {
         check_unwrap(&prc, prc.io());
         check_unwrap(&prc, prc.maps());
         check_unwrap(&prc, prc.coredump_filter());
-        check_unwrap(&prc, prc.autogroup());
+        // The WSL2 kernel doesn't have autogroup, even though this should be present since linux
+        // 2.6.36
+        if is_wsl2 {
+            assert!(prc.autogroup().is_err());
+        } else {
+            check_unwrap(&prc, prc.autogroup());
+        }
         check_unwrap(&prc, prc.auxv());
         check_unwrap(&prc, prc.cgroups());
         check_unwrap(&prc, prc.wchan());
