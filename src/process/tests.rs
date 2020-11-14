@@ -18,6 +18,22 @@ fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     }
 }
 
+fn check_unwrap_task<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
+    match val {
+        Ok(t) => Some(t),
+        Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
+            // we are not root, and so a permission denied error is OK
+            None
+        }
+        Err(ProcError::NotFound(path)) => {
+            // tasks can be more short-lived thanks processes, and it seems that accessing
+            // the /status and /stat files for tasks is quite unreliable
+            None
+        }
+        Err(err) => panic!("check_unwrap error for {} {:?}", prc.pid, err),
+    }
+}
+
 #[test]
 fn test_main_thread_task() {
     let myself = Process::myself().unwrap();
@@ -141,9 +157,9 @@ fn test_all() {
         if let Some(tasks) = check_unwrap(&prc, prc.tasks()) {
             for task in tasks {
                 let task = task.unwrap();
-                check_unwrap(&prc, task.stat());
-                check_unwrap(&prc, task.status());
-                check_unwrap(&prc, task.io());
+                check_unwrap_task(&prc, task.stat());
+                check_unwrap_task(&prc, task.status());
+                check_unwrap_task(&prc, task.io());
             }
         }
     }
