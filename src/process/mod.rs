@@ -885,6 +885,8 @@ impl Process {
     }
 
     /// Return the `Schedstat` for this process, based on the `/proc/<pid>/schedstat` file.
+    ///
+    /// (Requires CONFIG_SCHED_INFO)
     pub fn schedstat(&self) -> ProcResult<Schedstat> {
         let path = self.root.join("schedstat");
         let file = FileWrapper::open(&path)?;
