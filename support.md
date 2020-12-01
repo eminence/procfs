@@ -43,7 +43,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/seccomp`
   * [ ] `/proc/[pid]/setgroups`
   * [ ] `/proc/[pid]/sched_autogroup_enabled`
-  * [ ] `/proc/[pid]/smaps`
+  * [x] `/proc/[pid]/smaps`
   * [ ] `/proc/[pid]/stack`
   * [x] `/proc/[pid]/stat`
   * [x] `/proc/[pid]/statm`
