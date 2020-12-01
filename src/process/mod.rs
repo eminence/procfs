@@ -323,7 +323,7 @@ pub struct Io {
     pub cancelled_write_bytes: u64,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum MMapPath {
     /// The file that is backing the mapping.
     Path(PathBuf),
@@ -371,7 +371,7 @@ impl MMapPath {
 /// Represents an entry in a `/proc/<pid>/maps` file.
 ///
 /// To construct this structure, see [Process::maps()].
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
