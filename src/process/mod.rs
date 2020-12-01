@@ -388,6 +388,27 @@ pub struct MemoryMap {
     pub pathname: MMapPath,
 }
 
+impl MemoryMap {
+    fn from_line(line: &str) -> ProcResult<MemoryMap> {
+        let mut s = line.splitn(6, ' ');
+        let address = expect!(s.next());
+        let perms = expect!(s.next());
+        let offset = expect!(s.next());
+        let dev = expect!(s.next());
+        let inode = expect!(s.next());
+        let path = expect!(s.next());
+
+        Ok(MemoryMap {
+            address: split_into_num(address, '-', 16)?,
+            perms: perms.to_string(),
+            offset: from_str!(u64, offset, 16),
+            dev: split_into_num(dev, ':', 16)?,
+            inode: from_str!(u64, inode),
+            pathname: MMapPath::from(path)?,
+        })
+    }
+}
+
 impl Io {
     pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Io> {
         let mut map = HashMap::new();
@@ -691,25 +712,6 @@ impl Process {
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
-        pub(crate) fn from_line(line: &str) -> ProcResult<MemoryMap> {
-            let mut s = line.splitn(6, ' ');
-            let address = expect!(s.next());
-            let perms = expect!(s.next());
-            let offset = expect!(s.next());
-            let dev = expect!(s.next());
-            let inode = expect!(s.next());
-            let path = expect!(s.next());
-
-            Ok(MemoryMap {
-                address: split_into_num(address, '-', 16)?,
-                perms: perms.to_string(),
-                offset: from_str!(u64, offset, 16),
-                dev: split_into_num(dev, ':', 16)?,
-                inode: from_str!(u64, inode),
-                pathname: MMapPath::from(path)?,
-            })
-        }
-
         let path = self.root.join("maps");
         let file = FileWrapper::open(&path)?;
 
