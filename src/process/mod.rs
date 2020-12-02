@@ -553,7 +553,7 @@ pub struct MemoryMapData {
     /// Note that should a Key-Value pair represent a memory usage statistic, it will be in bytes.
     ///
     /// Check your manpage for more information
-    pub key_value_pairs: HashMap<String, u64>,
+    pub map: HashMap<String, u64>,
     /// Kernel flags associated with the virtual memory area
     ///
     /// (since Linux 3.8)
@@ -936,7 +936,7 @@ impl Process {
                         // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
                         let k = if let Some(k) = k.strip_suffix(":") { k } else { k };
 
-                        current_data.key_value_pairs.insert(k.into(), v * size_multiplier);
+                        current_data.map.insert(k.into(), v * size_multiplier);
                     }
                 }
             }
