@@ -550,6 +550,8 @@ pub struct MemoryMapData {
     /// Key-Value pairs that may represent statistics about memory usage, or other interesting things,
     /// such a "ProtectionKey"(if you're on X86 and that kernel config option was specified).
     ///
+    /// Note that should a Key-Value pair represent a memory usage statistic, it will be in bytes.
+    ///
     /// Check your manpage for more information
     pub key_value_pairs: HashMap<String, u64>,
     /// Kernel flags associated with the virtual memory area
