@@ -916,12 +916,12 @@ impl Process {
                 } else {
                     let mut parts = line.split_ascii_whitespace();
 
-                    let key = parts.nth(0);
-                    let value = parts.nth(1);
+                    let key = parts.next();
+                    let value = parts.next();
 
                     if let (Some(k), Some(v)) = (key, value) {
                         // While most entries do have one, not all of them do.
-                        let size_suffix = parts.nth(2);
+                        let size_suffix = parts.next();
 
                         // Limited poking at /proc/<pid>/smaps and then checking if "MB", "GB", and "TB" appear in the C file that is
                         // supposedly responsible for creating smaps, has lead me to believe that the only size suffixes we'll ever encounter
