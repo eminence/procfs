@@ -13,7 +13,7 @@ const fn genmask(high: usize, low: usize) -> u64 {
 }
 
 // source: include/linux/swap.h
-pub const MAX_SWAPFILES_SHIFT: usize = 5;
+const MAX_SWAPFILES_SHIFT: usize = 5;
 
 // source: fs/proc/task_mmu.c
 bitflags! {
@@ -28,6 +28,16 @@ bitflags! {
     }
 }
 
+impl SwapPageFlags {
+    pub fn get_swap_type(&self) -> u64 {
+        (*self & Self::SWAP_TYPE).bits()
+    }
+
+    pub fn get_swap_offset(&self) -> u64 {
+        (*self & Self::SWAP_OFFSET).bits() >> MAX_SWAPFILES_SHIFT
+    }
+}
+
 bitflags! {
     pub struct MemoryPageFlags: u64 {
         const PFN = genmask(54, 0);
@@ -36,6 +46,12 @@ bitflags! {
         const FILE = 1 << 61;
         const SWAP = 1 << 62;
         const PRESENT = 1 << 63;
+    }
+}
+
+impl MemoryPageFlags {
+    pub fn get_page_frame_number(&self) -> u64 {
+        (*self & Self::PFN).bits()
     }
 }
 
@@ -126,7 +142,7 @@ mod tests {
         if let PageInfo::MemoryPage(memory_flags) = info {
             assert!(memory_flags
                 .contains(MemoryPageFlags::PRESENT | MemoryPageFlags::MMAP_EXCLUSIVE | MemoryPageFlags::SOFT_DIRTY));
-            assert_eq!((memory_flags & MemoryPageFlags::PFN).bits(), 0b11)
+            assert_eq!(memory_flags.get_page_frame_number(), 0b11);
         } else {
             panic!("Wrong SWAP decoding");
         }
@@ -137,11 +153,8 @@ mod tests {
             assert!(
                 swap_flags.contains(SwapPageFlags::PRESENT | SwapPageFlags::MMAP_EXCLUSIVE | SwapPageFlags::SOFT_DIRTY)
             );
-            assert_eq!((swap_flags & SwapPageFlags::SWAP_TYPE).bits(), 0b10);
-            assert_eq!(
-                (swap_flags & SwapPageFlags::SWAP_OFFSET).bits() >> MAX_SWAPFILES_SHIFT,
-                0b11
-            );
+            assert_eq!(swap_flags.get_swap_type(), 0b10);
+            assert_eq!(swap_flags.get_swap_offset(), 0b11);
         } else {
             panic!("Wrong SWAP decoding");
         }
