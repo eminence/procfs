@@ -82,16 +82,9 @@ impl PageMap {
         Self { file }
     }
 
-    fn parse_next_page_info(&mut self) -> ProcResult<PageInfo> {
-        let mut info_bytes = [0; size_of::<u64>()];
-        self.file.read_exact(&mut info_bytes)?;
-        Ok(PageInfo::parse_info(u64::from_ne_bytes(info_bytes)))
-    }
-
     pub fn get_info(&mut self, page_index: u64) -> ProcResult<PageInfo> {
-        let position = page_index * size_of::<u64>() as u64;
-        self.file.seek(SeekFrom::Start(position))?;
-        self.parse_next_page_info()
+        self.get_range_info(page_index..page_index + 1)
+            .map(|mut vec| vec.pop().unwrap())
     }
 
     pub fn get_range_info(&mut self, page_range: impl RangeBounds<u64>) -> ProcResult<Vec<PageInfo>> {
@@ -112,7 +105,9 @@ impl PageMap {
 
         let mut page_infos = Vec::with_capacity((end - start) as usize);
         for _ in start..end {
-            page_infos.push(self.parse_next_page_info()?);
+            let mut info_bytes = [0; size_of::<u64>()];
+            self.file.read_exact(&mut info_bytes)?;
+            page_infos.push(PageInfo::parse_info(u64::from_ne_bytes(info_bytes)));
         }
 
         Ok(page_infos)
