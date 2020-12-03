@@ -2,7 +2,7 @@ use crate::{FileWrapper, ProcResult};
 
 use bitflags::bitflags;
 use std::{
-    io::{Read, Seek, SeekFrom},
+    io::{BufReader, Read, Seek, SeekFrom},
     mem::size_of,
     ops::{Bound, RangeBounds},
 };
@@ -74,12 +74,14 @@ impl PageInfo {
 }
 
 pub struct PageMap {
-    file: FileWrapper,
+    reader: BufReader<FileWrapper>,
 }
 
 impl PageMap {
     pub(crate) fn from_file_wrapper(file: FileWrapper) -> Self {
-        Self { file }
+        Self {
+            reader: BufReader::new(file),
+        }
     }
 
     pub fn get_info(&mut self, page_index: u64) -> ProcResult<PageInfo> {
@@ -101,12 +103,12 @@ impl PageMap {
         };
 
         let start_position = start * size_of::<u64>() as u64;
-        self.file.seek(SeekFrom::Start(start_position))?;
+        self.reader.seek(SeekFrom::Start(start_position))?;
 
         let mut page_infos = Vec::with_capacity((end - start) as usize);
         for _ in start..end {
             let mut info_bytes = [0; size_of::<u64>()];
-            self.file.read_exact(&mut info_bytes)?;
+            self.reader.read_exact(&mut info_bytes)?;
             page_infos.push(PageInfo::parse_info(u64::from_ne_bytes(info_bytes)));
         }
 
