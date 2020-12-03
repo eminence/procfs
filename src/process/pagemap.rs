@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use std::{
     io::{Read, Seek, SeekFrom},
     mem::size_of,
-    ops::Range,
+    ops::{Bound, RangeBounds},
 };
 
 const fn genmask(high: usize, low: usize) -> u64 {
@@ -78,12 +78,24 @@ impl PageMap {
         self.parse_next_page_info()
     }
 
-    pub fn get_range_info(&mut self, page_range: Range<u64>) -> ProcResult<Vec<PageInfo>> {
-        let start_position = page_range.start * size_of::<u64>() as u64;
+    pub fn get_range_info(&mut self, page_range: impl RangeBounds<u64>) -> ProcResult<Vec<PageInfo>> {
+        let start = match page_range.start_bound() {
+            Bound::Included(v) => *v,
+            Bound::Excluded(v) => *v + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match page_range.end_bound() {
+            Bound::Included(v) => *v,
+            Bound::Excluded(v) => *v - 1,
+            Bound::Unbounded => u64::MAX / crate::page_size().unwrap() as u64,
+        };
+
+        let start_position = start * size_of::<u64>() as u64;
         self.file.seek(SeekFrom::Start(start_position))?;
 
-        let mut page_infos = Vec::with_capacity((page_range.end - page_range.start) as usize);
-        for _ in page_range {
+        let mut page_infos = Vec::with_capacity((end - start) as usize);
+        for _ in start..end {
             page_infos.push(self.parse_next_page_info()?);
         }
 
