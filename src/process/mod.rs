@@ -545,7 +545,7 @@ impl MemoryMap {
 /// Represents the information about a specific mapping as presented in /proc/<pid>/smaps
 ///
 /// To construct this structure, see [Process::smaps()]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct MemoryMapData {
     /// Key-Value pairs that may represent statistics about memory usage, or other interesting things,
     /// such a "ProtectionKey"(if you're on X86 and that kernel config option was specified).
