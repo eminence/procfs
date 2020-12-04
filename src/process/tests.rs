@@ -185,6 +185,20 @@ fn test_all() {
 }
 
 #[test]
+fn test_smaps() {
+    let me = Process::myself().unwrap();
+    let smaps = match me.smaps() {
+        Ok(x) => x,
+        Err(ProcError::NotFound(_)) => {
+            // ignored because not all kernerls have smaps
+            return;
+        }
+        Err(e) => panic!("{}", e),
+    };
+    println!("{:#?}", smaps);
+}
+
+#[test]
 fn test_proc_alive() {
     let myself = Process::myself().unwrap();
     assert!(myself.is_alive());

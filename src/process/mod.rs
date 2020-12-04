@@ -190,6 +190,123 @@ bitflags! {
     }
 }
 
+bitflags! {
+    /// Represents the kernel flags associated with the virtual memory area.
+    /// The names of these flags are just those you'll find in the man page, but in upper case.
+    pub struct VmFlags: u32 {
+        /// Invalid flags
+        const INVALID = 0;
+        /// Readable
+        const RD = 1 << 0;
+        /// Writable
+        const WR = 1 << 1;
+        /// Executable
+        const EX = 1 << 2;
+        /// Shared
+        const SH = 1 << 3;
+        /// May read
+        const MR = 1 << 4;
+        /// May write
+        const MW = 1 << 5;
+        /// May execute
+        const ME = 1 << 6;
+        /// May share
+        const MS = 1 << 7;
+        /// Stack segment grows down
+        const GD = 1 << 8;
+        /// Pure PFN range
+        const PF = 1 << 9;
+        /// Disable write to the mapped file
+        const DW = 1 << 10;
+        /// Pages are locked in memory
+        const LO = 1 << 11;
+        /// Memory mapped I/O area
+        const IO = 1 << 12;
+        /// Sequential read advise provided
+        const SR = 1 << 13;
+        /// Random read provided
+        const RR = 1 << 14;
+        /// Do not copy area on fork
+        const DC = 1 << 15;
+        /// Do not expand area on remapping
+        const DE = 1 << 16;
+        /// Area is accountable
+        const AC = 1 << 17;
+        /// Swap space is not reserved for the area
+        const NR = 1 << 18;
+        /// Area uses huge TLB pages
+        const HT = 1 << 19;
+        /// Perform synchronous page faults (since Linux 4.15)
+        const SF = 1 << 20;
+        /// Non-linear mapping (removed in Linux 4.0)
+        const NL = 1 << 21;
+        /// Architecture specific flag
+        const AR = 1 << 22;
+        /// Wipe on fork (since Linux 4.14)
+        const WF = 1 << 23;
+        /// Do not include area into core dump
+        const DD = 1 << 24;
+        /// Soft-dirty flag (since Linux 3.13)
+        const SD = 1 << 25;
+        /// Mixed map area
+        const MM = 1 << 26;
+        /// Huge page advise flag
+        const HG = 1 << 27;
+        /// No-huge page advise flag
+        const NH = 1 << 28;
+        /// Mergeable advise flag
+        const MG = 1 << 29;
+        /// Userfaultfd missing pages tracking (since Linux 4.3)
+        const UM = 1 << 30;
+        /// Userfaultfd wprotect pages tracking (since Linux 4.3)
+        const UW = 1 << 31;
+    }
+}
+
+impl VmFlags {
+    fn from_str(flag: &str) -> Option<Self> {
+        if flag.len() != 2 {
+            return None;
+        }
+
+        match flag {
+            "rd" => Some(VmFlags::RD),
+            "wr" => Some(VmFlags::WR),
+            "ex" => Some(VmFlags::EX),
+            "sh" => Some(VmFlags::SH),
+            "mr" => Some(VmFlags::MR),
+            "mw" => Some(VmFlags::MW),
+            "me" => Some(VmFlags::ME),
+            "ms" => Some(VmFlags::MS),
+            "gd" => Some(VmFlags::GD),
+            "pf" => Some(VmFlags::PF),
+            "dw" => Some(VmFlags::DW),
+            "lo" => Some(VmFlags::LO),
+            "io" => Some(VmFlags::IO),
+            "sr" => Some(VmFlags::SR),
+            "rr" => Some(VmFlags::RR),
+            "dc" => Some(VmFlags::DC),
+            "de" => Some(VmFlags::DE),
+            "ac" => Some(VmFlags::AC),
+            "nr" => Some(VmFlags::NR),
+            "ht" => Some(VmFlags::HT),
+            "sf" => Some(VmFlags::SF),
+            "nl" => Some(VmFlags::NL),
+            "ar" => Some(VmFlags::AR),
+            "wf" => Some(VmFlags::WF),
+            "dd" => Some(VmFlags::DD),
+            "sd" => Some(VmFlags::SD),
+            "mm" => Some(VmFlags::MM),
+            "hg" => Some(VmFlags::HG),
+            "nh" => Some(VmFlags::NH),
+            "mg" => Some(VmFlags::MG),
+            "um" => Some(VmFlags::UM),
+            "uw" => Some(VmFlags::UW),
+            _ => None,
+        }
+    }
+}
+
 //impl<'a, 'b, T> ProcFrom<&'b mut T> for u32 where T: Iterator<Item=&'a str> + Sized, 'a: 'b {
 //    fn from(i: &'b mut T) -> u32 {
 //        let s = i.next().unwrap();
@@ -323,7 +440,7 @@ pub struct Io {
     pub cancelled_write_bytes: u64,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum MMapPath {
     /// The file that is backing the mapping.
     Path(PathBuf),
@@ -349,6 +466,11 @@ pub enum MMapPath {
 }
 
 impl MMapPath {
+    /// Needed for MemoryMap::new().
+    fn new() -> MMapPath {
+        MMapPath::Anonymous
+    }
+
     fn from(path: &str) -> ProcResult<MMapPath> {
         Ok(match path.trim() {
             "" => MMapPath::Anonymous,
@@ -370,8 +492,8 @@ impl MMapPath {
 
 /// Represents an entry in a `/proc/<pid>/maps` file.
 ///
-/// To construct this structure, see [Process::maps()].
-#[derive(Debug, PartialEq, Clone)]
+/// To construct this structure, see [Process::maps()] and [Process::smaps()].
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
@@ -386,6 +508,56 @@ pub struct MemoryMap {
     /// BSS (uninitialized data).
     pub inode: u64,
     pub pathname: MMapPath,
+}
+
+impl MemoryMap {
+    /// Used internally in Process::smaps() as a "default value" thing
+    fn new() -> Self {
+        Self {
+            address: (0, 0),
+            perms: "".into(),
+            offset: 0,
+            dev: (0, 0),
+            inode: 0,
+            pathname: MMapPath::new(),
+        }
+    }
+    fn from_line(line: &str) -> ProcResult<MemoryMap> {
+        let mut s = line.splitn(6, ' ');
+        let address = expect!(s.next());
+        let perms = expect!(s.next());
+        let offset = expect!(s.next());
+        let dev = expect!(s.next());
+        let inode = expect!(s.next());
+        let path = expect!(s.next());
+
+        Ok(MemoryMap {
+            address: split_into_num(address, '-', 16)?,
+            perms: perms.to_string(),
+            offset: from_str!(u64, offset, 16),
+            dev: split_into_num(dev, ':', 16)?,
+            inode: from_str!(u64, inode),
+            pathname: MMapPath::from(path)?,
+        })
+    }
+}
+
+/// Represents the information about a specific mapping as presented in /proc/<pid>/smaps
+///
+/// To construct this structure, see [Process::smaps()]
+#[derive(Default, Debug)]
+pub struct MemoryMapData {
+    /// Key-Value pairs that may represent statistics about memory usage, or other interesting things,
+    /// such a "ProtectionKey"(if you're on X86 and that kernel config option was specified).
+    ///
+    /// Note that should a Key-Value pair represent a memory usage statistic, it will be in bytes.
+    ///
+    /// Check your manpage for more information
+    pub map: HashMap<String, u64>,
+    /// Kernel flags associated with the virtual memory area
+    ///
+    /// (since Linux 3.8)
+    pub vm_flags: Option<VmFlags>,
 }
 
 impl Io {
@@ -691,25 +863,6 @@ impl Process {
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
-        pub(crate) fn from_line(line: &str) -> ProcResult<MemoryMap> {
-            let mut s = line.splitn(6, ' ');
-            let address = expect!(s.next());
-            let perms = expect!(s.next());
-            let offset = expect!(s.next());
-            let dev = expect!(s.next());
-            let inode = expect!(s.next());
-            let path = expect!(s.next());
-
-            Ok(MemoryMap {
-                address: split_into_num(address, '-', 16)?,
-                perms: perms.to_string(),
-                offset: from_str!(u64, offset, 16),
-                dev: split_into_num(dev, ':', 16)?,
-                inode: from_str!(u64, inode),
-                pathname: MMapPath::from(path)?,
-            })
-        }
-
         let path = self.root.join("maps");
         let file = FileWrapper::open(&path)?;
 
@@ -719,7 +872,74 @@ impl Process {
 
         for line in reader.lines() {
             let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
-            vec.push(from_line(&line)?);
+            vec.push(MemoryMap::from_line(&line)?);
+        }
+
+        Ok(vec)
+    }
+
+    /// Returns a list of currently mapped memory regions and verbose information about them,
+    /// such as memory consumption per mapping, based on the `/proc/pid/smaps` file.
+    ///
+    /// (since Linux 2.6.14 and requires CONFIG_PROG_PAGE_MONITOR)
+    pub fn smaps(&self) -> ProcResult<Vec<(MemoryMap, MemoryMapData)>> {
+        let path = self.root.join("smaps");
+        let file = FileWrapper::open(&path)?;
+
+        let reader = BufReader::new(file);
+
+        let mut vec: Vec<(MemoryMap, MemoryMapData)> = Vec::new();
+
+        let mut current_mapping = MemoryMap::new();
+        let mut current_data = Default::default();
+        for line in reader.lines() {
+            let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
+
+            if let Ok(mapping) = MemoryMap::from_line(&line) {
+                vec.push((current_mapping, current_data));
+                current_mapping = mapping;
+                current_data = Default::default();
+            } else {
+                // This is probably an attribute
+                if line.starts_with("VmFlags") {
+                    let flags = line.split_ascii_whitespace();
+                    let flags = flags.skip(1); // Skips the `VmFlags:` part since we don't need it.
+
+                    let flags = flags
+                        .map(|v| match VmFlags::from_str(v) {
+                            None => VmFlags::INVALID,
+                            Some(v) => v,
+                        })
+                        .fold(VmFlags::INVALID, |a, b| a | b);
+
+                    current_data.vm_flags = Some(flags);
+                } else {
+                    let mut parts = line.split_ascii_whitespace();
+
+                    let key = parts.next();
+                    let value = parts.next();
+
+                    if let (Some(k), Some(v)) = (key, value) {
+                        // While most entries do have one, not all of them do.
+                        let size_suffix = parts.next();
+
+                        // Limited poking at /proc/<pid>/smaps and then checking if "MB", "GB", and "TB" appear in the C file that is
+                        // supposedly responsible for creating smaps, has lead me to believe that the only size suffixes we'll ever encounter
+                        // "kB", which is most likely kibibytes. Actually checking if the size suffix is any of the above is a way to
+                        // future-proof the code, but I am not sure it is worth doing so.
+                        let size_multiplier = if let Some(_) = size_suffix { 1024 } else { 1 };
+
+                        let v = v.parse::<u64>().map_err(|_| {
+                            ProcError::Other("Value in `Key: Value` pair was not actually a number".into())
+                        })?;
+
+                        // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
+                        let k = if let Some(k) = k.strip_suffix(":") { k } else { k };
+
+                        current_data.map.insert(k.into(), v * size_multiplier);
+                    }
+                }
+            }
         }
 
         Ok(vec)
