@@ -934,7 +934,7 @@ impl Process {
                         })?;
 
                         // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
-                        let k = if let Some(k) = k.strip_suffix(":") { k } else { k };
+                        let k = k.trim_end_matches(":");
 
                         current_data.map.insert(k.into(), v * size_multiplier);
                     }
