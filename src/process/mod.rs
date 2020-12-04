@@ -882,13 +882,13 @@ impl Process {
     /// such as memory consumption per mapping, based on the `/proc/pid/smaps` file.
     ///
     /// (since Linux 2.6.14 and requires CONFIG_PROG_PAGE_MONITOR)
-    pub fn smaps(&self) -> ProcResult<HashMap<MemoryMap, MemoryMapData>> {
+    pub fn smaps(&self) -> ProcResult<Vec<(MemoryMap, MemoryMapData)>> {
         let path = self.root.join("smaps");
         let file = FileWrapper::open(&path)?;
 
         let reader = BufReader::new(file);
 
-        let mut hashmap: HashMap<MemoryMap, MemoryMapData> = HashMap::new();
+        let mut vec: Vec<(MemoryMap, MemoryMapData)> = Vec::new();
 
         let mut current_mapping = MemoryMap::new();
         let mut current_data = Default::default();
@@ -896,7 +896,7 @@ impl Process {
             let line = line.map_err(|_| ProcError::Incomplete(Some(path.clone())))?;
 
             if let Ok(mapping) = MemoryMap::from_line(&line) {
-                hashmap.insert(current_mapping, current_data);
+                vec.push((current_mapping, current_data));
                 current_mapping = mapping;
                 current_data = Default::default();
             } else {
@@ -942,7 +942,7 @@ impl Process {
             }
         }
 
-        Ok(hashmap)
+        Ok(vec)
     }
 
     /// Gets the number of open file descriptors for a process
