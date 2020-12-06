@@ -189,8 +189,13 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/pty`
 	* [ ] `/proc/sys/kernel/pty/max`
 	* [ ] `/proc/sys/kernel/pty/nr`
-	* [ ] `/proc/sys/kernel/random`
-	* [ ] `/proc/sys/kernel/random/uuid`
+	* [x] `/proc/sys/kernel/random`
+		* [x] `/proc/sys/kernel/random/entropy_avail`
+		* [x] `/proc/sys/kernel/random/poolsize`
+		* [x] `/proc/sys/kernel/random/read_wakeup_threshold`
+		* [x] `/proc/sys/kernel/random/write_wakeup_threshold`
+		* [x] `/proc/sys/kernel/random/uuid`
+		* [x] `/proc/sys/kernel/random/boot_id`
 	* [ ] `/proc/sys/kernel/randomize_va_space`
 	* [ ] `/proc/sys/kernel/real-root-dev`
 	* [ ] `/proc/sys/kernel/reboot-cmd`

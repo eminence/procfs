@@ -9,6 +9,7 @@ use std::str::FromStr;
 use crate::{read_value, ProcResult};
 
 pub mod keys;
+pub mod random;
 
 /// Represents a kernel version, in major.minor.release version.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
