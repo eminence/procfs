@@ -1090,6 +1090,19 @@ pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
     Ok(map)
 }
 
+/// Get a list of the arguments passed to the Linux kernel at boot time
+///
+/// This corresponds to the data in `/proc/cmdline`
+pub fn cmdline() -> ProcResult<Vec<String>> {
+    let mut buf = String::new();
+    let mut f = FileWrapper::open("/proc/cmdline")?;
+    f.read_to_string(&mut buf)?;
+    Ok(buf
+        .split(' ')
+        .filter_map(|s| if !s.is_empty() { Some(s.to_string()) } else { None })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1300,5 +1313,14 @@ mod tests {
     fn tests_tps() {
         let tps = ticks_per_second().unwrap();
         println!("{} ticks per second", tps);
+    }
+
+    #[test]
+    fn test_cmdline() {
+        let cmdline = cmdline().unwrap();
+
+        for argument in cmdline {
+            println!("{}", argument);
+        }
     }
 }

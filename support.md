@@ -66,7 +66,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/bus/pccard/drivers`
   * [ ] `/proc/bus/pci`
   * [ ] `/proc/bus/pci/devices`
-* [ ] `/proc/cmdline`
+* [x] `/proc/cmdline`
 * [ ] `/proc/config.gz`
 * [ ] `/proc/crypto`
 * [ ] `/proc/cpuinfo`
