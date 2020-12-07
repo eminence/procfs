@@ -6,7 +6,7 @@
 use std::cmp;
 use std::str::FromStr;
 
-use crate::{read_value, ProcResult};
+use crate::{read_value, write_value, ProcResult};
 
 pub mod keys;
 pub mod random;
@@ -175,6 +175,37 @@ impl FromStr for SemaphoreLimits {
     }
 }
 
+/// Returns the system-wide limit on the total number of pages of System V shared memory
+///
+/// This is taken from `/proc/sys/kernel/shmall`
+pub fn shmall() -> ProcResult<u64> {
+    read_value("/proc/sys/kernel/shmall")
+}
+
+/// Returns the limit on the maximum (System V IPC) shared memory segment size that can be created.
+/// The value defaults to SHMMAX
+///
+/// See also [set_shmmax](crate::sys::kernel::set_shmmax)
+///
+/// This is taken from `/proc/sys/kernel/shmmax`
+pub fn shmmax() -> ProcResult<u64> {
+    read_value("/proc/sys/kernel/shmmax")
+}
+
+/// Sets the limit on the maximum (System V IPC) shared memory segment size.
+///
+/// See also [shmmax](crate::sys::kernel::shmmax)
+pub fn set_shmmax(new_value: u64) -> ProcResult<()> {
+    write_value("/proc/sys/kernel/shmmax", new_value)
+}
+
+/// Returns the system-wide maximum number of System V shared memory segments that can be created
+///
+/// This is taken from `/proc/sys/kernel/shmmni`
+pub fn shmmni() -> ProcResult<u64> {
+    read_value("/proc/sys/kernel/shmmni")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,5 +257,19 @@ mod tests {
     #[test]
     fn test_sem() {
         let _ = SemaphoreLimits::new().unwrap();
+    }
+    #[test]
+    fn test_shmall() {
+        let _ = shmall().unwrap();
+    }
+
+    #[test]
+    fn test_shmmax() {
+        let _ = shmmax().unwrap();
+    }
+
+    #[test]
+    fn test_shmmni() {
+        let _ = shmmni().unwrap();
     }
 }

@@ -209,9 +209,9 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [x] `/proc/sys/kernel/sem`
 	* [ ] `/proc/sys/kernel/sg-big-buff`
 	* [ ] `/proc/sys/kernel/shm_rmid_forced`
-	* [ ] `/proc/sys/kernel/shmall`
-	* [ ] `/proc/sys/kernel/shmmax`
-	* [ ] `/proc/sys/kernel/shmmni`
+	* [x] `/proc/sys/kernel/shmall`
+	* [x] `/proc/sys/kernel/shmmax`
+	* [x] `/proc/sys/kernel/shmmni`
 	* [ ] `/proc/sys/kernel/sysctl_writes_strict`
 	* [ ] `/proc/sys/kernel/sysrq`
 	* [ ] `/proc/sys/kernel/version`
