@@ -206,7 +206,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/sched_rt_period_us`
 	* [ ] `/proc/sys/kernel/sched_rt_runtime_us`
 	* [ ] `/proc/sys/kernel/seccomp`
-	* [ ] `/proc/sys/kernel/sem`
+	* [x] `/proc/sys/kernel/sem`
 	* [ ] `/proc/sys/kernel/sg-big-buff`
 	* [ ] `/proc/sys/kernel/shm_rmid_forced`
 	* [ ] `/proc/sys/kernel/shmall`

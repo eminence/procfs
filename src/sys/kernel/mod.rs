@@ -127,6 +127,54 @@ pub fn pid_max() -> ProcResult<i32> {
     read_value("/proc/sys/kernel/pid_max")
 }
 
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+/// Represents the data from `/proc/sys/kernel/sem`
+pub struct SemaphoreLimits {
+    /// The maximum semaphores per semaphore set
+    pub semmsl: u64,
+    /// A system-wide limit on the number of semaphores in all semaphore sets
+    pub semmns: u64,
+    /// The maximum number of operations that may be specified in a semop(2) call
+    pub semopm: u64,
+    /// A system-wide limit on the maximum number of semaphore identifiers
+    pub semmni: u64,
+}
+
+impl SemaphoreLimits {
+    pub fn new() -> ProcResult<Self> {
+        read_value("/proc/sys/kernel/sem")
+    }
+
+    fn from_str(s: &str) -> Result<Self, &'static str> {
+        let mut s = s.split_ascii_whitespace();
+
+        let semmsl = s.next().ok_or("Missing SEMMSL")?;
+        let semmns = s.next().ok_or("Missing SEMMNS")?;
+        let semopm = s.next().ok_or("Missing SEMOPM")?;
+        let semmni = s.next().ok_or("Missing SEMMNI")?;
+
+        let semmsl = semmsl.parse().map_err(|_| "Failed to parse SEMMSL")?;
+        let semmns = semmns.parse().map_err(|_| "Failed to parse SEMMNS")?;
+        let semopm = semopm.parse().map_err(|_| "Failed to parse SEMOPM")?;
+        let semmni = semmni.parse().map_err(|_| "Failed to parse SEMMNI")?;
+
+        Ok(SemaphoreLimits {
+            semmsl,
+            semmns,
+            semopm,
+            semmni,
+        })
+    }
+}
+
+impl FromStr for SemaphoreLimits {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        SemaphoreLimits::from_str(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,5 +202,29 @@ mod tests {
     #[test]
     fn test_pid_max() {
         assert!(pid_max().is_ok());
+    }
+
+    #[test]
+    fn test_semaphore_limits() {
+        // Note that the below string has tab characters in it. Make sure to not remove them.
+        let a = SemaphoreLimits::from_str("32000	1024000000	500	32000").unwrap();
+        let b = SemaphoreLimits {
+            semmsl: 32_000,
+            semmns: 1_024_000_000,
+            semopm: 500,
+            semmni: 32_000,
+        };
+        assert_eq!(a, b);
+
+        let a = SemaphoreLimits::from_str("1");
+        assert!(a.is_err() && a.err().unwrap() == "Missing SEMMNS");
+
+        let a = SemaphoreLimits::from_str("1 string 500 3200");
+        assert!(a.is_err() && a.err().unwrap() == "Failed to parse SEMMNS");
+    }
+
+    #[test]
+    fn test_sem() {
+        let _ = SemaphoreLimits::new().unwrap();
     }
 }
