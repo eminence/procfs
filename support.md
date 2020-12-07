@@ -215,7 +215,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/sysctl_writes_strict`
 	* [x] `/proc/sys/kernel/sysrq`
 	* [ ] `/proc/sys/kernel/version`
-	* [ ] `/proc/sys/kernel/threads-max`
+	* [x] `/proc/sys/kernel/threads-max`
 	* [ ] `/proc/sys/kernel/yama/ptrace_scope`
 	* [ ] `/proc/sys/kernel/zero-paged`
   * [ ] `/proc/sys/net`
