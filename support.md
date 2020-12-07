@@ -213,7 +213,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [x] `/proc/sys/kernel/shmmax`
 	* [x] `/proc/sys/kernel/shmmni`
 	* [ ] `/proc/sys/kernel/sysctl_writes_strict`
-	* [ ] `/proc/sys/kernel/sysrq`
+	* [x] `/proc/sys/kernel/sysrq`
 	* [ ] `/proc/sys/kernel/version`
 	* [ ] `/proc/sys/kernel/threads-max`
 	* [ ] `/proc/sys/kernel/yama/ptrace_scope`
