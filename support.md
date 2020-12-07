@@ -39,7 +39,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/oom_score_adj`
   * [ ] `/proc/[pid]/pagemap`
   * [ ] `/proc/[pid]/personality`
-  * [ ] `/proc/[pid]/root`
+  * [x] `/proc/[pid]/root`
   * [ ] `/proc/[pid]/seccomp`
   * [ ] `/proc/[pid]/setgroups`
   * [ ] `/proc/[pid]/sched_autogroup_enabled`
@@ -58,7 +58,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/timerslack_ns`
   * [ ] `/proc/[pid]/uid_map`
   * [ ] `/proc/[pid]/gid_map`
-  * [ ] `/proc/[pid]/wchan`
+  * [x] `/proc/[pid]/wchan`
 * [ ] `/proc/apm`
 * [ ] `/proc/buddyinfo`
 * [ ] `/proc/bus`
