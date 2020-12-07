@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_entropy_avail() {
         let entropy = entropy_avail().unwrap();
-        assert!((0..4097).contains(&entropy))
+        assert!(entropy <= 4096);
     }
 
     #[test]
