@@ -55,7 +55,6 @@ use libc::pid_t;
 use libc::sysconf;
 use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 
-use std::ffi::CStr;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
@@ -64,6 +63,7 @@ use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
+use std::{ffi::CStr, fs::OpenOptions};
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
@@ -228,7 +228,7 @@ pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
 }
 
 pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
-    let mut f = File::open(path)?;
+    let mut f = OpenOptions::new().write(true).open(path)?;
     f.write_all(buf.as_ref())?;
     Ok(())
 }
@@ -1090,6 +1090,19 @@ pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
     Ok(map)
 }
 
+/// Get a list of the arguments passed to the Linux kernel at boot time
+///
+/// This corresponds to the data in `/proc/cmdline`
+pub fn cmdline() -> ProcResult<Vec<String>> {
+    let mut buf = String::new();
+    let mut f = FileWrapper::open("/proc/cmdline")?;
+    f.read_to_string(&mut buf)?;
+    Ok(buf
+        .split(' ')
+        .filter_map(|s| if !s.is_empty() { Some(s.to_string()) } else { None })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1300,5 +1313,14 @@ mod tests {
     fn tests_tps() {
         let tps = ticks_per_second().unwrap();
         println!("{} ticks per second", tps);
+    }
+
+    #[test]
+    fn test_cmdline() {
+        let cmdline = cmdline().unwrap();
+
+        for argument in cmdline {
+            println!("{}", argument);
+        }
     }
 }

@@ -39,7 +39,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/oom_score_adj`
   * [ ] `/proc/[pid]/pagemap`
   * [ ] `/proc/[pid]/personality`
-  * [ ] `/proc/[pid]/root`
+  * [x] `/proc/[pid]/root`
   * [ ] `/proc/[pid]/seccomp`
   * [ ] `/proc/[pid]/setgroups`
   * [ ] `/proc/[pid]/sched_autogroup_enabled`
@@ -58,7 +58,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/timerslack_ns`
   * [ ] `/proc/[pid]/uid_map`
   * [ ] `/proc/[pid]/gid_map`
-  * [ ] `/proc/[pid]/wchan`
+  * [x] `/proc/[pid]/wchan`
 * [ ] `/proc/apm`
 * [ ] `/proc/buddyinfo`
 * [ ] `/proc/bus`
@@ -66,7 +66,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/bus/pccard/drivers`
   * [ ] `/proc/bus/pci`
   * [ ] `/proc/bus/pci/devices`
-* [ ] `/proc/cmdline`
+* [x] `/proc/cmdline`
 * [ ] `/proc/config.gz`
 * [ ] `/proc/crypto`
 * [ ] `/proc/cpuinfo`
@@ -189,8 +189,13 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/pty`
 	* [ ] `/proc/sys/kernel/pty/max`
 	* [ ] `/proc/sys/kernel/pty/nr`
-	* [ ] `/proc/sys/kernel/random`
-	* [ ] `/proc/sys/kernel/random/uuid`
+	* [x] `/proc/sys/kernel/random`
+		* [x] `/proc/sys/kernel/random/entropy_avail`
+		* [x] `/proc/sys/kernel/random/poolsize`
+		* [x] `/proc/sys/kernel/random/read_wakeup_threshold`
+		* [x] `/proc/sys/kernel/random/write_wakeup_threshold`
+		* [x] `/proc/sys/kernel/random/uuid`
+		* [x] `/proc/sys/kernel/random/boot_id`
 	* [ ] `/proc/sys/kernel/randomize_va_space`
 	* [ ] `/proc/sys/kernel/real-root-dev`
 	* [ ] `/proc/sys/kernel/reboot-cmd`
@@ -201,16 +206,16 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/sched_rt_period_us`
 	* [ ] `/proc/sys/kernel/sched_rt_runtime_us`
 	* [ ] `/proc/sys/kernel/seccomp`
-	* [ ] `/proc/sys/kernel/sem`
+	* [x] `/proc/sys/kernel/sem`
 	* [ ] `/proc/sys/kernel/sg-big-buff`
 	* [ ] `/proc/sys/kernel/shm_rmid_forced`
-	* [ ] `/proc/sys/kernel/shmall`
-	* [ ] `/proc/sys/kernel/shmmax`
-	* [ ] `/proc/sys/kernel/shmmni`
+	* [x] `/proc/sys/kernel/shmall`
+	* [x] `/proc/sys/kernel/shmmax`
+	* [x] `/proc/sys/kernel/shmmni`
 	* [ ] `/proc/sys/kernel/sysctl_writes_strict`
-	* [ ] `/proc/sys/kernel/sysrq`
+	* [x] `/proc/sys/kernel/sysrq`
 	* [ ] `/proc/sys/kernel/version`
-	* [ ] `/proc/sys/kernel/threads-max`
+	* [x] `/proc/sys/kernel/threads-max`
 	* [ ] `/proc/sys/kernel/yama/ptrace_scope`
 	* [ ] `/proc/sys/kernel/zero-paged`
   * [ ] `/proc/sys/net`
