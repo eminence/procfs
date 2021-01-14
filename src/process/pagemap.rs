@@ -84,12 +84,12 @@ impl PageMap {
         }
     }
 
-    pub fn get_info(&mut self, page_index: u64) -> ProcResult<PageInfo> {
+    pub fn get_info(&mut self, page_index: usize) -> ProcResult<PageInfo> {
         self.get_range_info(page_index..page_index + 1)
             .map(|mut vec| vec.pop().unwrap())
     }
 
-    pub fn get_range_info(&mut self, page_range: impl RangeBounds<u64>) -> ProcResult<Vec<PageInfo>> {
+    pub fn get_range_info(&mut self, page_range: impl RangeBounds<usize>) -> ProcResult<Vec<PageInfo>> {
         // `start` is always included
         let start = match page_range.start_bound() {
             Bound::Included(v) => *v,
@@ -101,10 +101,10 @@ impl PageMap {
         let end = match page_range.end_bound() {
             Bound::Included(v) => *v + 1,
             Bound::Excluded(v) => *v,
-            Bound::Unbounded => u64::MAX / crate::page_size().unwrap() as u64,
+            Bound::Unbounded => std::usize::MAX / crate::page_size().unwrap() as usize,
         };
 
-        let start_position = start * size_of::<u64>() as u64;
+        let start_position = (start * size_of::<u64>()) as u64;
         self.reader.seek(SeekFrom::Start(start_position))?;
 
         let mut page_infos = Vec::with_capacity((end - start) as usize);

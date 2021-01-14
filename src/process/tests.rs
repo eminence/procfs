@@ -263,9 +263,9 @@ fn test_proc_pagemap() {
     let maps = myself.maps().unwrap();
 
     let stack_map = maps.iter().find(|m| matches!(m.pathname, MMapPath::Stack)).unwrap();
-    let page_size = crate::page_size().unwrap() as u64;
-    let start_page = stack_map.address.0 / page_size;
-    let end_page = stack_map.address.1 / page_size;
+    let page_size = crate::page_size().unwrap() as usize;
+    let start_page = stack_map.address.0 as usize / page_size;
+    let end_page = stack_map.address.1 as usize / page_size;
 
     let mut pagemap = myself.pagemap().unwrap();
     let page_infos = pagemap.get_range_info(start_page..end_page).unwrap();
