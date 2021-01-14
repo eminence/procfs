@@ -90,15 +90,17 @@ impl PageMap {
     }
 
     pub fn get_range_info(&mut self, page_range: impl RangeBounds<u64>) -> ProcResult<Vec<PageInfo>> {
+        // `start` is always included
         let start = match page_range.start_bound() {
             Bound::Included(v) => *v,
             Bound::Excluded(v) => *v + 1,
             Bound::Unbounded => 0,
         };
 
+        // `end` is always excluded
         let end = match page_range.end_bound() {
-            Bound::Included(v) => *v,
-            Bound::Excluded(v) => *v - 1,
+            Bound::Included(v) => *v + 1,
+            Bound::Excluded(v) => *v,
             Bound::Unbounded => u64::MAX / crate::page_size().unwrap() as u64,
         };
 
