@@ -228,7 +228,7 @@ pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
 }
 
 pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
-    let mut f = OpenOptions::new().write(true).open(path)?;
+    let mut f = OpenOptions::new().read(false).write(true).open(path)?;
     f.write_all(buf.as_ref())?;
     Ok(())
 }
