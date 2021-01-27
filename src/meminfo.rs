@@ -286,7 +286,8 @@ impl Meminfo {
         Meminfo::from_reader(f)
     }
 
-    fn from_reader<R: io::Read>(r: R) -> ProcResult<Meminfo> {
+    /// Get Meminfo from a custom Read instead of the default `/proc/meminfo`.
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Meminfo> {
         use std::collections::HashMap;
         use std::io::{BufRead, BufReader};
 

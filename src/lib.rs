@@ -956,8 +956,8 @@ impl KernelStats {
     pub fn new() -> ProcResult<KernelStats> {
         KernelStats::from_reader(FileWrapper::open("/proc/stat")?)
     }
-
-    fn from_reader<R: io::Read>(r: R) -> ProcResult<KernelStats> {
+    /// Get KernelStatus from a custom Read instead of the default `/proc/stat`.
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<KernelStats> {
         let bufread = BufReader::new(r);
         let lines = bufread.lines();
 
