@@ -18,7 +18,8 @@ pub struct CpuInfo {
 }
 
 impl CpuInfo {
-    fn from_reader<R: Read>(r: R) -> ProcResult<CpuInfo> {
+    /// Get CpuInfo from a custom Read instead of the default `/proc/cpuinfo`.
+    pub fn from_reader<R: Read>(r: R) -> ProcResult<CpuInfo> {
         use std::io::{BufRead, BufReader};
 
         let reader = BufReader::new(r);
