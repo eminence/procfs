@@ -1248,11 +1248,19 @@ impl std::iter::Iterator for TasksIter {
 ///
 /// If a process can't be constructed for some reason, it won't be returned in the list.
 pub fn all_processes() -> ProcResult<Vec<Process>> {
+    all_processes_with_root("/proc")
+}
+
+/// Return a list of all processes based on a specified `/proc` path
+///
+/// If a process can't be constructed for some reason, it won't be returned in the list.
+pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<Vec<Process>> {
     let mut v = Vec::new();
-    for dir in expect!(std::fs::read_dir("/proc/"), "No /proc/ directory") {
+    let root = root.as_ref();
+    for dir in expect!(std::fs::read_dir(root), format!("No {} directory", root.display())) {
         if let Ok(entry) = dir {
-            if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                match Process::new(pid) {
+            if i32::from_str(&entry.file_name().to_string_lossy()).is_ok() {
+                match Process::new_with_root(entry.path()) {
                     Ok(prc) => v.push(prc),
                     Err(ProcError::InternalError(e)) => return Err(ProcError::InternalError(e)),
                     _ => {}
