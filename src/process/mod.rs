@@ -683,10 +683,12 @@ pub struct FDInfo {
 impl FDInfo {
     /// Gets a file descriptor from a raw fd
     pub fn from_raw_fd(pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
-        let path = PathBuf::from("/proc")
-            .join(pid.to_string())
-            .join("fd")
-            .join(raw_fd.to_string());
+        Self::from_raw_fd_with_root("/proc", pid, raw_fd)
+    }
+
+    /// Gets a file descriptor from a raw fd based on a specified `/proc` path
+    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
+        let path = root.as_ref().join(pid.to_string()).join("fd").join(raw_fd.to_string());
         let link = wrap_io_error!(path, read_link(&path))?;
         let md = wrap_io_error!(path, path.metadata())?;
         let link_os: &OsStr = link.as_ref();
