@@ -42,8 +42,7 @@ bitflags! {
 impl super::Process {
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
-        let path = self.root.join("mountstats");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, self.fd, "mountstats")?;
         MountStat::from_reader(file)
     }
 
@@ -53,8 +52,7 @@ impl super::Process {
     ///
     /// (Since Linux 2.6.26)
     pub fn mountinfo(&self) -> ProcResult<Vec<MountInfo>> {
-        let path = self.root.join("mountinfo");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, self.fd, "mountinfo")?;
         let bufread = BufReader::new(file);
         let lines = bufread.lines();
         let mut vec = Vec::new();

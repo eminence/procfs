@@ -56,14 +56,16 @@ use libc::sysconf;
 use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 
 use std::fmt;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::mem;
 use std::os::raw::c_char;
+use std::os::unix::io::{FromRawFd, RawFd};
 use std::path::{Path, PathBuf};
+use std::os::unix::ffi::OsStrExt;
+use std::ffi::CStr;
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
-use std::{ffi::CStr, fs::OpenOptions};
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
@@ -360,6 +362,23 @@ impl fmt::Display for IoErrorWrapper {
     }
 }
 
+
+trait NixErrorExt {
+    fn into_io_error(self) -> io::Error;
+}
+
+impl NixErrorExt for nix::Error {
+    fn into_io_error(self) -> io::Error {
+        use nix::Error::*;
+        match self {
+            Sys(errno) => io::Error::from(errno),
+            UnsupportedOperation => io::Error::new(io::ErrorKind::Unsupported, self),
+            InvalidPath => io::Error::new(io::ErrorKind::InvalidData, self),
+            InvalidUtf8 => io::Error::new(io::ErrorKind::InvalidData, self),
+        }
+    }
+}
+
 /// A wrapper around a `File` that remembers the name of the path
 struct FileWrapper {
     inner: File,
@@ -369,22 +388,26 @@ struct FileWrapper {
 impl FileWrapper {
     fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
         let p = path.as_ref();
-        match File::open(&p) {
-            Ok(f) => Ok(FileWrapper {
-                inner: f,
-                path: p.to_owned(),
-            }),
-            Err(e) => {
-                let kind = e.kind();
-                Err(io::Error::new(
-                    kind,
-                    IoErrorWrapper {
-                        path: p.to_owned(),
-                        inner: e.into_inner(),
-                    },
-                ))
-            }
-        }
+        let f = wrap_io_error!(p, File::open(&p))?;
+        Ok(FileWrapper {
+            inner: f,
+            path: p.to_owned(),
+        })
+    }
+    fn open_at<P, Q>(root: P, dirfd: RawFd, path: Q) -> Result<FileWrapper, io::Error>
+    where P: AsRef<Path>, Q: AsRef<Path> {
+        use nix::sys::stat::Mode;
+        use nix::fcntl::OFlag;
+
+        let p = root.as_ref().join(path.as_ref());
+        let fd = wrap_io_error!(
+            p,
+            nix::fcntl::openat(dirfd, path.as_ref(), OFlag::O_RDONLY | OFlag::O_CLOEXEC, Mode::empty())
+                .map_err(|err| err.into_io_error()))?;
+        Ok(FileWrapper {
+            inner: unsafe { File::from_raw_fd(fd) },
+            path: p,
+        })
     }
 }
 
@@ -685,12 +708,15 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
             unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const c_char) }.to_string_lossy()
         );
 
-        if Path::new(&filename).exists() {
-            let file = FileWrapper::open(filename)?;
-            Box::new(BufReader::new(file))
-        } else {
-            let file = FileWrapper::open(BOOT_CONFIG)?;
-            Box::new(BufReader::new(file))
+        match FileWrapper::open(filename) {
+            Ok(file) => Box::new(BufReader::new(file)),
+            Err(e) => match e.kind() {
+                io::ErrorKind::NotFound => {
+                    let file = FileWrapper::open(BOOT_CONFIG)?;
+                    Box::new(BufReader::new(file))
+                },
+                _ => return Err(e.into())
+            }
         }
     };
 

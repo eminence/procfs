@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use super::{FileWrapper, Io, ProcError, Schedstat, Stat, Status};
-use crate::ProcResult;
+use super::{FileWrapper, Io, Schedstat, Stat, Status};
+use std::os::unix::io::{RawFd};
+use crate::{NixErrorExt, ProcResult};
+use libc::pid_t;
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
 ///
@@ -9,23 +11,40 @@ use crate::ProcResult;
 /// general are similar to Processes and should have mostly the same fields.
 #[derive(Debug, Clone)]
 pub struct Task {
+    pub fd: RawFd,
     /// The ID of the process that this task belongs to
-    pub pid: i32,
+    pub pid: pid_t,
     /// The task ID
-    pub tid: i32,
+    pub tid: pid_t,
     /// Task root: `/proc/<pid>/task/<tid>`
     pub(crate) root: PathBuf,
+}
+
+impl Drop for Task {
+    fn drop(&mut self) {
+        nix::unistd::close(self.fd).ok();
+    }
 }
 
 impl Task {
     /// Create a new `Task` inside of the process
     ///
     /// This API is designed to be ergonomic from inside of [`TasksIter`](super::TasksIter)
-    pub(crate) fn from_rel_path(pid: i32, tid: &Path) -> Result<Task, ProcError> {
-        let root = PathBuf::from(format!("/proc/{}/task", pid)).join(tid);
+    pub(crate) fn from_process_at<P: AsRef<Path>, Q: AsRef<Path>>(base: P, dirfd: RawFd, path: Q, pid: pid_t, tid: pid_t) -> ProcResult<Task> {
+        use nix::sys::stat::Mode;
+        use nix::fcntl::OFlag;
+
+        let p = path.as_ref();
+        let root = base.as_ref().join(p);
+        let fd = wrap_io_error!(
+            root,
+            nix::fcntl::openat(dirfd, p, OFlag::O_PATH | OFlag::O_DIRECTORY | OFlag::O_CLOEXEC, Mode::empty())
+                .map_err(|err| err.into_io_error()))?;
+
         Ok(Task {
+            fd,
             pid,
-            tid: tid.file_name().unwrap().to_string_lossy().parse()?,
+            tid,
             root,
         })
     }
@@ -34,28 +53,28 @@ impl Task {
     ///
     /// Many of the returned fields will be the same as the parent process, but some fields like `utime` and `stime` will be per-task
     pub fn stat(&self) -> ProcResult<Stat> {
-        Stat::from_reader(FileWrapper::open(self.root.join("stat"))?)
+        Stat::from_reader(FileWrapper::open_at(&self.root, self.fd, "stat")?)
     }
 
     /// Thread info from `/proc/<pid>/task/<tid>/status`
     ///
     /// Many of the returned fields will be the same as the parent process
     pub fn status(&self) -> ProcResult<Status> {
-        Status::from_reader(FileWrapper::open(self.root.join("status"))?)
+        Status::from_reader(FileWrapper::open_at(&self.root, self.fd, "status")?)
     }
 
     /// Thread IO info from `/proc/<pid>/task/<tid>/io`
     ///
     /// This data will be unique per task.
     pub fn io(&self) -> ProcResult<Io> {
-        Io::from_reader(FileWrapper::open(self.root.join("io"))?)
+        Io::from_reader(FileWrapper::open_at(&self.root, self.fd, "io")?)
     }
 
     /// Thread scheduler info from `/proc/<pid>/task/<tid>/schedstat`
     ///
     /// This data will be unique per task.
     pub fn schedstat(&self) -> ProcResult<Schedstat> {
-        Schedstat::from_reader(FileWrapper::open(self.root.join("schedstat"))?)
+        Schedstat::from_reader(FileWrapper::open_at(&self.root, self.fd, "schedstat")?)
     }
 }
 
@@ -143,7 +162,7 @@ mod tests {
             if stat.comm == "one" && status.name == "one" {
                 found_one = true;
                 assert!(io.rchar >= bytes_to_read);
-                assert!(stat.utime >= 50, "utime({}) too small", stat.utime);
+                assert!(stat.utime >= 1, "utime({}) too small", stat.utime);
             }
             if stat.comm == "two" && status.name == "two" {
                 found_two = true;

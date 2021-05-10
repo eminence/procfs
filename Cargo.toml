@@ -23,6 +23,7 @@ byteorder = {version="1", features=["i128"]}
 hex = "0.4"
 flate2 = "1"
 backtrace = { version = "0.3", optional = true }
+nix = "0.20"
 
 [dev-dependencies]
 procinfo = "0.4.2"
