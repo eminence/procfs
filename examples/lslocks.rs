@@ -33,7 +33,8 @@ fn main() {
         let mut found = false;
         if let Some(pid) = lock.pid {
             if let Ok(fds) = Process::new(pid).and_then(|p| p.fd()) {
-                for fd in fds {
+                for f in fds {
+                    let fd = f.unwrap();
                     if let FDTarget::Path(p) = fd.target {
                         let cstr = CString::new(p.as_os_str().as_bytes()).unwrap();
 

@@ -6,17 +6,20 @@ extern crate procfs;
 /// It shows all the processes that share the same tty as our self
 
 fn main() {
-    let me = procfs::process::Process::myself().unwrap();
+    let mestat = procfs::process::Process::myself().unwrap().stat().unwrap();
     let tps = procfs::ticks_per_second().unwrap();
 
-    println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
+    println!("{: >10} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 
-    let tty = format!("pty/{}", me.stat.tty_nr().1);
-    for prc in procfs::process::all_processes().unwrap() {
-        if prc.stat.tty_nr == me.stat.tty_nr {
-            // total_time is in seconds
-            let total_time = (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
-            println!("{: >5} {: <8} {: >8} {}", prc.stat.pid, tty, total_time, prc.stat.comm);
+    let tty = format!("pty/{}", mestat.tty_nr().1);
+    for p in procfs::process::all_processes().unwrap() {
+        let prc = p.unwrap();
+        if let Ok(stat) = prc.stat() {
+            if stat.tty_nr == mestat.tty_nr {
+                // total_time is in seconds
+                let total_time = (stat.utime + stat.stime) as f32 / (tps as f32);
+                println!("{: >10} {: <8} {: >8} {}", stat.pid, tty, total_time, stat.comm);
+            }
         }
     }
 }

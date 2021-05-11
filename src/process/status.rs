@@ -343,12 +343,13 @@ mod tests {
     #[test]
     fn test_proc_status() {
         let myself = Process::myself().unwrap();
+        let stat = myself.stat().unwrap();
         let status = myself.status().unwrap();
         println!("{:?}", status);
 
-        assert_eq!(status.name, myself.stat.comm);
-        assert_eq!(status.pid, myself.stat.pid);
-        assert_eq!(status.ppid, myself.stat.ppid);
+        assert_eq!(status.name, stat.comm);
+        assert_eq!(status.pid, stat.pid);
+        assert_eq!(status.ppid, stat.ppid);
     }
 
     #[test]
