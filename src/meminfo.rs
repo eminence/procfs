@@ -24,7 +24,7 @@ use super::{convert_to_kibibytes, FileWrapper, ProcResult};
 /// programs rely on /proc/meminfo to specify size with the "kB" string.
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(non_snake_case)]
 pub struct Meminfo {
     // this private field prevents clients from directly constructing this object.

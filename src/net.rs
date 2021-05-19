@@ -60,7 +60,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::{path::PathBuf, str::FromStr};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TcpState {
     Established = 1,
     SynSent,
@@ -113,7 +113,7 @@ impl TcpState {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UdpState {
     Established = 1,
     Close = 7,
@@ -136,7 +136,7 @@ impl UdpState {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UnixState {
     UNCONNECTED = 1,
     CONNECTING = 2,
@@ -166,7 +166,7 @@ impl UnixState {
 }
 
 /// An entry in the TCP socket table
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TcpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
@@ -177,7 +177,7 @@ pub struct TcpNetEntry {
 }
 
 /// An entry in the UDP socket table
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UdpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
@@ -188,7 +188,7 @@ pub struct UdpNetEntry {
 }
 
 /// An entry in the Unix socket table
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnixNetEntry {
     /// The number of users of the socket
     pub ref_count: u32,
@@ -386,7 +386,7 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
 }
 
 /// An entry in the ARP table
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ARPEntry {
     /// IPv4 address
     pub ip_address: Ipv4Addr,

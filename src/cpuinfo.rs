@@ -10,7 +10,7 @@ use std::{collections::HashMap, io::Read};
 /// For common fields, there are methods that will return the data, converted to a more appropriate
 /// data type.  These methods will all return `None` if the field doesn't exist, or is in some
 /// unexpected format (in that case, you'll have to access the string data directly).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CpuInfo {
     /// This stores fields that are common among all CPUs
     pub fields: HashMap<String, String>,

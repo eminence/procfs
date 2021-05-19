@@ -40,7 +40,7 @@ impl From<&str> for LockType {
 }
 
 /// The mode of a lock (advisory or mandatory)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LockMode {
     Advisory,
     Mandatory,
@@ -70,7 +70,7 @@ impl From<&str> for LockMode {
 }
 
 /// The kind of a lock (read or write)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LockKind {
     /// A read lock (or BSD shared lock)
     Read,
@@ -102,7 +102,7 @@ impl From<&str> for LockKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Details about an individual file lock
 ///
 /// See the [`locks`] function.

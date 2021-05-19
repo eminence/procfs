@@ -538,7 +538,7 @@ impl std::error::Error for ProcError {}
 ///
 /// Load averages are calculated as the number of jobs in the run queue (state R) or waiting for
 /// disk I/O (state D) averaged over 1, 5, and 15 minutes.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoadAverage {
     /// The one-minute load average
     pub one: f32,
@@ -655,7 +655,7 @@ pub fn page_size() -> std::io::Result<i64> {
 }
 
 /// Possible values for a kernel config option
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ConfigSetting {
     Yes,
     Module,
@@ -724,7 +724,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
 
 /// To convert this value to seconds, you can divide by the tps.  There are also convenience methods
 /// that you can use too.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CpuTime {
     /// Ticks spent in user mode
     pub user: u64,
@@ -925,7 +925,7 @@ impl CpuTime {
 }
 
 /// Kernel/system statistics, from `/proc/stat`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KernelStats {
     /// The amount of time the system spent in various states
     pub total: CpuTime,
@@ -1029,7 +1029,7 @@ pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
 ///
 /// For an example, see the [lsmod.rs](https://github.com/eminence/procfs/tree/master/examples)
 /// example in the source repo.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KernelModule {
     /// The name of the module
     pub name: String,

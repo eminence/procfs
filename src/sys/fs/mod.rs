@@ -7,7 +7,7 @@ pub mod binfmt_misc;
 pub mod epoll;
 
 /// Information about the status of the directory cache (dcache)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DEntryState {
     /// The number of allocated dentries (dcache entries)
     ///
@@ -61,7 +61,7 @@ pub fn file_max() -> ProcResult<usize> {
 pub fn set_file_max(max: usize) -> ProcResult<()> {
     write_value("/proc/sys/fs/file-max", max)
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileState {
     /// The number of allocated file handles.
     ///
