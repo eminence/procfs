@@ -2,7 +2,7 @@ use crate::ProcResult;
 
 use super::process::Process;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Container group controller information.
 ///
 /// See also the [cgroups()] method.
@@ -64,7 +64,7 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
 /// Information about a process cgroup
 ///
 /// See also the [Process::cgroups()] method.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessCgroup {
     /// For cgroups version 1 hierarchies, this field contains a  unique  hierarchy  ID  number
     /// that  can  be  matched  to  a  hierarchy  ID  in /proc/cgroups.  For the cgroups version 2

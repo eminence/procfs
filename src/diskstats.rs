@@ -10,7 +10,7 @@ use std::io::{BufRead, BufReader};
 /// example in the source repo.
 // Doc reference: https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats
 // Doc reference: https://www.kernel.org/doc/Documentation/iostats.txt
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DiskStat {
     /// The device major number
     pub major: i32,

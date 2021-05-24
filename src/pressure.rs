@@ -11,7 +11,7 @@ use std::collections::HashMap;
 /// Pressure stall information for either CPU, memory, or IO.
 ///
 /// See also: https://www.kernel.org/doc/Documentation/accounting/psi.txt
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PressureRecord {
     /// 10 second window
     ///
@@ -33,7 +33,7 @@ pub struct PressureRecord {
 }
 
 /// CPU pressure information
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CpuPressure {
     pub some: PressureRecord,
 }
@@ -57,7 +57,7 @@ impl CpuPressure {
 }
 
 /// Memory pressure information
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MemoryPressure {
     /// This record indicates the share of time in which at least some tasks are stalled
     pub some: PressureRecord,
@@ -76,7 +76,7 @@ impl MemoryPressure {
 }
 
 /// IO pressure information
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IoPressure {
     /// This record indicates the share of time in which at least some tasks are stalled
     pub some: PressureRecord,

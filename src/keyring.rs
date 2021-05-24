@@ -100,7 +100,7 @@ impl KeyFlags {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Permissions {
     pub possessor: PermissionFlags,
     pub user: PermissionFlags,
@@ -130,7 +130,7 @@ impl Permissions {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum KeyTimeout {
     Permanent,
     Expired,
@@ -158,7 +158,7 @@ impl KeyTimeout {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum KeyType {
     /// This is a general-purpose key type.
     ///
@@ -221,7 +221,7 @@ impl KeyType {
 }
 
 /// A key
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Key {
     /// The ID (serial number) of the key
     pub id: u64,
@@ -302,7 +302,7 @@ pub fn keys() -> ProcResult<Vec<Key>> {
 }
 
 /// Information about a user with at least one key
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KeyUser {
     /// The user that owns the key
     pub uid: u32,
