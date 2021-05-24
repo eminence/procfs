@@ -690,7 +690,7 @@ impl FDInfo {
     pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
         let path = root.as_ref().join(pid.to_string()).join("fd").join(raw_fd.to_string());
         let link = wrap_io_error!(path, read_link(&path))?;
-        let md = wrap_io_error!(path, path.metadata())?;
+        let md = wrap_io_error!(path, path.symlink_metadata())?;
         let link_os: &OsStr = link.as_ref();
         Ok(Self {
             fd: raw_fd as u32,
