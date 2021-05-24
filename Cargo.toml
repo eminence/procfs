@@ -20,7 +20,7 @@ bitflags = "1"
 lazy_static = "1"
 chrono = {version = "0.4", optional = true }
 byteorder = {version="1", features=["i128"]}
-hex = "0.4"
+hex = "=0.4.2"
 flate2 = "1"
 backtrace = { version = "0.3", optional = true }
 
