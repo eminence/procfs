@@ -267,11 +267,19 @@ fn test_mmap_path() {
     );
 }
 #[test]
-fn test_proc_fd() {
+fn test_proc_fds() {
     let myself = Process::myself().unwrap();
     for fd in myself.fd().unwrap() {
         println!("{:?} {:?}", fd, fd.mode());
     }
+}
+
+#[test]
+fn test_proc_fd() {
+    let myself = Process::myself().unwrap();
+    let raw_fd = myself.fd().unwrap().get(0).unwrap().fd as i32;
+    let fd = FDInfo::from_raw_fd(myself.pid, raw_fd).unwrap();
+    println!("{:?} {:?}", fd, fd.mode());
 }
 
 #[test]

@@ -55,8 +55,10 @@
 use super::*;
 use crate::from_iter;
 
+use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs;
+use std::fs::read_link;
 use std::io::{self, Read};
 #[cfg(target_os = "android")]
 use std::os::android::fs::MetadataExt;
@@ -679,6 +681,24 @@ pub struct FDInfo {
 }
 
 impl FDInfo {
+    /// Gets a file descriptor from a raw fd
+    pub fn from_raw_fd(pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
+        Self::from_raw_fd_with_root("/proc", pid, raw_fd)
+    }
+
+    /// Gets a file descriptor from a raw fd based on a specified `/proc` path
+    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
+        let path = root.as_ref().join(pid.to_string()).join("fd").join(raw_fd.to_string());
+        let link = wrap_io_error!(path, read_link(&path))?;
+        let md = wrap_io_error!(path, path.symlink_metadata())?;
+        let link_os: &OsStr = link.as_ref();
+        Ok(Self {
+            fd: raw_fd as u32,
+            mode: (md.st_mode() as libc::mode_t) & libc::S_IRWXU,
+            target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
+        })
+    }
+
     /// Gets the read/write mode of this file descriptor as a bitfield
     pub fn mode(&self) -> FDPermissions {
         FDPermissions::from_bits_truncate(self.mode)
@@ -814,7 +834,6 @@ impl Process {
     /// Gets the current environment for the process.  This is done by reading the
     /// `/proc/pid/environ` file.
     pub fn environ(&self) -> ProcResult<HashMap<OsString, OsString>> {
-        use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
         let mut map = HashMap::new();
@@ -954,9 +973,6 @@ impl Process {
 
     /// Gets a list of open file descriptors for a process
     pub fn fd(&self) -> ProcResult<Vec<FDInfo>> {
-        use std::ffi::OsStr;
-        use std::fs::read_link;
-
         let mut vec = Vec::new();
 
         let path = self.root.join("fd");
