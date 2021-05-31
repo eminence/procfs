@@ -606,15 +606,15 @@ pub enum FDTarget {
     /// A file or device
     Path(PathBuf),
     /// A socket type, with an inode
-    Socket(u32),
-    Net(u32),
-    Pipe(u32),
+    Socket(u64),
+    Net(u64),
+    Pipe(u64),
     /// A file descriptor that have no corresponding inode.
     AnonInode(String),
     /// A memfd file descriptor with a name.
     MemFD(String),
     /// Some other file descriptor type, with an inode.
-    Other(String, u32),
+    Other(String, u64),
 }
 
 impl FromStr for FDTarget {
@@ -639,17 +639,17 @@ impl FromStr for FDTarget {
             match fd_type {
                 "socket" => {
                     let inode = expect!(s.next(), "socket inode");
-                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
+                    let inode = expect!(u64::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Socket(inode))
                 }
                 "net" => {
                     let inode = expect!(s.next(), "net inode");
-                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
+                    let inode = expect!(u64::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Net(inode))
                 }
                 "pipe" => {
                     let inode = expect!(s.next(), "pipe inode");
-                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
+                    let inode = expect!(u64::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Pipe(inode))
                 }
                 "anon_inode" => Ok(FDTarget::AnonInode(expect!(s.next(), "anon inode").to_string())),
@@ -657,7 +657,7 @@ impl FromStr for FDTarget {
                 "" => Err(ProcError::Incomplete(None)),
                 x => {
                     let inode = expect!(s.next(), "other inode");
-                    let inode = expect!(u32::from_str_radix(strip_first_last(inode)?, 10));
+                    let inode = expect!(u64::from_str_radix(strip_first_last(inode)?, 10));
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
             }

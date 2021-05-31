@@ -11,7 +11,7 @@ fn main() {
     let all_procs = procfs::process::all_processes().unwrap();
 
     // build up a map between socket inodes and processes:
-    let mut map: HashMap<u32, &Process> = HashMap::new();
+    let mut map: HashMap<u64, &Process> = HashMap::new();
     for process in &all_procs {
         if let Ok(fds) = process.fd() {
             for fd in fds {
