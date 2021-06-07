@@ -1117,7 +1117,7 @@ impl Process {
 
     /// Return a task for the main thread of this process
     pub fn task_main_thread(&self) -> ProcResult<Task> {
-        Task::from_rel_path(self.pid, Path::new(&format!("{}", self.pid)))
+        Task::new(self.pid, self.pid)
     }
 
     /// Return the `Schedstat` for this process, based on the `/proc/<pid>/schedstat` file.
