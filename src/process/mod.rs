@@ -76,6 +76,9 @@ pub use stat::*;
 mod mount;
 pub use mount::*;
 
+mod namespaces;
+pub use namespaces::*;
+
 mod status;
 pub use status::*;
 
