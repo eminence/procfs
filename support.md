@@ -32,7 +32,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/mountinfo`
   * [ ] `/proc/[pid]/mounts`
   * [x] `/proc/[pid]/mountstats`
-  * [ ] `/proc/[pid]/ns/`
+  * [x] `/proc/[pid]/ns/`
   * [ ] `/proc/[pid]/numa_maps`
   * [ ] `/proc/[pid]/oom_adj`
   * [x] `/proc/[pid]/oom_score`
