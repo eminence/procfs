@@ -16,13 +16,13 @@ pub mod random;
 /// Represents a kernel version, in major.minor.release version.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Version {
-    pub major: u8,
-    pub minor: u8,
-    pub patch: u8,
+    pub major: u32,
+    pub minor: u32,
+    pub patch: u32,
 }
 
 impl Version {
-    pub fn new(major: u8, minor: u8, patch: u8) -> Version {
+    pub fn new(major: u32, minor: u32, patch: u32) -> Version {
         Version { major, minor, patch }
     }
 

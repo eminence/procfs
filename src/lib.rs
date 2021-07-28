@@ -1125,6 +1125,11 @@ mod tests {
         assert_eq!(k.major, 4);
         assert_eq!(k.minor, 9);
         assert_eq!(k.patch, 16);
+
+        let k = KernelVersion::from_str("4.9.266-0.1.ac.225.84.332.metal1.x86_64").unwrap();
+        assert_eq!(k.major, 4);
+        assert_eq!(k.minor, 9);
+        assert_eq!(k.patch, 266);
     }
 
     #[test]
