@@ -18,11 +18,11 @@ pub mod random;
 pub struct Version {
     pub major: u8,
     pub minor: u8,
-    pub patch: u8,
+    pub patch: u16,
 }
 
 impl Version {
-    pub fn new(major: u8, minor: u8, patch: u8) -> Version {
+    pub fn new(major: u8, minor: u8, patch: u16) -> Version {
         Version { major, minor, patch }
     }
 
@@ -327,6 +327,10 @@ mod tests {
 
         let a = Version::from_str("3.16.0_1").unwrap();
         let b = Version::new(3, 16, 0);
+        assert_eq!(a, b);
+        
+        let a = Version::from_str("4.9.268-perf+-ab76").unwrap();
+        let b = Version::new(4, 9, 268);
         assert_eq!(a, b);
     }
 
