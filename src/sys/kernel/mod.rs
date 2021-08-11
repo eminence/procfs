@@ -18,11 +18,11 @@ pub mod random;
 pub struct Version {
     pub major: u8,
     pub minor: u8,
-    pub patch: u8,
+    pub patch: u16,
 }
 
 impl Version {
-    pub fn new(major: u8, minor: u8, patch: u8) -> Version {
+    pub fn new(major: u8, minor: u8, patch: u16) -> Version {
         Version { major, minor, patch }
     }
 
