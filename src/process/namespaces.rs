@@ -22,7 +22,7 @@ impl Process {
             let cstr = CString::new(path.as_os_str().as_bytes()).unwrap();
 
             let mut stat = unsafe { std::mem::zeroed() };
-            if unsafe { libc::stat(cstr.as_ptr(), &mut stat) } != 0 {
+            if unsafe { libc::stat64(cstr.as_ptr(), &mut stat) } != 0 {
                 return Err(build_internal_error!(format!("Unable to stat {:?}", path)));
             }
 
