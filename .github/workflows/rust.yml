@@ -18,6 +18,15 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: ${{ matrix.toolchain }}
+    
+    - name: Pin hex and bitflags
+      if: matrix.toolchain == '1.34.0' || matrix.toolchain == '1.42.0'
+      run: |
+        cargo +${{ matrix.toolchain }} update
+        cargo +${{ matrix.toolchain }} update --manifest-path procfs-tests/Cargo.toml
+        cargo +${{ matrix.toolchain }} update -p hex --precise 0.4.2
+        cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
+        cargo +${{ matrix.toolchain }} update --manifest-path procfs-tests/Cargo.toml -p bitflags --precise 1.2.1
 
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --verbose
@@ -50,6 +59,13 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           target: aarch64-linux-android
+
+      - name: Pin hex and bitflags
+        if:  matrix.toolchain == '1.42.0'
+        run: |
+          cargo +${{ matrix.toolchain }} update
+          cargo +${{ matrix.toolchain }} update -p hex --precise 0.4.2
+          cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
 
       - name: cargo check
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android
