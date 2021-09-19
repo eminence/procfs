@@ -133,12 +133,12 @@ pub struct Lock {
     /// The offset (in bytes) of the first byte of the lock.
     ///
     /// For BSD locks, this value is always 0.
-    pub offset_first: usize,
+    pub offset_first: u64,
     /// The offset (in bytes) of the last byte of the lock.
     ///
     /// `None` means the lock extends to the end of the file.  For BSD locks,
     /// the value is always `None`.
-    pub offset_last: Option<usize>,
+    pub offset_last: Option<u64>,
 }
 
 impl Lock {
@@ -159,7 +159,7 @@ impl Lock {
         let kind = From::from(expect!(s.next()));
         let pid = expect!(s.next());
         let disk_inode = expect!(s.next());
-        let offset_first = from_str!(usize, expect!(s.next()));
+        let offset_first = from_str!(u64, expect!(s.next()));
         let offset_last = expect!(s.next());
 
         let mut dis = disk_inode.split(':');
@@ -179,7 +179,7 @@ impl Lock {
             offset_last: if offset_last == "EOF" {
                 None
             } else {
-                Some(from_str!(usize, offset_last))
+                Some(from_str!(u64, offset_last))
             },
         })
     }

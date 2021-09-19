@@ -24,65 +24,65 @@ pub struct DiskStat {
     /// Reads completed successfully
     ///
     /// This is the total number of reads completed successfully
-    pub reads: usize,
+    pub reads: u64,
 
     /// Reads merged
     ///
     /// The number of adjacent reads that have been merged for efficiency.
-    pub merged: usize,
+    pub merged: u64,
 
     /// Sectors read successfully
     ///
     /// This is the total number of sectors read successfully.
-    pub sectors_read: usize,
+    pub sectors_read: u64,
 
     /// Time spent reading (ms)
-    pub time_reading: usize,
+    pub time_reading: u64,
 
     /// writes completed
-    pub writes: usize,
+    pub writes: u64,
 
     /// writes merged
     ///
     /// The number of adjacent writes that have been merged for efficiency.
-    pub writes_merged: usize,
+    pub writes_merged: u64,
 
     /// Sectors written successfully
-    pub sectors_written: usize,
+    pub sectors_written: u64,
 
     /// Time spent writing (ms)
-    pub time_writing: usize,
+    pub time_writing: u64,
 
     /// I/Os currently in progress
-    pub in_progress: usize,
+    pub in_progress: u64,
 
     /// Time spent doing I/Os (ms)
-    pub time_in_progress: usize,
+    pub time_in_progress: u64,
 
     /// Weighted time spent doing I/Os (ms)
-    pub weighted_time_in_progress: usize,
+    pub weighted_time_in_progress: u64,
 
     /// Discards completed successfully
     ///
     /// (since kernel 4.18)
-    pub discards: Option<usize>,
+    pub discards: Option<u64>,
 
     /// Discards merged
-    pub discards_merged: Option<usize>,
+    pub discards_merged: Option<u64>,
 
     /// Sectors discarded
-    pub sectors_discarded: Option<usize>,
+    pub sectors_discarded: Option<u64>,
 
     /// Time spent discarding
-    pub time_discarding: Option<usize>,
+    pub time_discarding: Option<u64>,
 
     /// Flush requests completed successfully
     ///
     /// (since kernel 5.5)
-    pub flushes: Option<usize>,
+    pub flushes: Option<u64>,
 
     /// Time spent flushing
-    pub time_flushing: Option<usize>,
+    pub time_flushing: Option<u64>,
 }
 
 /// Get disk IO stat info from /proc/diskstats
@@ -105,23 +105,23 @@ impl DiskStat {
         let major = from_str!(i32, expect!(s.next()));
         let minor = from_str!(i32, expect!(s.next()));
         let name = expect!(s.next()).to_string();
-        let reads = from_str!(usize, expect!(s.next()));
-        let merged = from_str!(usize, expect!(s.next()));
-        let sectors_read = from_str!(usize, expect!(s.next()));
-        let time_reading = from_str!(usize, expect!(s.next()));
-        let writes = from_str!(usize, expect!(s.next()));
-        let writes_merged = from_str!(usize, expect!(s.next()));
-        let sectors_written = from_str!(usize, expect!(s.next()));
-        let time_writing = from_str!(usize, expect!(s.next()));
-        let in_progress = from_str!(usize, expect!(s.next()));
-        let time_in_progress = from_str!(usize, expect!(s.next()));
-        let weighted_time_in_progress = from_str!(usize, expect!(s.next()));
-        let discards = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
-        let discards_merged = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
-        let sectors_discarded = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
-        let time_discarding = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
-        let flushes = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
-        let time_flushing = s.next().and_then(|s| usize::from_str_radix(s, 10).ok());
+        let reads = from_str!(u64, expect!(s.next()));
+        let merged = from_str!(u64, expect!(s.next()));
+        let sectors_read = from_str!(u64, expect!(s.next()));
+        let time_reading = from_str!(u64, expect!(s.next()));
+        let writes = from_str!(u64, expect!(s.next()));
+        let writes_merged = from_str!(u64, expect!(s.next()));
+        let sectors_written = from_str!(u64, expect!(s.next()));
+        let time_writing = from_str!(u64, expect!(s.next()));
+        let in_progress = from_str!(u64, expect!(s.next()));
+        let time_in_progress = from_str!(u64, expect!(s.next()));
+        let weighted_time_in_progress = from_str!(u64, expect!(s.next()));
+        let discards = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
+        let discards_merged = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
+        let sectors_discarded = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
+        let time_discarding = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
+        let flushes = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
+        let time_flushing = s.next().and_then(|s| u64::from_str_radix(s, 10).ok());
 
         Ok(DiskStat {
             major,

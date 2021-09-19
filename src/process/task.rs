@@ -18,13 +18,11 @@ pub struct Task {
 }
 
 impl Task {
-    /// Create a new `Task` 
+    /// Create a new `Task`
     pub fn new(pid: i32, tid: i32) -> Result<Task, ProcError> {
         let root = PathBuf::from(format!("/proc/{}/task/{}", pid, tid));
         if root.exists() {
-            Ok(Task{
-                pid, tid, root
-            })
+            Ok(Task { pid, tid, root })
         } else {
             Err(ProcError::NotFound(Some(root)))
         }
