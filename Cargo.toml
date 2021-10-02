@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0"
 edition = "2018"
 
 [features]
-default = ["chrono"]
+default = ["chrono", "flate2"]
 
 [dependencies]
 libc = "0.2"
@@ -21,7 +21,7 @@ lazy_static = "1"
 chrono = {version = "0.4", optional = true }
 byteorder = {version="1", features=["i128"]}
 hex = "0.4"
-flate2 = "1"
+flate2 = { version = "1", optional = true }
 backtrace = { version = "0.3", optional = true }
 
 [dev-dependencies]

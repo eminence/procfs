@@ -671,13 +671,24 @@ pub enum ConfigSetting {
 ///
 /// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
 /// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
+///
+/// # Notes
+/// Reading the compress `/proc/config.gz` is only supported if the `flate2` feature is enabled
+/// (which it is by default).
+#[cfg_attr(feature = "flate2", doc = "The flate2 feature is currently enabled")]
+#[cfg_attr(not(feature = "flate2"), doc = "The flate2 feature is NOT currently enabled")]
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
-    use flate2::read::GzDecoder;
-
-    let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() {
-        let file = FileWrapper::open(PROC_CONFIG_GZ)?;
-        let decoder = GzDecoder::new(file);
-        Box::new(BufReader::new(decoder))
+    let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() && cfg!(feature = "flate2") {
+        #[cfg(feature = "flate2")]
+        {
+            let file = FileWrapper::open(PROC_CONFIG_GZ)?;
+            let decoder = flate2::read::GzDecoder::new(file);
+            Box::new(BufReader::new(decoder))
+        }
+        #[cfg(not(feature = "flate2"))]
+        {
+            unreachable!("flate2 feature not enabled")
+        }
     } else {
         let mut kernel: libc::utsname = unsafe { mem::zeroed() };
 
