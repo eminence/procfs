@@ -208,31 +208,31 @@ pub struct Stat {
     /// Address above which program initialized and uninitialized (BSS) data are placed.
     ///
     /// (since Linux 3.3)
-    pub start_data: Option<usize>,
+    pub start_data: Option<u64>,
     /// Address below which program initialized and uninitialized (BSS) data are placed.
     ///
     /// (since Linux 3.3)
-    pub end_data: Option<usize>,
+    pub end_data: Option<u64>,
     /// Address above which program heap can be expanded with brk(2).
     ///
     /// (since Linux 3.3)
-    pub start_brk: Option<usize>,
+    pub start_brk: Option<u64>,
     /// Address above which program command-line arguments (argv) are placed.
     ///
     /// (since Linux 3.5)
-    pub arg_start: Option<usize>,
+    pub arg_start: Option<u64>,
     /// Address below program command-line arguments (argv) are placed.
     ///
     /// (since Linux 3.5)
-    pub arg_end: Option<usize>,
+    pub arg_end: Option<u64>,
     /// Address above which program environment is placed.
     ///
     /// (since Linux 3.5)
-    pub env_start: Option<usize>,
+    pub env_start: Option<u64>,
     /// Address below which program environment is placed.
     ///
     /// (since Linux 3.5)
-    pub env_end: Option<usize>,
+    pub env_end: Option<u64>,
     /// The thread's exit status in the form reported by waitpid(2).
     ///
     /// (since Linux 3.5)
