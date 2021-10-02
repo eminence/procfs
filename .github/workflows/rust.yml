@@ -26,6 +26,7 @@ jobs:
         cargo +${{ matrix.toolchain }} update --manifest-path procfs-tests/Cargo.toml
         cargo +${{ matrix.toolchain }} update -p hex --precise 0.4.2
         cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
+        cargo +${{ matrix.toolchain }} update -p flate2 --precise 1.0.21
         cargo +${{ matrix.toolchain }} update --manifest-path procfs-tests/Cargo.toml -p bitflags --precise 1.2.1
 
     - name: Build
