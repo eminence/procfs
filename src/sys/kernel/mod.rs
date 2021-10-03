@@ -301,11 +301,13 @@ pub fn threads_max() -> ProcResult<u32> {
 /// Since Linux 4.1, this value is bounded, and must be in the range [THREADS_MIN]..=[THREADS_MAX].
 /// This function will return an error if that is not the case.
 pub fn set_threads_max(new_limit: u32) -> ProcResult<()> {
-    if KERNEL.major >= 4 && KERNEL.minor >= 1 && !(THREADS_MIN <= new_limit && new_limit <= THREADS_MAX) {
-        return Err(ProcError::Other(format!(
-            "{} is outside the THREADS_MIN..=THREADS_MAX range",
-            new_limit
-        )));
+    if let Ok(kernel) = *KERNEL {
+        if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN <= new_limit && new_limit <= THREADS_MAX) {
+            return Err(ProcError::Other(format!(
+                "{} is outside the THREADS_MIN..=THREADS_MAX range",
+                new_limit
+            )));
+        }
     }
 
     write_value("/proc/sys/kernel/threads-max", new_limit)

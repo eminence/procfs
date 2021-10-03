@@ -12,5 +12,5 @@ fn main() {
     println!("{:#?}", prc);
 
     println!("State: {:?}", prc.stat.state());
-    println!("RSS:   {} bytes", prc.stat.rss_bytes());
+    println!("RSS:   {} bytes", prc.stat.rss_bytes().unwrap());
 }

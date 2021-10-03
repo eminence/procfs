@@ -292,21 +292,21 @@ lazy_static! {
     /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
-    static ref TICKS_PER_SECOND: i64 = {
-        ticks_per_second().unwrap()
+    static ref TICKS_PER_SECOND: ProcResult<i64> = {
+        Ok(ticks_per_second()?)
     };
     /// The version of the currently running kernel.
     ///
     /// This is a lazily constructed static.  You can also get this information via
     /// [KernelVersion::new()].
-    static ref KERNEL: KernelVersion = {
-        KernelVersion::current().unwrap()
+    static ref KERNEL: ProcResult<KernelVersion> = {
+        KernelVersion::current()
     };
     /// Memory page size, in bytes.
     ///
     /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-    static ref PAGESIZE: i64 = {
-        page_size().unwrap()
+    static ref PAGESIZE: ProcResult<i64> = {
+        Ok(page_size()?)
     };
 }
 
