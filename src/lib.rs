@@ -288,6 +288,9 @@ pub use locks::*;
 
 pub mod keyring;
 
+mod uptime;
+pub use uptime::*;
+
 lazy_static! {
     /// The number of clock ticks per second.
     ///
