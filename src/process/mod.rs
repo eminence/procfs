@@ -490,6 +490,7 @@ impl MMapPath {
                 MMapPath::TStack(tid)
             }
             x if x.starts_with('[') && x.ends_with(']') => MMapPath::Other(x[1..x.len() - 1].to_string()),
+            x if x.starts_with("/SYSV") => MMapPath::Other(x[0..x.len()].to_string()),
             x => MMapPath::Path(PathBuf::from(x)),
         })
     }
