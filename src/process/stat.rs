@@ -3,15 +3,19 @@ use super::StatFlags;
 #[cfg(feature = "chrono")]
 use crate::TICKS_PER_SECOND;
 use crate::{from_iter, KernelVersion, ProcResult};
-use crate::{KERNEL, PAGESIZE};
+use crate::{ProcError, KERNEL, PAGESIZE};
 
 use std::io::Read;
 use std::str::FromStr;
 
 macro_rules! since_kernel {
     ($a:tt, $b:tt, $c:tt, $e:expr) => {
-        if *KERNEL >= KernelVersion::new($a, $b, $c) {
-            Some($e)
+        if let Ok(kernel) = *KERNEL {
+            if kernel >= KernelVersion::new($a, $b, $c) {
+                Some($e)
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -400,7 +404,10 @@ impl Stat {
     /// This function requires the "chrono" features to be enabled (which it is by default).
     #[cfg(feature = "chrono")]
     pub fn starttime(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
-        let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
+        let tts = TICKS_PER_SECOND
+            .as_ref()
+            .map_err(|e| ProcError::Other(format!("Failed to get ticks_per_second: {:?}", e)))?;
+        let seconds_since_boot = self.starttime as f32 / *tts as f32;
         let boot_time = crate::boot_time()?;
 
         Ok(boot_time + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
@@ -409,7 +416,10 @@ impl Stat {
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
-    pub fn rss_bytes(&self) -> i64 {
-        self.rss * *PAGESIZE
+    pub fn rss_bytes(&self) -> ProcResult<i64> {
+        let pagesize = PAGESIZE
+            .as_ref()
+            .map_err(|e| ProcError::Other(format!("Failed to get pagesize: {:?}", e)))?;
+        Ok(self.rss * *pagesize)
     }
 }
