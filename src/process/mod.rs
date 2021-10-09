@@ -466,6 +466,8 @@ pub enum MMapPath {
     Vsyscall,
     /// An anonymous mapping as obtained via mmap(2).
     Anonymous,
+    /// Shared memory segment
+    Vsys(i32),
     /// Some other pseudo-path
     Other(String),
 }
@@ -490,6 +492,7 @@ impl MMapPath {
                 MMapPath::TStack(tid)
             }
             x if x.starts_with('[') && x.ends_with(']') => MMapPath::Other(x[1..x.len() - 1].to_string()),
+            x if x.starts_with("/SYSV") => MMapPath::Vsys(i32::from_str_radix(&x[5..13], 16)?), // 32bits as hex. /SYSVaabbccdd (deleted)
             x => MMapPath::Path(PathBuf::from(x)),
         })
     }
