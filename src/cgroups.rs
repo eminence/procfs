@@ -102,7 +102,7 @@ impl Process {
                 continue;
             }
 
-            let mut s = line.split(':');
+            let mut s = line.splitn(3, ':');
             let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
             let controllers = expect!(s.next(), "controllers")
                 .split(',')
