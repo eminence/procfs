@@ -266,6 +266,9 @@ pub mod process;
 mod meminfo;
 pub use crate::meminfo::*;
 
+mod sysvipc_shm;
+pub use crate::sysvipc_shm::*;
+
 pub mod net;
 
 mod cpuinfo;
