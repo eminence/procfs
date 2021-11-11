@@ -11,7 +11,7 @@ fn main() {
 
         println!(
             "{} on {} type {} ({})",
-            mount.mount_source.unwrap(),
+            mount.mount_source.unwrap_or_else(|| "None".to_string()),
             mount.mount_point.display(),
             mount.fs_type,
             a.into_iter().map(|(k, _)| k).collect::<Vec<_>>().join(",")
