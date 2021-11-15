@@ -143,7 +143,7 @@ impl FromStr for Type {
 /// Represents a kernel build information
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BuildInfo {
-    pub version: u32,
+    pub version: String,
     pub flags: HashSet<String>,
     /// The time when the build was begun
     ///
@@ -161,8 +161,8 @@ pub struct BuildInfo {
 }
 
 impl BuildInfo {
-    pub fn new(version: u32, flags: HashSet<String>, time: String) -> BuildInfo {
-        BuildInfo { version, flags, time }
+    pub fn new(version: &str, flags: HashSet<String>, time: String) -> BuildInfo {
+        BuildInfo { version: version.to_string(), flags, time }
     }
 
     /// Read the kernel build information from current running kernel
@@ -188,6 +188,22 @@ impl BuildInfo {
         self.flags.contains("PREEMPTRT")
     }
 
+    /// Return version number
+    /// 
+    /// This would parse number from first digits of version string.
+    pub fn version_number(&self) -> ProcResult<u32> {
+        let mut version_str = String::new();
+        for c in self.version.chars() {
+            if c.is_ascii_digit() {
+                version_str.push(c);
+            } else {
+                break;
+            }
+        }
+        let version_number: u32 = version_str.parse().map_err(|_| "Failed to parse version number")?;
+        Ok(version_number)
+    }
+
     /// Parse time string to `DateTime` object
     ///
     /// This function may fail as TIMESTAMP can be various formats.
@@ -205,7 +221,7 @@ impl FromStr for BuildInfo {
 
     /// Parse a kernel build information string
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut version: u32 = 0;
+        let mut version= String::new();
         let mut flags: HashSet<String> = HashSet::new();
         let mut time: String = String::new();
 
@@ -213,9 +229,9 @@ impl FromStr for BuildInfo {
         let version_str = splited.next();
         if let Some(version_str) = version_str {
             if version_str.starts_with('#') {
-                version = version_str[1..]
-                    .parse()
-                    .map_err(|_| "Failed to parse kernel build version")?;
+                version.push_str(&version_str[1..]);
+            } else {
+                return Err("Failed to parse kernel build version");
             }
         } else {
             return Err("Failed to parse kernel build version");
@@ -233,7 +249,7 @@ impl FromStr for BuildInfo {
         let remains: Vec<&str> = splited.collect();
         time.push_str(&remains.join(" "));
 
-        Ok(BuildInfo::new(version, flags, time))
+        Ok(BuildInfo{version, flags, time})
     }
 }
 
@@ -473,20 +489,40 @@ mod tests {
         let mut flags: HashSet<String> = HashSet::new();
         flags.insert("SMP".to_string());
         flags.insert("PREEMPT".to_string());
-        assert_eq!(a.version, 1);
+        assert_eq!(a.version, "1");
+        assert_eq!(a.version_number().unwrap(), 1);
         assert_eq!(a.flags, flags);
         assert!(a.smp());
         assert!(a.preempt());
         assert!(!a.preemptrt());
         assert_eq!(a.time, "Thu Sep 30 15:29:01 UTC 2021");
+        #[cfg(feature = "chrono")]
+        let _ = a.time().unwrap();
 
         let b = BuildInfo::from_str("#1 Thu Sep 30 15:29:01 UTC 2021").unwrap();
         let flags: HashSet<String> = HashSet::new();
-        assert_eq!(b.version, 1);
+        assert_eq!(b.version, "1");
+        assert_eq!(b.version_number().unwrap(), 1);
         assert_eq!(b.flags, flags);
         assert_eq!(b.time, "Thu Sep 30 15:29:01 UTC 2021");
+        assert!(!b.smp());
+        assert!(!b.preempt());
+        assert!(!b.preemptrt());
         #[cfg(feature = "chrono")]
         let _ = b.time().unwrap();
+
+        let c = BuildInfo::from_str("#21~20.04.1-Ubuntu SMP Mon Oct 11 18:54:28 UTC 2021").unwrap();
+        let mut flags: HashSet<String> = HashSet::new();
+        flags.insert("SMP".to_string());
+        assert_eq!(c.version, "21~20.04.1-Ubuntu");
+        assert_eq!(c.version_number().unwrap(), 21);
+        assert_eq!(c.flags, flags);
+        assert_eq!(c.time, "Mon Oct 11 18:54:28 UTC 2021");
+        assert!(c.smp());
+        assert!(!c.preempt());
+        assert!(!c.preemptrt());
+        #[cfg(feature = "chrono")]
+        let _ = c.time().unwrap();
     }
 
     #[test]
