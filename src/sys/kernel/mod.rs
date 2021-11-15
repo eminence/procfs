@@ -210,8 +210,7 @@ impl BuildInfo {
     #[cfg(feature = "chrono")]
     pub fn time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
         let dt = chrono::DateTime::parse_from_str(&format!("{} +0000", &self.time), "%a %b %d %H:%M:%S UTC %Y %z")
-            // .map_err(|_| "Failed to parse time")?;
-            .unwrap();
+            .map_err(|_| "Failed to parse kernel build time")?;
         Ok(dt.with_timezone(&chrono::Local))
     }
 }
