@@ -278,6 +278,8 @@ mod cgroups;
 pub use crate::cgroups::*;
 
 pub mod sys;
+pub use crate::sys::kernel::BuildInfo as KernelBuildInfo;
+pub use crate::sys::kernel::Type as KernelType;
 pub use crate::sys::kernel::Version as KernelVersion;
 
 mod pressure;

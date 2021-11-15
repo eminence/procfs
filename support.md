@@ -181,7 +181,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/msgmnb`
 	* [ ] `/proc/sys/kernel/ngroups_max`
 	* [ ] `/proc/sys/kernel/ns_last_pid`
-	* [ ] `/proc/sys/kernel/ostype`
+	* [x] `/proc/sys/kernel/ostype`
 	* [x] `/proc/sys/kernel/osrelease`
 	* [ ] `/proc/sys/kernel/overflowgid`
 	* [ ] `/proc/sys/kernel/overflowuid`
@@ -218,7 +218,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [x] `/proc/sys/kernel/shmmni`
 	* [ ] `/proc/sys/kernel/sysctl_writes_strict`
 	* [x] `/proc/sys/kernel/sysrq`
-	* [ ] `/proc/sys/kernel/version`
+	* [x] `/proc/sys/kernel/version`
 	* [x] `/proc/sys/kernel/threads-max`
 	* [ ] `/proc/sys/kernel/yama/ptrace_scope`
 	* [ ] `/proc/sys/kernel/zero-paged`
