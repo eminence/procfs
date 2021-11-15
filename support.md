@@ -113,6 +113,10 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/net/netfilter/nfnetlink_queue`
 * [ ] `/proc/partitions`
 * [ ] `/proc/pci`
+* [x] `/proc/pressure`
+  * [x] `/proc/pressure/cpu`
+  * [x] `/proc/pressure/io`
+  * [x] `/proc/pressure/memory`
 * [ ] `/proc/profile`
 * [ ] `/proc/scsi`
 * [ ] `/proc/scsi/scsi`
