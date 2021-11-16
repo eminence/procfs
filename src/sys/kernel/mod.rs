@@ -145,7 +145,7 @@ impl FromStr for Type {
 pub struct BuildInfo {
     pub version: String,
     pub flags: HashSet<String>,
-    /// The time when the build was begun
+    /// The time of building the kernel
     ///
     /// It defined in `scripts/mkcompile_h`. If `KBUILD_BUILD_TIMESTAMP` was not set, it would be the result of `date`.
     ///
@@ -155,7 +155,7 @@ pub struct BuildInfo {
     )]
     #[cfg_attr(
         not(feature = "chrono"),
-        doc = "If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the time as a `DateTime` object"
+        doc = "If you compile with the optional `chrono` feature, you can use the `time()` method to get the time as a `DateTime` object"
     )]
     pub time: String,
 }
@@ -190,7 +190,7 @@ impl BuildInfo {
 
     /// Return version number
     /// 
-    /// This would parse number from first digits of version string.
+    /// This would parse number from first digits of version string. For example, #21~1 to 21.
     pub fn version_number(&self) -> ProcResult<u32> {
         let mut version_str = String::new();
         for c in self.version.chars() {
@@ -206,7 +206,7 @@ impl BuildInfo {
 
     /// Parse time string to `DateTime` object
     ///
-    /// This function may fail as TIMESTAMP can be various formats.
+    /// This function may fail as TIMESTAMP can be various formats. It currently only supports UTC timezone.
     #[cfg(feature = "chrono")]
     pub fn time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
         let dt = chrono::DateTime::parse_from_str(&format!("{} +0000", &self.time), "%a %b %d %H:%M:%S UTC %Y %z")
