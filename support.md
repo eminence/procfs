@@ -100,12 +100,14 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/mounts`
 * [ ] `/proc/mtrr`
 * [ ] `/proc/net`
-  * [ ] `/proc/net/arp`
+  * [x] `/proc/net/arp`
   * [x] `/proc/net/dev`
   * [ ] `/proc/net/dev_mcast`
   * [ ] `/proc/net/igmp`
+  * [ ] `/proc/net/ipv6_route`
   * [ ] `/proc/net/rarp`
   * [ ] `/proc/net/raw`
+  * [x] `/proc/net/route`
   * [ ] `/proc/net/snmp`
   * [x] `/proc/net/tcp`
   * [x] `/proc/net/udp`
