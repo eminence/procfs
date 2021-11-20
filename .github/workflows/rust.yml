@@ -49,7 +49,7 @@ jobs:
       run: cargo +${{ matrix.toolchain }} doc
 
 
-  android-check:
+  check:
     strategy:
       matrix:
         toolchain: ["1.42.0", "stable", "beta", "nightly"]
@@ -57,11 +57,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install toolchains
+      - name: Install toolchains (aarch64)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
           target: aarch64-linux-android
+      - name: Install toolchains (i686)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          target: i686-unknown-linux-gnu
 
       - name: Pin hex and bitflags
         if:  matrix.toolchain == '1.42.0'
@@ -70,6 +75,8 @@ jobs:
           cargo +${{ matrix.toolchain }} update -p hex --precise 0.4.2
           cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
 
-      - name: cargo check
+      - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android
+      - name: cargo check (i686)
+        run: cargo +${{ matrix.toolchain }} check --target i686-unknown-linux-gnu
 
