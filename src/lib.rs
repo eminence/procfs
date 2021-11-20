@@ -41,6 +41,7 @@
 //! The following cargo features are available:
 //!
 //! * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
+//! * `flate2` -- Default.  Optional.  This feature enables parsing gzip compressed `/proc/config.gz` file via the `procfs::kernel_config` method.
 //! * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 //!
 //! # Examples
