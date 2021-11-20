@@ -76,7 +76,8 @@ mod tests {
 
     #[test]
     #[cfg(not(tarpaulin))] // this test is unstable under tarpaulin, and i'm yet sure why
-    fn test_task() {
+    // When this test runs in CI, run it single-threaded
+    fn test_task_runsinglethread() {
         use std::io::Read;
 
         let me = crate::process::Process::myself().unwrap();

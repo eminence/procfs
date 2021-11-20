@@ -32,7 +32,9 @@ jobs:
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --verbose
     - name: Run tests
-      run: cargo +${{ matrix.toolchain }} test --verbose
+      run: cargo +${{ matrix.toolchain }} test --verbose -- --skip _runsinglethread
+    - name: Run tests (single-threaded tests)
+      run: cargo +${{ matrix.toolchain }} test --verbose -- _runsinglethread --test-threads 1
 
     - name: Run more tests
       if: matrix.toolchain != '1.34.0'
