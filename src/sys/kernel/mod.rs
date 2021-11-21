@@ -134,7 +134,7 @@ impl FromStr for Type {
 
     /// Parse a kernel type string
     ///
-    /// Notice that in Linux source code, it is defined as a single string
+    /// Notice that in Linux source code, it is defined as a single string.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Type::new(s.to_string()))
     }
@@ -145,24 +145,15 @@ impl FromStr for Type {
 pub struct BuildInfo {
     pub version: String,
     pub flags: HashSet<String>,
-    /// The time of building the kernel
+    /// This field contains any extra data from the /proc/sys/kernel/version file. It generally contains the build date of the kernel, but the format of the date can vary.
     ///
-    /// It defined in `scripts/mkcompile_h`. If `KBUILD_BUILD_TIMESTAMP` was not set, it would be the result of `date`.
-    ///
-    #[cfg_attr(
-        feature = "chrono",
-        doc = "See also the [BuildInfo::time()] method to get the time as a `DateTime` object"
-    )]
-    #[cfg_attr(
-        not(feature = "chrono"),
-        doc = "If you compile with the optional `chrono` feature, you can use the `time()` method to get the time as a `DateTime` object"
-    )]
-    pub time: String,
+    /// A method named `extra_date` is provided which would try to parse some date formats. When the date format is not supported, an error will be returned. It depends on chrono feature.
+    pub extra: String,
 }
 
 impl BuildInfo {
-    pub fn new(version: &str, flags: HashSet<String>, time: String) -> BuildInfo {
-        BuildInfo { version: version.to_string(), flags, time }
+    pub fn new(version: &str, flags: HashSet<String>, extra: String) -> BuildInfo {
+        BuildInfo { version: version.to_string(), flags, extra }
     }
 
     /// Read the kernel build information from current running kernel
@@ -173,17 +164,17 @@ impl BuildInfo {
         read_value("/proc/sys/kernel/version")
     }
 
-    // Check if SMP is ON
+    /// Check if SMP is ON
     pub fn smp(&self) -> bool {
         self.flags.contains("SMP")
     }
 
-    // Check if PREEMPT is ON
+    /// Check if PREEMPT is ON
     pub fn preempt(&self) -> bool {
         self.flags.contains("PREEMPT")
     }
 
-    // Check if PREEMPTRT is ON
+    /// Check if PREEMPTRT is ON
     pub fn preemptrt(&self) -> bool {
         self.flags.contains("PREEMPTRT")
     }
@@ -204,14 +195,18 @@ impl BuildInfo {
         Ok(version_number)
     }
 
-    /// Parse time string to `DateTime` object
+    /// Parse extra field to `DateTime` object
     ///
-    /// This function may fail as TIMESTAMP can be various formats. It currently only supports UTC timezone.
+    /// This function may fail as TIMESTAMP can be various formats.
     #[cfg(feature = "chrono")]
-    pub fn time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
-        let dt = chrono::DateTime::parse_from_str(&format!("{} +0000", &self.time), "%a %b %d %H:%M:%S UTC %Y %z")
-            .map_err(|_| "Failed to parse kernel build time")?;
-        Ok(dt.with_timezone(&chrono::Local))
+    pub fn extra_date(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
+        if let Ok(dt) = chrono::DateTime::parse_from_str(&format!("{} +0000", &self.extra), "%a %b %d %H:%M:%S UTC %Y %z") {
+            return Ok(dt.with_timezone(&chrono::Local));
+        }
+        if let Ok(dt) = chrono::DateTime::parse_from_str(&self.extra, "%a, %d %b %Y %H:%M:%S %z") {
+            return Ok(dt.with_timezone(&chrono::Local));
+        }
+        Err(ProcError::Other("Failed to parse extra field to date".to_string()))
     }
 }
 
@@ -222,7 +217,7 @@ impl FromStr for BuildInfo {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut version= String::new();
         let mut flags: HashSet<String> = HashSet::new();
-        let mut time: String = String::new();
+        let mut extra: String = String::new();
 
         let mut splited = s.split(' ');
         let version_str = splited.next();
@@ -240,15 +235,15 @@ impl FromStr for BuildInfo {
             if s.chars().all(char::is_uppercase) {
                 flags.insert(s.to_string());
             } else {
-                time.push_str(s);
-                time.push(' ');
+                extra.push_str(s);
+                extra.push(' ');
                 break;
             }
         }
         let remains: Vec<&str> = splited.collect();
-        time.push_str(&remains.join(" "));
+        extra.push_str(&remains.join(" "));
 
-        Ok(BuildInfo{version, flags, time})
+        Ok(BuildInfo{version, flags, extra})
     }
 }
 
@@ -484,6 +479,7 @@ mod tests {
 
     #[test]
     fn test_build_info() {
+        // For Ubuntu, Manjaro, CentOS and others:
         let a = BuildInfo::from_str("#1 SMP PREEMPT Thu Sep 30 15:29:01 UTC 2021").unwrap();
         let mut flags: HashSet<String> = HashSet::new();
         flags.insert("SMP".to_string());
@@ -494,34 +490,34 @@ mod tests {
         assert!(a.smp());
         assert!(a.preempt());
         assert!(!a.preemptrt());
-        assert_eq!(a.time, "Thu Sep 30 15:29:01 UTC 2021");
+        assert_eq!(a.extra, "Thu Sep 30 15:29:01 UTC 2021");
         #[cfg(feature = "chrono")]
-        let _ = a.time().unwrap();
+        let _ = a.extra_date().unwrap();
 
-        let b = BuildInfo::from_str("#1 Thu Sep 30 15:29:01 UTC 2021").unwrap();
-        let flags: HashSet<String> = HashSet::new();
+        // For Arch and others:
+        let b = BuildInfo::from_str("#1 SMP PREEMPT Fri, 12 Nov 2021 19:22:10 +0000").unwrap();
         assert_eq!(b.version, "1");
         assert_eq!(b.version_number().unwrap(), 1);
         assert_eq!(b.flags, flags);
-        assert_eq!(b.time, "Thu Sep 30 15:29:01 UTC 2021");
-        assert!(!b.smp());
-        assert!(!b.preempt());
+        assert_eq!(b.extra, "Fri, 12 Nov 2021 19:22:10 +0000");
+        assert!(b.smp());
+        assert!(b.preempt());
         assert!(!b.preemptrt());
         #[cfg(feature = "chrono")]
-        let _ = b.time().unwrap();
+        let _ = b.extra_date().unwrap();
 
-        let c = BuildInfo::from_str("#21~20.04.1-Ubuntu SMP Mon Oct 11 18:54:28 UTC 2021").unwrap();
+        // For Debian and others:
+        let c = BuildInfo::from_str("#1 SMP Debian 5.10.46-4 (2021-08-03)").unwrap();
         let mut flags: HashSet<String> = HashSet::new();
         flags.insert("SMP".to_string());
-        assert_eq!(c.version, "21~20.04.1-Ubuntu");
-        assert_eq!(c.version_number().unwrap(), 21);
+        assert_eq!(c.version, "1");
+        assert_eq!(c.version_number().unwrap(), 1);
         assert_eq!(c.flags, flags);
-        assert_eq!(c.time, "Mon Oct 11 18:54:28 UTC 2021");
+        assert_eq!(c.extra, "Debian 5.10.46-4 (2021-08-03)");
         assert!(c.smp());
         assert!(!c.preempt());
         assert!(!c.preemptrt());
-        #[cfg(feature = "chrono")]
-        let _ = c.time().unwrap();
+        // Skip the date parsing for now
     }
 
     #[test]
