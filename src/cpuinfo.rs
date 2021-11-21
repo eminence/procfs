@@ -30,27 +30,25 @@ impl CpuInfo {
         // the first line of a cpu block must start with "processor"
         let mut found_first = false;
 
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                if !line.is_empty() {
-                    let mut s = line.split(':');
-                    let key = expect!(s.next());
-                    if !found_first && key.trim() == "processor" {
-                        found_first = true;
-                    }
-                    if !found_first {
-                        continue;
-                    }
-                    if let Some(value) = s.next() {
-                        let key = key.trim().to_owned();
-                        let value = value.trim().to_owned();
-
-                        map.get_or_insert(HashMap::new()).insert(key, value);
-                    }
-                } else if let Some(map) = map.take() {
-                    list.push(map);
-                    found_first = false;
+        for line in reader.lines().flatten() {
+            if !line.is_empty() {
+                let mut s = line.split(':');
+                let key = expect!(s.next());
+                if !found_first && key.trim() == "processor" {
+                    found_first = true;
                 }
+                if !found_first {
+                    continue;
+                }
+                if let Some(value) = s.next() {
+                    let key = key.trim().to_owned();
+                    let value = value.trim().to_owned();
+
+                    map.get_or_insert(HashMap::new()).insert(key, value);
+                }
+            } else if let Some(map) = map.take() {
+                list.push(map);
+                found_first = false;
             }
         }
         if let Some(map) = map.take() {

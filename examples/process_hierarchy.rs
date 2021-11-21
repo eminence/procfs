@@ -16,7 +16,7 @@ fn main() {
     // Those can be identified by checking if their parent PID is zero.
     for process in &processes {
         if process.stat.ppid == 0 {
-            print_process(&process, &processes, 0);
+            print_process(process, &processes, 0);
         }
     }
 }
@@ -26,7 +26,7 @@ fn main() {
 /// It's a depth-first tree exploration.
 ///
 /// depth: The hierarchical depth of the process
-fn print_process(process: &Process, all_processes: &Vec<Process>, depth: usize) {
+fn print_process(process: &Process, all_processes: &[Process], depth: usize) {
     let cmdline = match process.cmdline() {
         Ok(cmdline) => cmdline.join(" "),
         Err(_) => "zombie process".into(),
@@ -47,15 +47,15 @@ fn print_process(process: &Process, all_processes: &Vec<Process>, depth: usize) 
 
     let children = get_children(process.pid, all_processes);
     for child in &children {
-        print_process(child, &all_processes, depth + 1);
+        print_process(child, all_processes, depth + 1);
     }
 }
 
 /// Get all children of a specific process, by iterating through all processes and
 /// checking their parent pid.
-pub fn get_children(pid: i32, all_processes: &Vec<Process>) -> Vec<&Process> {
+pub fn get_children(pid: i32, all_processes: &[Process]) -> Vec<&Process> {
     all_processes
-        .into_iter()
+        .iter()
         .filter(|process| process.stat.ppid == pid)
         .collect()
 }

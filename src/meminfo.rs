@@ -382,9 +382,7 @@ impl Meminfo {
             file_huge_pages: map.remove("FileHugePages"),
         };
 
-        if cfg!(test) && !map.is_empty() {
-            panic!("meminfo map is not empty: {:#?}", map);
-        }
+        assert!(!(cfg!(test) && !map.is_empty()), "meminfo map is not empty: {:#?}", map);
 
         Ok(meminfo)
     }
@@ -396,6 +394,7 @@ mod test {
     use crate::{kernel_config, KernelVersion};
 
     #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::blocks_in_if_conditions)]
     #[test]
     fn test_meminfo() {
         // TRAVIS

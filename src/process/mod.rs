@@ -596,9 +596,7 @@ impl Io {
             cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
         };
 
-        if cfg!(test) && !map.is_empty() {
-            panic!("io map is not empty: {:#?}", map);
-        }
+        assert!(!(cfg!(test) && !map.is_empty()), "io map is not empty: {:#?}", map);
 
         Ok(io)
     }
@@ -952,14 +950,14 @@ impl Process {
                         // supposedly responsible for creating smaps, has lead me to believe that the only size suffixes we'll ever encounter
                         // "kB", which is most likely kibibytes. Actually checking if the size suffix is any of the above is a way to
                         // future-proof the code, but I am not sure it is worth doing so.
-                        let size_multiplier = if let Some(_) = size_suffix { 1024 } else { 1 };
+                        let size_multiplier = if size_suffix.is_some() { 1024 } else { 1 };
 
                         let v = v.parse::<u64>().map_err(|_| {
                             ProcError::Other("Value in `Key: Value` pair was not actually a number".into())
                         })?;
 
                         // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
-                        let k = k.trim_end_matches(":");
+                        let k = k.trim_end_matches(':');
 
                         current_data.map.insert(k.into(), v * size_multiplier);
                     }
@@ -1260,7 +1258,7 @@ impl std::iter::Iterator for TasksIter {
     fn next(&mut self) -> Option<ProcResult<Task>> {
         match self.inner.next() {
             Some(Ok(tp)) => Some(Task::from_rel_path(self.pid, &tp.path())),
-            Some(Err(e)) => Some(Err(ProcError::Io(e.into(), None))),
+            Some(Err(e)) => Some(Err(ProcError::Io(e, None))),
             None => None,
         }
     }
@@ -1279,14 +1277,12 @@ pub fn all_processes() -> ProcResult<Vec<Process>> {
 pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<Vec<Process>> {
     let mut v = Vec::new();
     let root = root.as_ref();
-    for dir in expect!(std::fs::read_dir(root), format!("No {} directory", root.display())) {
-        if let Ok(entry) = dir {
-            if i32::from_str(&entry.file_name().to_string_lossy()).is_ok() {
-                match Process::new_with_root(entry.path()) {
-                    Ok(prc) => v.push(prc),
-                    Err(ProcError::InternalError(e)) => return Err(ProcError::InternalError(e)),
-                    _ => {}
-                }
+    for entry in expect!(std::fs::read_dir(root), format!("No {} directory", root.display())).flatten() {
+        if i32::from_str(&entry.file_name().to_string_lossy()).is_ok() {
+            match Process::new_with_root(entry.path()) {
+                Ok(prc) => v.push(prc),
+                Err(ProcError::InternalError(e)) => return Err(ProcError::InternalError(e)),
+                _ => {}
             }
         }
     }
