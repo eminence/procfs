@@ -2,6 +2,9 @@
 // The suggested fix with `strip_prefix` removes support for Rust 1.33 and 1.38
 #![allow(clippy::unknown_clippy_lints)]
 #![allow(clippy::manual_strip)]
+#![allow(clippy::from_str_radix_10)]
+// `#[non_exhaustive]` require Rust 1.40+ but procfs minimal Rust version is 1.34
+#![allow(clippy::manual_non_exhaustive)]
 // Don't throw rustc lint warnings for the deprecated name `intra_doc_link_resolution_failure`.
 // The suggested rename to `broken_intra_doc_links` removes support for Rust 1.33 and 1.38.
 #![allow(renamed_and_removed_lints)]
@@ -134,7 +137,6 @@ impl<T, E> IntoResult<T, E> for Result<T, E> {
     }
 }
 
-#[macro_use]
 #[allow(unused_macros)]
 macro_rules! proc_panic {
     ($e:expr) => {
@@ -171,7 +173,6 @@ macro_rules! expect {
     };
 }
 
-#[macro_use]
 macro_rules! from_str {
     ($t:tt, $e:expr) => {{
         let e = $e;
@@ -483,13 +484,9 @@ impl From<std::io::Error> for ProcError {
     fn from(io: std::io::Error) -> Self {
         use std::io::ErrorKind;
         let kind = io.kind();
-        let path: Option<PathBuf> = io.get_ref().and_then(|inner| {
-            if let Some(ref inner) = inner.downcast_ref::<IoErrorWrapper>() {
-                Some(inner.path.clone())
-            } else {
-                None
-            }
-        });
+        let path: Option<PathBuf> = io
+            .get_ref()
+            .and_then(|inner| inner.downcast_ref::<IoErrorWrapper>().map(|inner| inner.path.clone()));
         match kind {
             ErrorKind::PermissionDenied => ProcError::PermissionDenied(path),
             ErrorKind::NotFound => ProcError::NotFound(path),
@@ -597,7 +594,10 @@ pub fn ticks_per_second() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_CLK_TCK) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x.into()),
+            #[cfg(target_pointer_width = "64")]
+            x => Ok(x),
+            #[cfg(target_pointer_width = "32")]
+            x => Ok(x.into())
         }
     } else {
         panic!("Not supported on non-unix platforms")
@@ -653,8 +653,10 @@ pub fn page_size() -> std::io::Result<i64> {
     if cfg!(unix) {
         match unsafe { sysconf(_SC_PAGESIZE) } {
             -1 => Err(std::io::Error::last_os_error()),
-            x => Ok(x.into()),
-        }
+            #[cfg(target_pointer_width = "64")]
+            x => Ok(x),
+            #[cfg(target_pointer_width = "32")]
+            x => Ok(x.into())        }
     } else {
         panic!("Not supported on non-unix platforms")
     }
@@ -871,7 +873,7 @@ impl CpuTime {
 
     /// Time spent waiting for I/O to complete
     pub fn iowait_duration(&self) -> Option<Duration> {
-        self.iowait_ms().map(|io| Duration::from_millis(io))
+        self.iowait_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent servicing interrupts
@@ -882,7 +884,7 @@ impl CpuTime {
 
     /// Time spent servicing interrupts
     pub fn irq_duration(&self) -> Option<Duration> {
-        self.irq_ms().map(|ms| Duration::from_millis(ms))
+        self.irq_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent servicing softirqs
@@ -893,7 +895,7 @@ impl CpuTime {
 
     /// Time spent servicing softirqs
     pub fn softirq_duration(&self) -> Option<Duration> {
-        self.softirq_ms().map(|ms| Duration::from_millis(ms))
+        self.softirq_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds of stolen time
@@ -904,7 +906,7 @@ impl CpuTime {
 
     /// Amount of stolen time
     pub fn steal_duration(&self) -> Option<Duration> {
-        self.steal_ms().map(|ms| Duration::from_millis(ms))
+        self.steal_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent running a virtual CPU for guest operating systems under control of the linux kernel
@@ -915,7 +917,7 @@ impl CpuTime {
 
     /// Time spent running a virtual CPU for guest operating systems under control of the linux kernel
     pub fn guest_duration(&self) -> Option<Duration> {
-        self.guest_ms().map(|ms| Duration::from_millis(ms))
+        self.guest_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent running a niced guest
@@ -926,7 +928,7 @@ impl CpuTime {
 
     /// Time spent running a niced guest
     pub fn guest_nice_duration(&self) -> Option<Duration> {
-        self.guest_nice_ms().map(|ms| Duration::from_millis(ms))
+        self.guest_nice_ms().map(Duration::from_millis)
     }
 }
 

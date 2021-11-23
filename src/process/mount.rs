@@ -323,9 +323,9 @@ impl MountNFSStatistics {
                 } else if line.starts_with("sec:") {
                     sec = Some(line[4..].trim().split(',').map(|s| s.to_string()).collect());
                 } else if line.starts_with("bytes:") {
-                    bytes = Some(NFSByteCounter::from_str(&line[6..].trim())?);
+                    bytes = Some(NFSByteCounter::from_str(line[6..].trim())?);
                 } else if line.starts_with("events:") {
-                    events = Some(NFSEventCounter::from_str(&line[7..].trim())?);
+                    events = Some(NFSEventCounter::from_str(line[7..].trim())?);
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;

@@ -85,7 +85,7 @@ impl BinFmtEntry {
             }
         }
 
-        if magic.len() > 0 && mask.len() == 0 {
+        if !magic.is_empty() && mask.is_empty() {
             mask.resize(magic.len(), 0xff);
         }
 
@@ -236,7 +236,7 @@ offset 12
 magic 7f454c460201010000000000000000000200f300
 mask ffffffffffffff00fffffffffffffffffeffffff"#;
 
-        let entry = BinFmtEntry::from_string("test".to_owned(), &data).unwrap();
+        let entry = BinFmtEntry::from_string("test".to_owned(), data).unwrap();
         println!("{:#?}", entry);
         assert_eq!(entry.flags, BinFmtFlags::F | BinFmtFlags::C | BinFmtFlags::O);
         assert!(entry.enabled);
@@ -259,7 +259,7 @@ mask ffffffffffffff00fffffffffffffffffeffffff"#;
 interpreter /bin/hello
 flags:
 extension .hello"#;
-        let entry = BinFmtEntry::from_string("test".to_owned(), &data).unwrap();
+        let entry = BinFmtEntry::from_string("test".to_owned(), data).unwrap();
         println!("{:#?}", entry);
         assert_eq!(entry.flags, BinFmtFlags::empty());
         assert!(entry.enabled);

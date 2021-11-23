@@ -1,6 +1,5 @@
 // Don't throw clippy warnings for manual string stripping.
 // The suggested fix with `strip_prefix` removes support for Rust 1.33 and 1.38
-#![allow(clippy::unknown_clippy_lints)]
 #![allow(clippy::manual_strip)]
 
 //! Information about the networking layer.

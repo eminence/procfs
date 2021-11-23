@@ -104,7 +104,7 @@ impl cmp::Ord for Version {
 
 impl cmp::PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
