@@ -1024,7 +1024,7 @@ impl Process {
         Ok(vec)
     }
 
-    /// Return a struct that can be used to access information in the `/proc/pid/pagemap` file efficiently.
+    /// Returns a struct that can be used to access information in the `/proc/pid/pagemap` file.
     pub fn pagemap(&self) -> ProcResult<PageMap> {
         let path = self.root.join("pagemap");
         let file = FileWrapper::open(&path)?;

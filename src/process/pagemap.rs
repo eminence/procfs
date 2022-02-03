@@ -17,47 +17,73 @@ const MAX_SWAPFILES_SHIFT: usize = 5;
 
 // source: fs/proc/task_mmu.c
 bitflags! {
+    /// Represents the fields and flags in a page table entry for a swapped page.
     pub struct SwapPageFlags: u64 {
+        /// Swap type if swapped
+        #[doc(hidden)]
         const SWAP_TYPE = genmask(MAX_SWAPFILES_SHIFT - 1, 0);
+        /// Swap offset if swapped
+        #[doc(hidden)]
         const SWAP_OFFSET = genmask(54, MAX_SWAPFILES_SHIFT);
+        /// PTE is soft-dirty
         const SOFT_DIRTY = 1 << 55;
+        /// Page is exclusively mapped
         const MMAP_EXCLUSIVE = 1 << 56;
+        /// Page is file-page or shared-anon
         const FILE = 1 << 61;
+        /// Page is swapped
+        #[doc(hidden)]
         const SWAP = 1 << 62;
+        /// Page is present
         const PRESENT = 1 << 63;
     }
 }
 
 impl SwapPageFlags {
+    /// Returns the swap type recorded in this entry.
     pub fn get_swap_type(&self) -> u64 {
         (*self & Self::SWAP_TYPE).bits()
     }
 
+    /// Returns the swap offset recorded in this entry.
     pub fn get_swap_offset(&self) -> u64 {
         (*self & Self::SWAP_OFFSET).bits() >> MAX_SWAPFILES_SHIFT
     }
 }
 
 bitflags! {
+    /// Represents the fields and flags in a page table entry for a memory page.
     pub struct MemoryPageFlags: u64 {
+        /// Page frame number if present
+        #[doc(hidden)]
         const PFN = genmask(54, 0);
+        /// PTE is soft-dirty
         const SOFT_DIRTY = 1 << 55;
+        /// Page is exclusively mapped
         const MMAP_EXCLUSIVE = 1 << 56;
+        /// Page is file-page or shared-anon
         const FILE = 1 << 61;
+        /// Page is swapped
+        #[doc(hidden)]
         const SWAP = 1 << 62;
+        /// Page is present
         const PRESENT = 1 << 63;
     }
 }
 
 impl MemoryPageFlags {
+    /// Returns the page frame number recorded in this entry.
     pub fn get_page_frame_number(&self) -> u64 {
         (*self & Self::PFN).bits()
     }
 }
 
+/// Represents a page table entry in `/proc/<pid>/pagemap`.
 #[derive(Debug)]
 pub enum PageInfo {
+    /// Entry referring to a memory page
     MemoryPage(MemoryPageFlags),
+    /// Entry referring to a swapped page
     SwapPage(SwapPageFlags),
 }
 
@@ -73,6 +99,7 @@ impl PageInfo {
     }
 }
 
+/// Parses page table entries accessing `/proc/<pid>/pagemap`.
 pub struct PageMap {
     reader: BufReader<FileWrapper>,
 }
@@ -84,11 +111,13 @@ impl PageMap {
         }
     }
 
+    /// Retrieves information in the page table entry for the page at index `page_index`.
     pub fn get_info(&mut self, page_index: usize) -> ProcResult<PageInfo> {
         self.get_range_info(page_index..page_index + 1)
             .map(|mut vec| vec.pop().unwrap())
     }
 
+    /// Retrieves information in the page table entry for the pages with index in range `page_range`.
     pub fn get_range_info(&mut self, page_range: impl RangeBounds<usize>) -> ProcResult<Vec<PageInfo>> {
         // `start` is always included
         let start = match page_range.start_bound() {
