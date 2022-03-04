@@ -139,7 +139,7 @@ pub struct Stat {
     ///
     /// This is just the pages which count toward text,  data,  or stack space.
     /// This does not include pages which have not been demand-loaded in, or which are swapped out.
-    pub rss: i64,
+    pub rss: u64,
     /// Current soft limit in bytes on the rss of the process; see the description of RLIMIT_RSS in
     /// getrlimit(2).
     pub rsslim: u64,
@@ -414,7 +414,7 @@ impl Stat {
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
-    pub fn rss_bytes(&self) -> ProcResult<i64> {
+    pub fn rss_bytes(&self) -> ProcResult<u64> {
         let pagesize = PAGESIZE
             .as_ref()
             .map_err(|e| ProcError::Other(format!("Failed to get pagesize: {:?}", e)))?;

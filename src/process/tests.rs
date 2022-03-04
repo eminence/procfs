@@ -3,7 +3,7 @@ use super::*;
 fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
         Ok(t) => Some(t),
-        Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
+        Err(ProcError::PermissionDenied(_)) if !rustix::process::geteuid().is_root() => {
             // we are not root, and so a permission denied error is OK
             None
         }
@@ -21,7 +21,7 @@ fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
 fn check_unwrap_task<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
         Ok(t) => Some(t),
-        Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
+        Err(ProcError::PermissionDenied(_)) if !rustix::process::geteuid().is_root() => {
             // we are not root, and so a permission denied error is OK
             None
         }
@@ -218,7 +218,7 @@ fn test_error_handling() {
     // getting the proc struct should be OK
     let init = Process::new(1).unwrap();
 
-    let i_have_access = unsafe { libc::geteuid() } == init.owner;
+    let i_have_access = rustix::process::geteuid().as_raw() == init.owner;
 
     if !i_have_access {
         // but accessing data should result in an error (unless we are running as root!)

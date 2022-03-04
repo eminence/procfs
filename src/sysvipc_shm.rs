@@ -1,7 +1,5 @@
 use std::io;
 
-use libc::pid_t;
-
 use super::{FileWrapper, ProcResult};
 use std::str::FromStr;
 
@@ -19,9 +17,9 @@ pub struct Shm {
     /// Size in bytes
     pub size: u32,
     /// Creator PID
-    pub cpid: pid_t,
+    pub cpid: i32,
     /// Last operator PID
-    pub lpid: pid_t,
+    pub lpid: i32,
     /// Number of attached processes
     pub nattch: u32,
     /// User ID
@@ -69,8 +67,8 @@ impl Shm {
             let shmid = expect!(u64::from_str(expect!(s.next())));
             let perms = expect!(u16::from_str(expect!(s.next())));
             let size = expect!(u32::from_str(expect!(s.next())));
-            let cpid = expect!(pid_t::from_str(expect!(s.next())));
-            let lpid = expect!(pid_t::from_str(expect!(s.next())));
+            let cpid = expect!(i32::from_str(expect!(s.next())));
+            let lpid = expect!(i32::from_str(expect!(s.next())));
             let nattch = expect!(u32::from_str(expect!(s.next())));
             let uid = expect!(u16::from_str(expect!(s.next())));
             let gid = expect!(u16::from_str(expect!(s.next())));

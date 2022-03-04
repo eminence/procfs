@@ -1,7 +1,7 @@
+use rustix::fs::AtFlags;
 use std::{
-    ffi::{CString, OsString},
+    ffi::OsString,
     fs::{self},
-    os::unix::prelude::OsStrExt,
     path::PathBuf,
 };
 
@@ -19,12 +19,8 @@ impl Process {
             let entry = entry?;
             let path = entry.path();
             let ns_type = entry.file_name();
-            let cstr = CString::new(path.as_os_str().as_bytes()).unwrap();
-
-            let mut stat = unsafe { std::mem::zeroed() };
-            if unsafe { libc::stat64(cstr.as_ptr(), &mut stat) } != 0 {
-                return Err(build_internal_error!(format!("Unable to stat {:?}", path)));
-            }
+            let stat = rustix::fs::statat(&rustix::fs::cwd(), &path, AtFlags::empty())
+                .map_err(|_| build_internal_error!(format!("Unable to stat {:?}", path)))?;
 
             namespaces.push(Namespace {
                 ns_type,

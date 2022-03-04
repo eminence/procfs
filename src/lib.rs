@@ -48,19 +48,14 @@
 
 use bitflags::bitflags;
 use lazy_static::lazy_static;
-use libc::pid_t;
-use libc::sysconf;
-use libc::{_SC_CLK_TCK, _SC_PAGESIZE};
 
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::mem;
-use std::os::raw::c_char;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
-use std::{ffi::CStr, fs::OpenOptions};
+use std::fs::OpenOptions;
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
@@ -207,7 +202,7 @@ macro_rules! wrap_io_error {
                     kind,
                     crate::IoErrorWrapper {
                         path: $path.to_owned(),
-                        inner: e.into_inner(),
+                        inner: Some(Box::new(e)),
                     },
                 ))
             }
@@ -295,7 +290,7 @@ lazy_static! {
     /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
-    static ref TICKS_PER_SECOND: ProcResult<i64> = {
+    static ref TICKS_PER_SECOND: ProcResult<u64> = {
         Ok(ticks_per_second()?)
     };
     /// The version of the currently running kernel.
@@ -308,7 +303,7 @@ lazy_static! {
     /// Memory page size, in bytes.
     ///
     /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-    static ref PAGESIZE: ProcResult<i64> = {
+    static ref PAGESIZE: ProcResult<u64> = {
         Ok(page_size()?)
     };
 }
@@ -372,22 +367,11 @@ struct FileWrapper {
 impl FileWrapper {
     fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
         let p = path.as_ref();
-        match File::open(&p) {
-            Ok(f) => Ok(FileWrapper {
-                inner: f,
-                path: p.to_owned(),
-            }),
-            Err(e) => {
-                let kind = e.kind();
-                Err(io::Error::new(
-                    kind,
-                    IoErrorWrapper {
-                        path: p.to_owned(),
-                        inner: e.into_inner(),
-                    },
-                ))
-            }
-        }
+        let f = wrap_io_error!(p, File::open(&p))?;
+        Ok(FileWrapper {
+            inner: f,
+            path: p.to_owned(),
+        })
     }
 }
 
@@ -491,6 +475,12 @@ impl From<std::io::Error> for ProcError {
     }
 }
 
+impl From<rustix::io::Error> for ProcError {
+    fn from(io: rustix::io::Error) -> Self {
+        Into::<std::io::Error>::into(io).into()
+    }
+}
+
 impl From<&'static str> for ProcError {
     fn from(val: &'static str) -> Self {
         ProcError::Other(val.to_owned())
@@ -586,15 +576,9 @@ impl LoadAverage {
 ///
 /// This isn't part of the proc file system, but it's a useful thing to have, since several fields
 /// count in ticks.  This is calculated from `sysconf(_SC_CLK_TCK)`.
-pub fn ticks_per_second() -> std::io::Result<i64> {
+pub fn ticks_per_second() -> std::io::Result<u64> {
     if cfg!(unix) {
-        match unsafe { sysconf(_SC_CLK_TCK) } {
-            -1 => Err(std::io::Error::last_os_error()),
-            #[cfg(target_pointer_width = "64")]
-            x => Ok(x),
-            #[cfg(target_pointer_width = "32")]
-            x => Ok(x.into())
-        }
+        Ok(rustix::process::clock_ticks_per_second())
     } else {
         panic!("Not supported on non-unix platforms")
     }
@@ -645,14 +629,9 @@ thread_local! {
 /// Memory page size, in bytes.
 ///
 /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-pub fn page_size() -> std::io::Result<i64> {
+pub fn page_size() -> std::io::Result<u64> {
     if cfg!(unix) {
-        match unsafe { sysconf(_SC_PAGESIZE) } {
-            -1 => Err(std::io::Error::last_os_error()),
-            #[cfg(target_pointer_width = "64")]
-            x => Ok(x),
-            #[cfg(target_pointer_width = "32")]
-            x => Ok(x.into())        }
+        Ok(rustix::process::page_size() as u64)
     } else {
         panic!("Not supported on non-unix platforms")
     }
@@ -688,17 +667,9 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
             unreachable!("flate2 feature not enabled")
         }
     } else {
-        let mut kernel: libc::utsname = unsafe { mem::zeroed() };
+        let kernel = rustix::process::uname();
 
-        if unsafe { libc::uname(&mut kernel) != 0 } {
-            return Err(ProcError::Other("Failed to call uname()".to_string()));
-        }
-
-        let filename = format!(
-            "{}-{}",
-            BOOT_CONFIG,
-            unsafe { CStr::from_ptr(kernel.release.as_ptr() as *const c_char) }.to_string_lossy()
-        );
+        let filename = format!("{}-{}", BOOT_CONFIG, kernel.release().to_string_lossy());
 
         if Path::new(&filename).exists() {
             let file = FileWrapper::open(filename)?;
@@ -798,7 +769,7 @@ impl CpuTime {
 
         // Store this field in the struct so we don't have to attempt to unwrap ticks_per_second() when we convert
         // from ticks into other time units
-        let tps = crate::ticks_per_second()? as u64;
+        let tps = crate::ticks_per_second()?;
 
         s.next();
         let user = from_str!(u64, expect!(s.next()));

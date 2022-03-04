@@ -55,6 +55,7 @@
 use super::*;
 use crate::from_iter;
 
+use rustix::fs::{Mode, RawMode};
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs;
@@ -188,10 +189,10 @@ bitflags! {
 
 bitflags! {
     /// The mode (read/write permissions) for an open file descriptor
-    pub struct FDPermissions: libc::mode_t {
-        const READ = libc::S_IRUSR;
-        const WRITE = libc::S_IWUSR;
-        const EXECUTE = libc::S_IXUSR;
+    pub struct FDPermissions: RawMode {
+        const READ = Mode::RUSR.bits();
+        const WRITE = Mode::WUSR.bits();
+        const EXECUTE = Mode::XUSR.bits();
     }
 }
 
@@ -680,25 +681,25 @@ pub struct FDInfo {
     ///
     /// **Note**: this field is only the owner read/write/execute bits.  All the other bits
     /// (include filetype bits) are masked out.  See also the `mode()` method.
-    pub mode: libc::mode_t,
+    pub mode: RawMode,
     pub target: FDTarget,
 }
 
 impl FDInfo {
     /// Gets a file descriptor from a raw fd
-    pub fn from_raw_fd(pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
+    pub fn from_raw_fd(pid: i32, raw_fd: i32) -> ProcResult<Self> {
         Self::from_raw_fd_with_root("/proc", pid, raw_fd)
     }
 
     /// Gets a file descriptor from a raw fd based on a specified `/proc` path
-    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: pid_t, raw_fd: i32) -> ProcResult<Self> {
+    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: i32, raw_fd: i32) -> ProcResult<Self> {
         let path = root.as_ref().join(pid.to_string()).join("fd").join(raw_fd.to_string());
         let link = wrap_io_error!(path, read_link(&path))?;
         let md = wrap_io_error!(path, path.symlink_metadata())?;
         let link_os: &OsStr = link.as_ref();
         Ok(Self {
             fd: raw_fd as u32,
-            mode: (md.st_mode() as libc::mode_t) & libc::S_IRWXU,
+            mode: (md.st_mode() as RawMode) & Mode::RWXU.bits(),
             target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
         })
     }
@@ -714,7 +715,7 @@ impl std::fmt::Debug for FDInfo {
         write!(
             f,
             "FDInfo {{ fd: {:?}, mode: 0{:o}, target: {:?} }}",
-            self.fd, self.mode, self.target
+            &self.fd, self.mode, self.target
         )
     }
 }
@@ -740,7 +741,7 @@ impl Process {
     /// Returns a `Process` based on a specified PID.
     ///
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
-    pub fn new(pid: pid_t) -> ProcResult<Process> {
+    pub fn new(pid: i32) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(format!("{}", pid));
         Self::new_with_root(root)
     }
@@ -782,7 +783,7 @@ impl Process {
     }
 
     /// Returns the process ID for this process.
-    pub fn pid(&self) -> pid_t {
+    pub fn pid(&self) -> i32 {
         self.stat.pid
     }
 
@@ -991,7 +992,7 @@ impl Process {
                 let link_os: &OsStr = link.as_ref();
                 vec.push(FDInfo {
                     fd,
-                    mode: (md.st_mode() as libc::mode_t) & libc::S_IRWXU,
+                    mode: (md.st_mode() as RawMode) & Mode::RWXU.bits(),
                     target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
                 });
             }
@@ -1249,7 +1250,7 @@ impl Process {
 /// The result of [`Process::tasks`], iterates over all tasks in a process
 #[derive(Debug)]
 pub struct TasksIter {
-    pid: pid_t,
+    pid: i32,
     inner: fs::ReadDir,
 }
 

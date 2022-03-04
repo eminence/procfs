@@ -7,7 +7,7 @@ use crate::ProcResult;
 ///
 /// Created by [`Process::tasks`](crate::process::Process::tasks), tasks in
 /// general are similar to Processes and should have mostly the same fields.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Task {
     /// The ID of the process that this task belongs to
     pub pid: i32,
@@ -22,7 +22,7 @@ impl Task {
     pub fn new(pid: i32, tid: i32) -> Result<Task, ProcError> {
         let root = PathBuf::from(format!("/proc/{}/task/{}", pid, tid));
         if root.exists() {
-            Ok(Task { pid, tid, root })
+            Ok(Task { pid, tid: tid, root })
         } else {
             Err(ProcError::NotFound(Some(root)))
         }
