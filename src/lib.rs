@@ -1,12 +1,12 @@
 // Don't throw clippy warnings for manual string stripping.
-// The suggested fix with `strip_prefix` removes support for Rust 1.33 and 1.38
+// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
 #![allow(clippy::unknown_clippy_lints)]
 #![allow(clippy::manual_strip)]
 #![allow(clippy::from_str_radix_10)]
-// `#[non_exhaustive]` require Rust 1.40+ but procfs minimal Rust version is 1.34
+// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
 #![allow(clippy::manual_non_exhaustive)]
 // Don't throw rustc lint warnings for the deprecated name `intra_doc_link_resolution_failure`.
-// The suggested rename to `broken_intra_doc_links` removes support for Rust 1.33 and 1.38.
+// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
 #![allow(renamed_and_removed_lints)]
 #![deny(intra_doc_link_resolution_failure)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at

@@ -3,7 +3,7 @@ procfs
 
 [![Crate](https://img.shields.io/crates/v/procfs.svg)](https://crates.io/crates/procfs)
 [![Docs](https://docs.rs/procfs/badge.svg)](https://docs.rs/procfs)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.34+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.48+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
 
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
@@ -72,11 +72,7 @@ The following cargo features are available:
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of rust 1.42.0 (2020-03-12).  However, one dependency of this
-crate (`bitflags`) require a newer version of rust, and must be manually pinned to an older version in
-order to use rust 1.42.  You can do this by running:
-
-    cargo update -p bitflags --precise 1.2.1
+This crate requires a minimum rust version of 1.48.0 (2020-11-19).
 
 ## License
 
