@@ -7,8 +7,7 @@ use std::str::FromStr;
 impl crate::process::Process {
     /// Return the limits for this process
     pub fn limits(&self) -> ProcResult<Limits> {
-        let path = self.root.join("limits");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, &self.fd, "limits")?;
         Limits::from_reader(file)
     }
 }

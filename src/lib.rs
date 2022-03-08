@@ -49,13 +49,13 @@
 use bitflags::bitflags;
 use lazy_static::lazy_static;
 
+use rustix::fd::{AsFd, FromFd};
 use std::fmt;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
-use std::fs::OpenOptions;
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
@@ -373,6 +373,23 @@ impl FileWrapper {
             path: p.to_owned(),
         })
     }
+    fn open_at<P, Q, Fd: AsFd>(root: P, dirfd: Fd, path: Q) -> Result<FileWrapper, io::Error>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        use rustix::fs::{Mode, OFlags};
+
+        let p = root.as_ref().join(path.as_ref());
+        let fd = wrap_io_error!(
+            p,
+            rustix::fs::openat(dirfd, path.as_ref(), OFlags::RDONLY | OFlags::CLOEXEC, Mode::empty())
+        )?;
+        Ok(FileWrapper {
+            inner: File::from_fd(fd.into()),
+            path: p,
+        })
+    }
 }
 
 impl Read for FileWrapper {
@@ -671,12 +688,15 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
 
         let filename = format!("{}-{}", BOOT_CONFIG, kernel.release().to_string_lossy());
 
-        if Path::new(&filename).exists() {
-            let file = FileWrapper::open(filename)?;
-            Box::new(BufReader::new(file))
-        } else {
-            let file = FileWrapper::open(BOOT_CONFIG)?;
-            Box::new(BufReader::new(file))
+        match FileWrapper::open(filename) {
+            Ok(file) => Box::new(BufReader::new(file)),
+            Err(e) => match e.kind() {
+                io::ErrorKind::NotFound => {
+                    let file = FileWrapper::open(BOOT_CONFIG)?;
+                    Box::new(BufReader::new(file))
+                }
+                _ => return Err(e.into()),
+            },
         }
     };
 
