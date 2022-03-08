@@ -1,14 +1,7 @@
-// Don't throw clippy warnings for manual string stripping.
-// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
 #![allow(clippy::unknown_clippy_lints)]
-#![allow(clippy::manual_strip)]
+// The suggested fix with `str::parse` removes support for Rust 1.48
 #![allow(clippy::from_str_radix_10)]
-// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
-#![allow(clippy::manual_non_exhaustive)]
-// Don't throw rustc lint warnings for the deprecated name `intra_doc_link_resolution_failure`.
-// TODO: This is no longer needed now that the minimal Rust version is now 1.48.
-#![allow(renamed_and_removed_lints)]
-#![deny(intra_doc_link_resolution_failure)]
+#![deny(broken_intra_doc_links)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.
 //!
@@ -997,16 +990,16 @@ impl KernelStats {
                 total_cpu = Some(CpuTime::from_str(&line)?);
             } else if line.starts_with("cpu") {
                 cpus.push(CpuTime::from_str(&line)?);
-            } else if line.starts_with("ctxt ") {
-                ctxt = Some(from_str!(u64, &line[5..]));
-            } else if line.starts_with("btime ") {
-                btime = Some(from_str!(u64, &line[6..]));
-            } else if line.starts_with("processes ") {
-                processes = Some(from_str!(u64, &line[10..]));
-            } else if line.starts_with("procs_running ") {
-                procs_running = Some(from_str!(u32, &line[14..]));
-            } else if line.starts_with("procs_blocked ") {
-                procs_blocked = Some(from_str!(u32, &line[14..]));
+            } else if let Some(stripped) = line.strip_prefix("ctxt ") {
+                ctxt = Some(from_str!(u64, stripped));
+            } else if let Some(stripped) = line.strip_prefix("btime ") {
+                btime = Some(from_str!(u64, stripped));
+            } else if let Some(stripped) = line.strip_prefix("processes ") {
+                processes = Some(from_str!(u64, stripped));
+            } else if let Some(stripped) = line.strip_prefix("procs_running ") {
+                procs_running = Some(from_str!(u32, stripped));
+            } else if let Some(stripped) = line.strip_prefix("procs_blocked ") {
+                procs_blocked = Some(from_str!(u32, stripped));
             }
         }
 

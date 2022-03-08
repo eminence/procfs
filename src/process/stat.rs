@@ -30,9 +30,8 @@ macro_rules! since_kernel {
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Stat {
-    _private: (),
-
     /// The process ID.
     pub pid: i32,
     /// The filename of the executable, in parentheses.
@@ -317,7 +316,6 @@ impl Stat {
         let exit_code = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
 
         Ok(Stat {
-            _private: (),
             pid,
             comm,
             state,

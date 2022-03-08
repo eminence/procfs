@@ -6,9 +6,8 @@ use std::time::Duration;
 
 /// The uptime of the system, based on the `/proc/uptime` file.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Uptime {
-    _private: (),
-
     /// The uptime of the system (including time spent in suspend).
     pub uptime: f64,
 
@@ -33,11 +32,7 @@ impl Uptime {
         let uptime = expect!(f64::from_str(expect!(s.next())));
         let idle = expect!(f64::from_str(expect!(s.next())));
 
-        Ok(Uptime {
-            _private: (),
-            uptime,
-            idle,
-        })
+        Ok(Uptime { uptime, idle })
     }
 
     /// The uptime of the system (including time spent in suspend).

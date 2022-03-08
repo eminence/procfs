@@ -222,8 +222,8 @@ impl FromStr for BuildInfo {
         let mut splited = s.split(' ');
         let version_str = splited.next();
         if let Some(version_str) = version_str {
-            if version_str.starts_with('#') {
-                version.push_str(&version_str[1..]);
+            if let Some(stripped) = version_str.strip_prefix('#') {
+                version.push_str(stripped);
             } else {
                 return Err("Failed to parse kernel build version");
             }

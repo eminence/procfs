@@ -314,18 +314,18 @@ impl MountNFSStatistics {
                 break;
             }
             if !parsing_per_op {
-                if line.starts_with("opts:") {
-                    opts = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("age:") {
-                    age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
-                } else if line.starts_with("caps:") {
-                    caps = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("sec:") {
-                    sec = Some(line[4..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("bytes:") {
-                    bytes = Some(NFSByteCounter::from_str(line[6..].trim())?);
-                } else if line.starts_with("events:") {
-                    events = Some(NFSEventCounter::from_str(line[7..].trim())?);
+                if let Some(stripped) = line.strip_prefix("opts:") {
+                    opts = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("age:") {
+                    age = Some(Duration::from_secs(from_str!(u64, stripped.trim())));
+                } else if let Some(stripped) = line.strip_prefix("caps:") {
+                    caps = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("sec:") {
+                    sec = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("bytes:") {
+                    bytes = Some(NFSByteCounter::from_str(stripped.trim())?);
+                } else if let Some(stripped) = line.strip_prefix("events:") {
+                    events = Some(NFSEventCounter::from_str(stripped.trim())?);
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;
@@ -353,8 +353,8 @@ impl MountNFSStatistics {
     /// Attempts to parse the caps= value from the [caps](struct.MountNFSStatistics.html#structfield.caps) field.
     pub fn server_caps(&self) -> ProcResult<Option<NFSServerCaps>> {
         for data in &self.caps {
-            if data.starts_with("caps=0x") {
-                let val = from_str!(u32, &data[7..], 16);
+            if let Some(stripped) = data.strip_prefix("caps=0x") {
+                let val = from_str!(u32, stripped, 16);
                 return Ok(NFSServerCaps::from_bits(val));
             }
         }
