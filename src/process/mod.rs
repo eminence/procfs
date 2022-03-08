@@ -596,7 +596,7 @@ impl Io {
             cancelled_write_bytes: expect!(map.remove("cancelled_write_bytes")),
         };
 
-        assert!(!(cfg!(test) && !map.is_empty()), "io map is not empty: {:#?}", map);
+        assert!(!cfg!(test) || map.is_empty(), "io map is not empty: {:#?}", map);
 
         Ok(io)
     }

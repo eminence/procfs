@@ -378,7 +378,7 @@ impl Meminfo {
             file_huge_pages: map.remove("FileHugePages"),
         };
 
-        assert!(!(cfg!(test) && !map.is_empty()), "meminfo map is not empty: {:#?}", map);
+        assert!(!cfg!(test) || map.is_empty(), "meminfo map is not empty: {:#?}", map);
 
         Ok(meminfo)
     }

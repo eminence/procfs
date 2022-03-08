@@ -441,7 +441,7 @@ pub fn threads_max() -> ProcResult<u32> {
 /// This function will return an error if that is not the case.
 pub fn set_threads_max(new_limit: u32) -> ProcResult<()> {
     if let Ok(kernel) = *KERNEL {
-        if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN <= new_limit && new_limit <= THREADS_MAX) {
+        if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN..=THREADS_MAX).contains(&new_limit) {
             return Err(ProcError::Other(format!(
                 "{} is outside the THREADS_MIN..=THREADS_MAX range",
                 new_limit
