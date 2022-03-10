@@ -104,23 +104,14 @@ impl CpuInfo {
     ///
     /// Returns None if the requested cpu index is not found.
     pub fn get_info(&self, cpu_num: usize) -> Option<HashMap<&str, &str>> {
-        if let Some(info) = self.cpus.get(cpu_num) {
-            let mut map = HashMap::new();
-
-            for (k, v) in &self.fields {
-                map.insert(k.as_ref(), v.as_ref());
-            }
-
-            for (k, v) in info.iter() {
-                map.insert(k.as_ref(), v.as_ref());
-            }
-
-            Some(map)
-        } else {
-            None
-        }
+        self.cpus.get(cpu_num).map(|info| {
+            self.fields
+                .iter()
+                .chain(info.iter())
+                .map(|(k, v)| (k.as_ref(), v.as_ref()))
+                .collect()
+        })
     }
-
     /// Get the content of a specific field associated to a CPU
     ///
     /// Returns None if the requested cpu index is not found.
