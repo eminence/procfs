@@ -121,6 +121,17 @@ impl CpuInfo {
         }
     }
 
+    /// Get the content of a specific field associated to a CPU
+    /// 
+    /// Returns None if the requested cpu index is not found.
+    pub fn get_field(&self, cpu_num: usize, field_name: &str) -> Option<&str> {
+        self.cpus.get(cpu_num).and_then(
+            |cpu_fields| {
+                cpu_fields.get(field_name).or_else(|| self.fields.get(field_name)).map(|s| s.as_ref())
+            }
+        )
+    }
+
     pub fn model_name(&self, cpu_num: usize) -> Option<&str> {
         self.get_info(cpu_num).and_then(|mut m| m.remove("model name"))
     }
