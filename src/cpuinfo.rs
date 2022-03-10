@@ -122,32 +122,30 @@ impl CpuInfo {
     }
 
     /// Get the content of a specific field associated to a CPU
-    /// 
+    ///
     /// Returns None if the requested cpu index is not found.
     pub fn get_field(&self, cpu_num: usize, field_name: &str) -> Option<&str> {
-        self.cpus.get(cpu_num).and_then(
-            |cpu_fields| {
-                cpu_fields.get(field_name).or_else(|| self.fields.get(field_name)).map(|s| s.as_ref())
-            }
-        )
+        self.cpus.get(cpu_num).and_then(|cpu_fields| {
+            cpu_fields
+                .get(field_name)
+                .or_else(|| self.fields.get(field_name))
+                .map(|s| s.as_ref())
+        })
     }
 
     pub fn model_name(&self, cpu_num: usize) -> Option<&str> {
-        self.get_info(cpu_num).and_then(|mut m| m.remove("model name"))
+        self.get_field(cpu_num, "model name")
     }
     pub fn vendor_id(&self, cpu_num: usize) -> Option<&str> {
-        self.get_info(cpu_num).and_then(|mut m| m.remove("vendor_id"))
+        self.get_field(cpu_num, "vendor_id")
     }
     /// May not be available on some older 2.6 kernels
     pub fn physical_id(&self, cpu_num: usize) -> Option<u32> {
-        self.get_info(cpu_num)
-            .and_then(|mut m| m.remove("physical id"))
-            .and_then(|s| u32::from_str_radix(s, 10).ok())
+        self.get_field(cpu_num, "physical id").and_then(|s| s.parse().ok())
     }
     pub fn flags(&self, cpu_num: usize) -> Option<Vec<&str>> {
-        self.get_info(cpu_num)
-            .and_then(|mut m| m.remove("flags"))
-            .map(|flags: &str| flags.split_whitespace().collect())
+        self.get_field(cpu_num, "flags")
+            .map(|flags| flags.split_whitespace().collect())
     }
 }
 
