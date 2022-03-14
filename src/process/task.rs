@@ -160,10 +160,8 @@ mod tests {
                 found_two = true;
                 // The process might read miscellaneous things from procfs or
                 // things like /sys/devices/system/cpu/online; allow some small
-                // reads, but make sure we're not looking at the thread that
-                // read `bytes_to_read` bytes.
+                // reads.
                 assert!(io.rchar < bytes_to_read);
-                assert_eq!(io.read_bytes, 0);
                 assert_eq!(io.wchar, 0);
                 assert_eq!(stat.utime, 0);
             }
