@@ -158,7 +158,11 @@ mod tests {
             }
             if stat.comm == "two" && status.name == "two" {
                 found_two = true;
-                assert_eq!(io.rchar, 0);
+                // The process might read miscellaneous things from procfs or
+                // things like /sys/devices/system/cpu/online; allow some small
+                // reads.
+                assert!(io.rchar < bytes_to_read);
+                assert_eq!(io.wchar, 0);
                 assert_eq!(stat.utime, 0);
             }
         }
