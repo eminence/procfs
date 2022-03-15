@@ -72,13 +72,11 @@ The following cargo features are available:
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of 1.34.0 (2019-04-11), though if you use the optional `backtrace` feature,
-rust 1.42.0 is required (2020-03-12).  However, three dependencies of this crate (`hex`, `bitflags`, and `flate2`) require a newer
-version of rust, and must be manually pinned to an older version in order to use rust 1.34.  You can do this by running:
+This crate requires a minimum rust version of rust 1.42.0 (2020-03-12).  However, one dependency of this
+crate (`bitflags`) require a newer version of rust, and must be manually pinned to an older version in
+order to use rust 1.42.  You can do this by running:
 
-    cargo update -p hex --precise 0.4.2
     cargo update -p bitflags --precise 1.2.1
-    cargo update -p flate2 --precise 1.0.21
 
 ## License
 
