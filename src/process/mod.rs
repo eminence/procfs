@@ -748,7 +748,7 @@ impl std::fmt::Debug for FDInfo {
 /// Represents a process in `/proc/<pid>`.
 #[derive(Debug)]
 pub struct Process {
-    pub fd: OwnedFd,
+    fd: OwnedFd,
     pub pid: i32,
     pub(crate) root: PathBuf,
 }

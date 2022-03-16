@@ -11,7 +11,7 @@ use rustix::io::OwnedFd;
 /// general are similar to Processes and should have mostly the same fields.
 #[derive(Debug)]
 pub struct Task {
-    pub fd: OwnedFd,
+    fd: OwnedFd,
     /// The ID of the process that this task belongs to
     pub pid: i32,
     /// The task ID
