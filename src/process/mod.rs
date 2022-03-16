@@ -698,7 +698,7 @@ impl FDInfo {
     /// Gets a file descriptor from a directory fd and a path relative to it.
     ///
     /// `base` is the path to the directory fd, and is used for error messages.
-    pub fn from_process_at<P: AsRef<Path>, Q: AsRef<Path>>(
+    fn from_process_at<P: AsRef<Path>, Q: AsRef<Path>>(
         base: P,
         dirfd: BorrowedFd,
         path: Q,
