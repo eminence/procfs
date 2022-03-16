@@ -492,12 +492,6 @@ impl From<std::io::Error> for ProcError {
     }
 }
 
-impl From<rustix::io::Error> for ProcError {
-    fn from(io: rustix::io::Error) -> Self {
-        Into::<std::io::Error>::into(io).into()
-    }
-}
-
 impl From<&'static str> for ProcError {
     fn from(val: &'static str) -> Self {
         ProcError::Other(val.to_owned())

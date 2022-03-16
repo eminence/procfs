@@ -717,8 +717,9 @@ impl FDInfo {
         )
         .map(|fdfd| File::from_fd(fdfd.into()))?;
         let fdfd = file.as_fd();
-        let link = rustix::fs::readlinkat(fdfd, "", Vec::new())?;
-        let md = rustix::fs::statat(fdfd, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH)?;
+        let link = rustix::fs::readlinkat(fdfd, "", Vec::new()).map_err(io::Error::from)?;
+        let md =
+            rustix::fs::statat(fdfd, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).map_err(io::Error::from)?;
 
         let link_os = link.to_string_lossy();
         let target = FDTarget::from_str(link_os.as_ref())?;
@@ -839,7 +840,7 @@ impl Process {
     }
 
     fn metadata(&self) -> ProcResult<rustix::fs::Stat> {
-        Ok(rustix::fs::fstat(&self.fd)?)
+        Ok(rustix::fs::fstat(&self.fd).map_err(io::Error::from)?)
     }
 
     /// Retrieves current working directory of the process by dereferencing `/proc/<pid>/cwd` symbolic link.
@@ -1338,7 +1339,7 @@ impl std::iter::Iterator for FDsIter {
                         }
                     }
                 }
-                Some(Err(e)) => break Some(Err(e.into())),
+                Some(Err(e)) => break Some(Err(io::Error::from(e).into())),
                 None => break None,
             }
         }
@@ -1367,7 +1368,7 @@ impl std::iter::Iterator for TasksIter {
                         }
                     }
                 }
-                Some(Err(e)) => break Some(Err(e.into())),
+                Some(Err(e)) => break Some(Err(io::Error::from(e).into())),
                 None => break None,
             }
         }
@@ -1409,7 +1410,7 @@ impl std::iter::Iterator for ProcessesIter {
                         }
                     }
                 }
-                Some(Err(e)) => break Some(Err(e.into())),
+                Some(Err(e)) => break Some(Err(io::Error::from(e).into())),
                 None => break None,
             }
         }
