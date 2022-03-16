@@ -180,10 +180,15 @@ bitflags! {
 
 bitflags! {
     /// The mode (read/write permissions) for an open file descriptor
-    pub struct FDPermissions: RawMode {
-        const READ = Mode::RUSR.bits();
-        const WRITE = Mode::WUSR.bits();
-        const EXECUTE = Mode::XUSR.bits();
+    ///
+    /// This is represented as `u16` since the values of these bits are
+    /// [documented] to be within the `u16` range.
+    ///
+    /// [documented]: https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION
+    pub struct FDPermissions: u16 {
+        const READ = Mode::RUSR.bits() as u16;
+        const WRITE = Mode::WUSR.bits() as u16;
+        const EXECUTE = Mode::XUSR.bits() as u16;
     }
 }
 
@@ -672,7 +677,7 @@ pub struct FDInfo {
     ///
     /// **Note**: this field is only the owner read/write/execute bits.  All the other bits
     /// (include filetype bits) are masked out.  See also the `mode()` method.
-    pub mode: RawMode,
+    pub mode: u16,
     pub target: FDTarget,
 }
 
@@ -690,7 +695,7 @@ impl FDInfo {
         let link_os: &OsStr = link.as_ref();
         Ok(Self {
             fd: raw_fd,
-            mode: (md.mode() as RawMode) & Mode::RWXU.bits(),
+            mode: ((md.mode() as RawMode) & Mode::RWXU.bits()) as u16,
             target: expect!(FDTarget::from_str(expect!(link_os.to_str()))),
         })
     }
@@ -725,7 +730,7 @@ impl FDInfo {
         let target = FDTarget::from_str(link_os.as_ref())?;
         Ok(FDInfo {
             fd,
-            mode: md.st_mode & Mode::RWXU.bits(),
+            mode: (md.st_mode & Mode::RWXU.bits()) as u16,
             target,
         })
     }
