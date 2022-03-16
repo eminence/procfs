@@ -220,7 +220,7 @@ fn test_error_handling() {
     // getting the proc struct should be OK
     let init = Process::new(1).unwrap();
 
-    let i_have_access = rustix::process::geteuid().as_raw() == init.metadata().unwrap().st_uid;
+    let i_have_access = rustix::process::geteuid().as_raw() == init.uid().unwrap();
 
     if !i_have_access {
         // but accessing data should result in an error (unless we are running as root!)

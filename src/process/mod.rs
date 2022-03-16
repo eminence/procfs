@@ -833,7 +833,12 @@ impl Process {
         rustix::fs::statat(&self.fd, "stat", AtFlags::empty()).is_ok()
     }
 
-    pub fn metadata(&self) -> ProcResult<rustix::fs::Stat> {
+    /// What user owns this process?
+    pub fn uid(&self) -> ProcResult<u32> {
+        Ok(self.metadata()?.st_uid)
+    }
+
+    fn metadata(&self) -> ProcResult<rustix::fs::Stat> {
         Ok(rustix::fs::fstat(&self.fd)?)
     }
 
