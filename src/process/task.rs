@@ -162,7 +162,7 @@ mod tests {
             if stat.comm == "one" && status.name == "one" {
                 found_one = true;
                 assert!(io.rchar >= bytes_to_read);
-                assert!(stat.utime >= 1, "utime({}) too small", stat.utime);
+                assert!(stat.utime >= 50, "utime({}) too small", stat.utime);
             }
             if stat.comm == "two" && status.name == "two" {
                 found_two = true;
