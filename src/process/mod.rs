@@ -59,7 +59,7 @@
 use super::*;
 use crate::from_iter;
 
-use rustix::fd::{AsFd, BorrowedFd, FromFd, IntoFd, RawFd};
+use rustix::fd::{AsFd, BorrowedFd, RawFd};
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
 use rustix::io::OwnedFd;
 use std::ffi::OsStr;
@@ -719,12 +719,10 @@ impl FDInfo {
                 OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
                 Mode::empty()
             )
-        )
-        .map(|fdfd| File::from_fd(fdfd.into()))?;
-        let fdfd = file.as_fd();
-        let link = rustix::fs::readlinkat(fdfd, "", Vec::new()).map_err(io::Error::from)?;
+        )?;
+        let link = rustix::fs::readlinkat(&file, "", Vec::new()).map_err(io::Error::from)?;
         let md =
-            rustix::fs::statat(fdfd, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).map_err(io::Error::from)?;
+            rustix::fs::statat(&file, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).map_err(io::Error::from)?;
 
         let link_os = link.to_string_lossy();
         let target = FDTarget::from_str(link_os.as_ref())?;
@@ -778,8 +776,7 @@ impl Process {
                 OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
                 Mode::empty()
             )
-        )
-        .map(|fd| File::from_fd(fd.into()))?;
+        )?;
 
         let pidres = root
             .as_path()
@@ -800,11 +797,7 @@ impl Process {
             None => return Err(ProcError::NotFound(Some(root))),
         };
 
-        Ok(Process {
-            fd: file.into_fd().into(),
-            pid,
-            root,
-        })
+        Ok(Process { fd: file, pid, root })
     }
 
     /// Returns a `Process` for the currently running process.
