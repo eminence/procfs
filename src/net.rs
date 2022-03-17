@@ -20,8 +20,7 @@
 //! # use std::collections::HashMap;
 //! let all_procs = procfs::process::all_processes().unwrap();
 //!
-//! // build up a map between socket inodes and processes:
-//! // build up a map between socket inodes and processes:
+//! // build up a map between socket inodes and process stat info:
 //! let mut map: HashMap<u64, Stat> = HashMap::new();
 //! for p in all_procs {
 //!     let process = p.unwrap();
