@@ -3,7 +3,7 @@ use super::*;
 fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
         Ok(t) => Some(t),
-        Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
+        Err(ProcError::PermissionDenied(_)) if !rustix::process::geteuid().is_root() => {
             // we are not root, and so a permission denied error is OK
             None
         }
@@ -21,7 +21,7 @@ fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
 fn check_unwrap_task<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
         Ok(t) => Some(t),
-        Err(ProcError::PermissionDenied(_)) if unsafe { libc::geteuid() } != 0 => {
+        Err(ProcError::PermissionDenied(_)) if !rustix::process::geteuid().is_root() => {
             // we are not root, and so a permission denied error is OK
             None
         }
@@ -44,79 +44,79 @@ fn test_main_thread_task() {
 #[allow(clippy::cognitive_complexity)]
 #[test]
 fn test_self_proc() {
-    let myself = Process::myself().unwrap();
+    let myself = Process::myself().unwrap().stat().unwrap();
     println!("{:#?}", myself);
-    println!("state: {:?}", myself.stat.state());
-    println!("tty: {:?}", myself.stat.tty_nr());
-    println!("flags: {:?}", myself.stat.flags());
+    println!("state: {:?}", myself.state());
+    println!("tty: {:?}", myself.tty_nr());
+    println!("flags: {:?}", myself.flags());
 
     #[cfg(feature = "chrono")]
-    println!("starttime: {:#?}", myself.stat.starttime());
+    println!("starttime: {:#?}", myself.starttime());
 
     let kernel = KernelVersion::current().unwrap();
 
     if kernel >= KernelVersion::new(2, 1, 22) {
-        assert!(myself.stat.exit_signal.is_some());
+        assert!(myself.exit_signal.is_some());
     } else {
-        assert!(myself.stat.exit_signal.is_none());
+        assert!(myself.exit_signal.is_none());
     }
 
     if kernel >= KernelVersion::new(2, 2, 8) {
-        assert!(myself.stat.processor.is_some());
+        assert!(myself.processor.is_some());
     } else {
-        assert!(myself.stat.processor.is_none());
+        assert!(myself.processor.is_none());
     }
 
     if kernel >= KernelVersion::new(2, 5, 19) {
-        assert!(myself.stat.rt_priority.is_some());
+        assert!(myself.rt_priority.is_some());
     } else {
-        assert!(myself.stat.rt_priority.is_none());
+        assert!(myself.rt_priority.is_none());
     }
 
     if kernel >= KernelVersion::new(2, 5, 19) {
-        assert!(myself.stat.rt_priority.is_some());
-        assert!(myself.stat.policy.is_some());
+        assert!(myself.rt_priority.is_some());
+        assert!(myself.policy.is_some());
     } else {
-        assert!(myself.stat.rt_priority.is_none());
-        assert!(myself.stat.policy.is_none());
+        assert!(myself.rt_priority.is_none());
+        assert!(myself.policy.is_none());
     }
 
     if kernel >= KernelVersion::new(2, 6, 18) {
-        assert!(myself.stat.delayacct_blkio_ticks.is_some());
+        assert!(myself.delayacct_blkio_ticks.is_some());
     } else {
-        assert!(myself.stat.delayacct_blkio_ticks.is_none());
+        assert!(myself.delayacct_blkio_ticks.is_none());
     }
 
     if kernel >= KernelVersion::new(2, 6, 24) {
-        assert!(myself.stat.guest_time.is_some());
-        assert!(myself.stat.cguest_time.is_some());
+        assert!(myself.guest_time.is_some());
+        assert!(myself.cguest_time.is_some());
     } else {
-        assert!(myself.stat.guest_time.is_none());
-        assert!(myself.stat.cguest_time.is_none());
+        assert!(myself.guest_time.is_none());
+        assert!(myself.cguest_time.is_none());
     }
 
     if kernel >= KernelVersion::new(3, 3, 0) {
-        assert!(myself.stat.start_data.is_some());
-        assert!(myself.stat.end_data.is_some());
-        assert!(myself.stat.start_brk.is_some());
+        assert!(myself.start_data.is_some());
+        assert!(myself.end_data.is_some());
+        assert!(myself.start_brk.is_some());
     } else {
-        assert!(myself.stat.start_data.is_none());
-        assert!(myself.stat.end_data.is_none());
-        assert!(myself.stat.start_brk.is_none());
+        assert!(myself.start_data.is_none());
+        assert!(myself.end_data.is_none());
+        assert!(myself.start_brk.is_none());
     }
 
     if kernel >= KernelVersion::new(3, 5, 0) {
-        assert!(myself.stat.arg_start.is_some());
-        assert!(myself.stat.arg_end.is_some());
-        assert!(myself.stat.env_start.is_some());
-        assert!(myself.stat.env_end.is_some());
-        assert!(myself.stat.exit_code.is_some());
+        assert!(myself.arg_start.is_some());
+        assert!(myself.arg_end.is_some());
+        assert!(myself.env_start.is_some());
+        assert!(myself.env_end.is_some());
+        assert!(myself.exit_code.is_some());
     } else {
-        assert!(myself.stat.arg_start.is_none());
-        assert!(myself.stat.arg_end.is_none());
-        assert!(myself.stat.env_start.is_none());
-        assert!(myself.stat.env_end.is_none());
-        assert!(myself.stat.exit_code.is_none());
+        assert!(myself.arg_start.is_none());
+        assert!(myself.arg_end.is_none());
+        assert!(myself.env_start.is_none());
+        assert!(myself.env_end.is_none());
+        assert!(myself.exit_code.is_none());
     }
 }
 
@@ -134,20 +134,22 @@ fn test_all() {
             })
         })
         .unwrap_or(false);
-    for prc in all_processes().unwrap() {
+    for p in all_processes().unwrap() {
         // note: this test doesn't unwrap, since some of this data requires root to access
         // so permission denied errors are common.  The check_unwrap helper function handles
         // this.
 
-        println!("{} {}", prc.pid(), prc.stat.comm);
-        prc.stat.flags().unwrap();
-        prc.stat.state().unwrap();
+        let prc = p.unwrap();
+        let stat = prc.stat().unwrap();
+        println!("{} {}", prc.pid(), stat.comm);
+        stat.flags().unwrap();
+        stat.state().unwrap();
         #[cfg(feature = "chrono")]
-        prc.stat.starttime().unwrap();
+        stat.starttime().unwrap();
 
         // if this process is defunct/zombie, don't try to read any of the below data
         // (some might be successful, but not all)
-        if prc.stat.state().unwrap() == ProcState::Zombie {
+        if stat.state().unwrap() == ProcState::Zombie {
             continue;
         }
 
@@ -218,7 +220,7 @@ fn test_error_handling() {
     // getting the proc struct should be OK
     let init = Process::new(1).unwrap();
 
-    let i_have_access = unsafe { libc::geteuid() } == init.owner;
+    let i_have_access = rustix::process::geteuid().as_raw() == init.uid().unwrap();
 
     if !i_have_access {
         // but accessing data should result in an error (unless we are running as root!)
@@ -269,7 +271,8 @@ fn test_mmap_path() {
 #[test]
 fn test_proc_fds() {
     let myself = Process::myself().unwrap();
-    for fd in myself.fd().unwrap() {
+    for f in myself.fd().unwrap() {
+        let fd = f.unwrap();
         println!("{:?} {:?}", fd, fd.mode());
     }
 }
@@ -277,7 +280,7 @@ fn test_proc_fds() {
 #[test]
 fn test_proc_fd() {
     let myself = Process::myself().unwrap();
-    let raw_fd = myself.fd().unwrap().get(0).unwrap().fd as i32;
+    let raw_fd = myself.fd().unwrap().next().unwrap().unwrap().fd as i32;
     let fd = FDInfo::from_raw_fd(myself.pid, raw_fd).unwrap();
     println!("{:?} {:?}", fd, fd.mode());
 }
@@ -338,7 +341,7 @@ fn test_procinfo() {
 
     let procinfo_stat = procinfo::pid::stat_self().unwrap();
     let me = Process::myself().unwrap();
-    let me_stat = me.stat;
+    let me_stat = me.stat().unwrap();
 
     diff_mem(procinfo_stat.vsize as f32, me_stat.vsize as f32);
 

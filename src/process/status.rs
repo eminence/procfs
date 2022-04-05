@@ -14,8 +14,8 @@ use std::io::{BufRead, BufReader, Read};
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Status {
-    _private: (),
     /// Command run by this process.
     pub name: String,
     /// Process umask, expressed in octal with a leading zero; see umask(2).  (Since Linux 4.7.)
@@ -192,7 +192,6 @@ impl Status {
         }
 
         let status = Status {
-            _private: (),
             name: expect!(map.remove("Name")),
             umask: map.remove("Umask").map(|x| Ok(from_str!(u32, &x, 8))).transpose()?,
             state: expect!(map.remove("State")),
@@ -343,12 +342,13 @@ mod tests {
     #[test]
     fn test_proc_status() {
         let myself = Process::myself().unwrap();
+        let stat = myself.stat().unwrap();
         let status = myself.status().unwrap();
         println!("{:?}", status);
 
-        assert_eq!(status.name, myself.stat.comm);
-        assert_eq!(status.pid, myself.stat.pid);
-        assert_eq!(status.ppid, myself.stat.ppid);
+        assert_eq!(status.name, stat.comm);
+        assert_eq!(status.pid, stat.pid);
+        assert_eq!(status.ppid, stat.ppid);
     }
 
     #[test]

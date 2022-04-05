@@ -42,8 +42,7 @@ bitflags! {
 impl super::Process {
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
-        let path = self.root.join("mountstats");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, &self.fd, "mountstats")?;
         MountStat::from_reader(file)
     }
 
@@ -53,8 +52,7 @@ impl super::Process {
     ///
     /// (Since Linux 2.6.26)
     pub fn mountinfo(&self) -> ProcResult<Vec<MountInfo>> {
-        let path = self.root.join("mountinfo");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, &self.fd, "mountinfo")?;
         let bufread = BufReader::new(file);
         let lines = bufread.lines();
         let mut vec = Vec::new();
@@ -314,18 +312,18 @@ impl MountNFSStatistics {
                 break;
             }
             if !parsing_per_op {
-                if line.starts_with("opts:") {
-                    opts = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("age:") {
-                    age = Some(Duration::from_secs(from_str!(u64, &line[4..].trim())));
-                } else if line.starts_with("caps:") {
-                    caps = Some(line[5..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("sec:") {
-                    sec = Some(line[4..].trim().split(',').map(|s| s.to_string()).collect());
-                } else if line.starts_with("bytes:") {
-                    bytes = Some(NFSByteCounter::from_str(line[6..].trim())?);
-                } else if line.starts_with("events:") {
-                    events = Some(NFSEventCounter::from_str(line[7..].trim())?);
+                if let Some(stripped) = line.strip_prefix("opts:") {
+                    opts = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("age:") {
+                    age = Some(Duration::from_secs(from_str!(u64, stripped.trim())));
+                } else if let Some(stripped) = line.strip_prefix("caps:") {
+                    caps = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("sec:") {
+                    sec = Some(stripped.trim().split(',').map(|s| s.to_string()).collect());
+                } else if let Some(stripped) = line.strip_prefix("bytes:") {
+                    bytes = Some(NFSByteCounter::from_str(stripped.trim())?);
+                } else if let Some(stripped) = line.strip_prefix("events:") {
+                    events = Some(NFSEventCounter::from_str(stripped.trim())?);
                 }
                 if line == "per-op statistics" {
                     parsing_per_op = true;
@@ -353,8 +351,8 @@ impl MountNFSStatistics {
     /// Attempts to parse the caps= value from the [caps](struct.MountNFSStatistics.html#structfield.caps) field.
     pub fn server_caps(&self) -> ProcResult<Option<NFSServerCaps>> {
         for data in &self.caps {
-            if data.starts_with("caps=0x") {
-                let val = from_str!(u32, &data[7..], 16);
+            if let Some(stripped) = data.strip_prefix("caps=0x") {
+                let val = from_str!(u32, stripped, 16);
                 return Ok(NFSServerCaps::from_bits(val));
             }
         }
@@ -370,67 +368,66 @@ impl MountNFSStatistics {
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct NFSEventCounter {
-    pub inode_revalidate: libc::c_ulong,
-    pub deny_try_revalidate: libc::c_ulong,
-    pub data_invalidate: libc::c_ulong,
-    pub attr_invalidate: libc::c_ulong,
-    pub vfs_open: libc::c_ulong,
-    pub vfs_lookup: libc::c_ulong,
-    pub vfs_access: libc::c_ulong,
-    pub vfs_update_page: libc::c_ulong,
-    pub vfs_read_page: libc::c_ulong,
-    pub vfs_read_pages: libc::c_ulong,
-    pub vfs_write_page: libc::c_ulong,
-    pub vfs_write_pages: libc::c_ulong,
-    pub vfs_get_dents: libc::c_ulong,
-    pub vfs_set_attr: libc::c_ulong,
-    pub vfs_flush: libc::c_ulong,
-    pub vfs_fs_sync: libc::c_ulong,
-    pub vfs_lock: libc::c_ulong,
-    pub vfs_release: libc::c_ulong,
-    pub congestion_wait: libc::c_ulong,
-    pub set_attr_trunc: libc::c_ulong,
-    pub extend_write: libc::c_ulong,
-    pub silly_rename: libc::c_ulong,
-    pub short_read: libc::c_ulong,
-    pub short_write: libc::c_ulong,
-    pub delay: libc::c_ulong,
-    pub pnfs_read: libc::c_ulong,
-    pub pnfs_write: libc::c_ulong,
+    pub inode_revalidate: u64,
+    pub deny_try_revalidate: u64,
+    pub data_invalidate: u64,
+    pub attr_invalidate: u64,
+    pub vfs_open: u64,
+    pub vfs_lookup: u64,
+    pub vfs_access: u64,
+    pub vfs_update_page: u64,
+    pub vfs_read_page: u64,
+    pub vfs_read_pages: u64,
+    pub vfs_write_page: u64,
+    pub vfs_write_pages: u64,
+    pub vfs_get_dents: u64,
+    pub vfs_set_attr: u64,
+    pub vfs_flush: u64,
+    pub vfs_fs_sync: u64,
+    pub vfs_lock: u64,
+    pub vfs_release: u64,
+    pub congestion_wait: u64,
+    pub set_attr_trunc: u64,
+    pub extend_write: u64,
+    pub silly_rename: u64,
+    pub short_read: u64,
+    pub short_write: u64,
+    pub delay: u64,
+    pub pnfs_read: u64,
+    pub pnfs_write: u64,
 }
 
 impl NFSEventCounter {
     fn from_str(s: &str) -> ProcResult<NFSEventCounter> {
-        use libc::c_ulong;
         let mut s = s.split_whitespace();
         Ok(NFSEventCounter {
-            inode_revalidate: from_str!(c_ulong, expect!(s.next())),
-            deny_try_revalidate: from_str!(c_ulong, expect!(s.next())),
-            data_invalidate: from_str!(c_ulong, expect!(s.next())),
-            attr_invalidate: from_str!(c_ulong, expect!(s.next())),
-            vfs_open: from_str!(c_ulong, expect!(s.next())),
-            vfs_lookup: from_str!(c_ulong, expect!(s.next())),
-            vfs_access: from_str!(c_ulong, expect!(s.next())),
-            vfs_update_page: from_str!(c_ulong, expect!(s.next())),
-            vfs_read_page: from_str!(c_ulong, expect!(s.next())),
-            vfs_read_pages: from_str!(c_ulong, expect!(s.next())),
-            vfs_write_page: from_str!(c_ulong, expect!(s.next())),
-            vfs_write_pages: from_str!(c_ulong, expect!(s.next())),
-            vfs_get_dents: from_str!(c_ulong, expect!(s.next())),
-            vfs_set_attr: from_str!(c_ulong, expect!(s.next())),
-            vfs_flush: from_str!(c_ulong, expect!(s.next())),
-            vfs_fs_sync: from_str!(c_ulong, expect!(s.next())),
-            vfs_lock: from_str!(c_ulong, expect!(s.next())),
-            vfs_release: from_str!(c_ulong, expect!(s.next())),
-            congestion_wait: from_str!(c_ulong, expect!(s.next())),
-            set_attr_trunc: from_str!(c_ulong, expect!(s.next())),
-            extend_write: from_str!(c_ulong, expect!(s.next())),
-            silly_rename: from_str!(c_ulong, expect!(s.next())),
-            short_read: from_str!(c_ulong, expect!(s.next())),
-            short_write: from_str!(c_ulong, expect!(s.next())),
-            delay: from_str!(c_ulong, expect!(s.next())),
-            pnfs_read: from_str!(c_ulong, expect!(s.next())),
-            pnfs_write: from_str!(c_ulong, expect!(s.next())),
+            inode_revalidate: from_str!(u64, expect!(s.next())),
+            deny_try_revalidate: from_str!(u64, expect!(s.next())),
+            data_invalidate: from_str!(u64, expect!(s.next())),
+            attr_invalidate: from_str!(u64, expect!(s.next())),
+            vfs_open: from_str!(u64, expect!(s.next())),
+            vfs_lookup: from_str!(u64, expect!(s.next())),
+            vfs_access: from_str!(u64, expect!(s.next())),
+            vfs_update_page: from_str!(u64, expect!(s.next())),
+            vfs_read_page: from_str!(u64, expect!(s.next())),
+            vfs_read_pages: from_str!(u64, expect!(s.next())),
+            vfs_write_page: from_str!(u64, expect!(s.next())),
+            vfs_write_pages: from_str!(u64, expect!(s.next())),
+            vfs_get_dents: from_str!(u64, expect!(s.next())),
+            vfs_set_attr: from_str!(u64, expect!(s.next())),
+            vfs_flush: from_str!(u64, expect!(s.next())),
+            vfs_fs_sync: from_str!(u64, expect!(s.next())),
+            vfs_lock: from_str!(u64, expect!(s.next())),
+            vfs_release: from_str!(u64, expect!(s.next())),
+            congestion_wait: from_str!(u64, expect!(s.next())),
+            set_attr_trunc: from_str!(u64, expect!(s.next())),
+            extend_write: from_str!(u64, expect!(s.next())),
+            silly_rename: from_str!(u64, expect!(s.next())),
+            short_read: from_str!(u64, expect!(s.next())),
+            short_write: from_str!(u64, expect!(s.next())),
+            delay: from_str!(u64, expect!(s.next())),
+            pnfs_read: from_str!(u64, expect!(s.next())),
+            pnfs_write: from_str!(u64, expect!(s.next())),
         })
     }
 }
@@ -443,29 +440,28 @@ impl NFSEventCounter {
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct NFSByteCounter {
-    pub normal_read: libc::c_ulonglong,
-    pub normal_write: libc::c_ulonglong,
-    pub direct_read: libc::c_ulonglong,
-    pub direct_write: libc::c_ulonglong,
-    pub server_read: libc::c_ulonglong,
-    pub server_write: libc::c_ulonglong,
-    pub pages_read: libc::c_ulonglong,
-    pub pages_write: libc::c_ulonglong,
+    pub normal_read: u64,
+    pub normal_write: u64,
+    pub direct_read: u64,
+    pub direct_write: u64,
+    pub server_read: u64,
+    pub server_write: u64,
+    pub pages_read: u64,
+    pub pages_write: u64,
 }
 
 impl NFSByteCounter {
     fn from_str(s: &str) -> ProcResult<NFSByteCounter> {
-        use libc::c_ulonglong;
         let mut s = s.split_whitespace();
         Ok(NFSByteCounter {
-            normal_read: from_str!(c_ulonglong, expect!(s.next())),
-            normal_write: from_str!(c_ulonglong, expect!(s.next())),
-            direct_read: from_str!(c_ulonglong, expect!(s.next())),
-            direct_write: from_str!(c_ulonglong, expect!(s.next())),
-            server_read: from_str!(c_ulonglong, expect!(s.next())),
-            server_write: from_str!(c_ulonglong, expect!(s.next())),
-            pages_read: from_str!(c_ulonglong, expect!(s.next())),
-            pages_write: from_str!(c_ulonglong, expect!(s.next())),
+            normal_read: from_str!(u64, expect!(s.next())),
+            normal_write: from_str!(u64, expect!(s.next())),
+            direct_read: from_str!(u64, expect!(s.next())),
+            direct_write: from_str!(u64, expect!(s.next())),
+            server_read: from_str!(u64, expect!(s.next())),
+            server_write: from_str!(u64, expect!(s.next())),
+            pages_read: from_str!(u64, expect!(s.next())),
+            pages_write: from_str!(u64, expect!(s.next())),
         })
     }
 }
@@ -503,15 +499,15 @@ impl NFSByteCounter {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct NFSOperationStat {
     /// Count of rpc operations.
-    pub operations: libc::c_ulong,
+    pub operations: u64,
     /// Count of rpc transmissions
-    pub transmissions: libc::c_ulong,
+    pub transmissions: u64,
     /// Count of rpc major timeouts
-    pub major_timeouts: libc::c_ulong,
+    pub major_timeouts: u64,
     /// Count of bytes send. Does not only include the RPC payload but the RPC headers as well.
-    pub bytes_sent: libc::c_ulonglong,
+    pub bytes_sent: u64,
     /// Count of bytes received as `bytes_sent`.
-    pub bytes_recv: libc::c_ulonglong,
+    pub bytes_recv: u64,
     /// How long all requests have spend in the queue before being send.
     pub cum_queue_time: Duration,
     /// How long it took to get a response back.
@@ -523,14 +519,13 @@ pub struct NFSOperationStat {
 
 impl NFSOperationStat {
     fn from_str(s: &str) -> ProcResult<NFSOperationStat> {
-        use libc::{c_ulong, c_ulonglong};
         let mut s = s.split_whitespace();
 
-        let operations = from_str!(c_ulong, expect!(s.next()));
-        let transmissions = from_str!(c_ulong, expect!(s.next()));
-        let major_timeouts = from_str!(c_ulong, expect!(s.next()));
-        let bytes_sent = from_str!(c_ulonglong, expect!(s.next()));
-        let bytes_recv = from_str!(c_ulonglong, expect!(s.next()));
+        let operations = from_str!(u64, expect!(s.next()));
+        let transmissions = from_str!(u64, expect!(s.next()));
+        let major_timeouts = from_str!(u64, expect!(s.next()));
+        let bytes_sent = from_str!(u64, expect!(s.next()));
+        let bytes_recv = from_str!(u64, expect!(s.next()));
         let cum_queue_time_ms = from_str!(u64, expect!(s.next()));
         let cum_resp_time_ms = from_str!(u64, expect!(s.next()));
         let cum_total_req_time_ms = from_str!(u64, expect!(s.next()));

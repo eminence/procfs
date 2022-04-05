@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.42.0", "stable", "beta", "nightly"]
+        toolchain: ["1.48.0", "stable", "beta", "nightly"]
     runs-on: ubuntu-latest
 
     steps:
@@ -20,12 +20,6 @@ jobs:
       with:
         toolchain: ${{ matrix.toolchain }}
     
-    - name: Pin bitflags
-      if: matrix.toolchain == '1.42.0'
-      run: |
-        cargo +${{ matrix.toolchain }} update
-        cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
-
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --verbose
     - name: Run tests
@@ -44,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.42.0", "stable", "beta", "nightly"]
+        toolchain: ["1.48.0", "stable", "beta", "nightly"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -59,13 +53,6 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           target: i686-unknown-linux-gnu
-
-      - name: Pin hex and bitflags
-        if:  matrix.toolchain == '1.42.0'
-        run: |
-          cargo +${{ matrix.toolchain }} update
-          cargo +${{ matrix.toolchain }} update -p hex --precise 0.4.2
-          cargo +${{ matrix.toolchain }} update -p bitflags --precise 1.2.1
 
       - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android

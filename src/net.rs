@@ -16,17 +16,18 @@
 //! > cargo run --example=netstat
 //!
 //! ```rust
-//! # use procfs::process::{Process, FDTarget};
+//! # use procfs::process::{FDTarget, Stat};
 //! # use std::collections::HashMap;
 //! let all_procs = procfs::process::all_processes().unwrap();
 //!
-//! // build up a map between socket inodes and processes:
-//! let mut map: HashMap<u64, &Process> = HashMap::new();
-//! for process in &all_procs {
-//!     if let Ok(fds) = process.fd() {
+//! // build up a map between socket inodes and process stat info:
+//! let mut map: HashMap<u64, Stat> = HashMap::new();
+//! for p in all_procs {
+//!     let process = p.unwrap();
+//!     if let (Ok(stat), Ok(fds)) = (process.stat(), process.fd()) {
 //!         for fd in fds {
-//!             if let FDTarget::Socket(inode) = fd.target {
-//!                 map.insert(inode, process);
+//!             if let FDTarget::Socket(inode) = fd.unwrap().target {
+//!                 map.insert(inode, stat.clone());
 //!             }
 //!         }
 //!     }
@@ -41,8 +42,8 @@
 //!     let local_address = format!("{}", entry.local_address);
 //!     let remote_addr = format!("{}", entry.remote_address);
 //!     let state = format!("{:?}", entry.state);
-//!     if let Some(process) = map.get(&entry.inode) {
-//!         println!("{:<26} {:<26} {:<15} {:<12} {}/{}", local_address, remote_addr, state, entry.inode, process.stat.pid, process.stat.comm);
+//!     if let Some(stat) = map.get(&entry.inode) {
+//!         println!("{:<26} {:<26} {:<15} {:<12} {}/{}", local_address, remote_addr, state, entry.inode, stat.pid, stat.comm);
 //!     } else {
 //!         // We might not always be able to find the process associated with this socket
 //!         println!("{:<26} {:<26} {:<15} {:<12} -", local_address, remote_addr, state, entry.inode);

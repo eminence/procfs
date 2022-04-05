@@ -1,14 +1,17 @@
 use std::path::{Path, PathBuf};
 
-use super::{FileWrapper, Io, ProcError, Schedstat, Stat, Status};
+use super::{FileWrapper, Io, Schedstat, Stat, Status};
 use crate::ProcResult;
+use rustix::fd::BorrowedFd;
+use rustix::io::OwnedFd;
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
 ///
 /// Created by [`Process::tasks`](crate::process::Process::tasks), tasks in
 /// general are similar to Processes and should have mostly the same fields.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Task {
+    fd: OwnedFd,
     /// The ID of the process that this task belongs to
     pub pid: i32,
     /// The task ID
@@ -18,54 +21,59 @@ pub struct Task {
 }
 
 impl Task {
-    /// Create a new `Task`
-    pub fn new(pid: i32, tid: i32) -> Result<Task, ProcError> {
-        let root = PathBuf::from(format!("/proc/{}/task/{}", pid, tid));
-        if root.exists() {
-            Ok(Task { pid, tid, root })
-        } else {
-            Err(ProcError::NotFound(Some(root)))
-        }
-    }
-
     /// Create a new `Task` inside of the process
     ///
     /// This API is designed to be ergonomic from inside of [`TasksIter`](super::TasksIter)
-    pub(crate) fn from_rel_path(pid: i32, tid: &Path) -> Result<Task, ProcError> {
-        let root = PathBuf::from(format!("/proc/{}/task", pid)).join(tid);
-        Ok(Task {
-            pid,
-            tid: tid.file_name().unwrap().to_string_lossy().parse()?,
+    pub(crate) fn from_process_at<P: AsRef<Path>, Q: AsRef<Path>>(
+        base: P,
+        dirfd: BorrowedFd,
+        path: Q,
+        pid: i32,
+        tid: i32,
+    ) -> ProcResult<Task> {
+        use rustix::fs::{Mode, OFlags};
+
+        let p = path.as_ref();
+        let root = base.as_ref().join(p);
+        let fd = wrap_io_error!(
             root,
-        })
+            rustix::fs::openat(
+                dirfd,
+                p,
+                OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
+                Mode::empty()
+            )
+        )?;
+
+        Ok(Task { fd, pid, tid, root })
     }
 
     /// Thread info from `/proc/<pid>/task/<tid>/stat`
     ///
     /// Many of the returned fields will be the same as the parent process, but some fields like `utime` and `stime` will be per-task
     pub fn stat(&self) -> ProcResult<Stat> {
-        Stat::from_reader(FileWrapper::open(self.root.join("stat"))?)
+        Stat::from_reader(FileWrapper::open_at(&self.root, &self.fd, "stat")?)
     }
 
     /// Thread info from `/proc/<pid>/task/<tid>/status`
     ///
     /// Many of the returned fields will be the same as the parent process
     pub fn status(&self) -> ProcResult<Status> {
-        Status::from_reader(FileWrapper::open(self.root.join("status"))?)
+        Status::from_reader(FileWrapper::open_at(&self.root, &self.fd, "status")?)
     }
 
     /// Thread IO info from `/proc/<pid>/task/<tid>/io`
     ///
     /// This data will be unique per task.
     pub fn io(&self) -> ProcResult<Io> {
-        Io::from_reader(FileWrapper::open(self.root.join("io"))?)
+        Io::from_reader(FileWrapper::open_at(&self.root, &self.fd, "io")?)
     }
 
     /// Thread scheduler info from `/proc/<pid>/task/<tid>/schedstat`
     ///
     /// This data will be unique per task.
     pub fn schedstat(&self) -> ProcResult<Schedstat> {
-        Schedstat::from_reader(FileWrapper::open(self.root.join("schedstat"))?)
+        Schedstat::from_reader(FileWrapper::open_at(&self.root, &self.fd, "schedstat")?)
     }
 }
 

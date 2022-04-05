@@ -3,7 +3,7 @@ procfs
 
 [![Crate](https://img.shields.io/crates/v/procfs.svg)](https://crates.io/crates/procfs)
 [![Docs](https://docs.rs/procfs/badge.svg)](https://docs.rs/procfs)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.34+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.48+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
 
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
@@ -21,23 +21,27 @@ process.  This is very similar to what "ps" does in its default mode:
 ```rust
 fn main() {
     let me = procfs::process::Process::myself().unwrap();
+    let me_stat = me.stat().unwrap();
     let tps = procfs::ticks_per_second().unwrap();
 
     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 
-    let tty = format!("pty/{}", me.stat.tty_nr().1);
+    let tty = format!("pty/{}", me_stat.tty_nr().1);
     for prc in procfs::process::all_processes().unwrap() {
-        if prc.stat.tty_nr == me.stat.tty_nr {
+        let prc = prc.unwrap();
+        let stat = prc.stat().unwrap();
+        if stat.tty_nr == me_stat.tty_nr {
             // total_time is in seconds
             let total_time =
-                (prc.stat.utime + prc.stat.stime) as f32 / (tps as f32);
+                (stat.utime + stat.stime) as f32 / (tps as f32);
             println!(
                 "{: >5} {: <8} {: >8} {}",
-                prc.stat.pid, tty, total_time, prc.stat.comm
+                stat.pid, tty, total_time, stat.comm
             );
         }
     }
 }
+
 ```
 
 Here's another example that shows how to get the current memory usage of the current process:
@@ -47,15 +51,17 @@ use procfs::process::Process;
 
 fn main() {
     let me = Process::myself().unwrap();
+    let me_stat = me.stat().unwrap();
     println!("PID: {}", me.pid);
 
     let page_size = procfs::page_size().unwrap() as u64;
     println!("Memory page size: {}", page_size);
 
     println!("== Data from /proc/self/stat:");
-    println!("Total virtual memory used: {} bytes", me.stat.vsize);
-    println!("Total resident set: {} pages ({} bytes)", me.stat.rss, me.stat.rss as u64 * page_size);
+    println!("Total virtual memory used: {} bytes", me_stat.vsize);
+    println!("Total resident set: {} pages ({} bytes)", me_stat.rss, me_stat.rss as u64 * page_size);
 }
+
 ```
 
 There are a few ways to get this data, so also checkout the longer
@@ -72,11 +78,7 @@ The following cargo features are available:
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of rust 1.42.0 (2020-03-12).  However, one dependency of this
-crate (`bitflags`) require a newer version of rust, and must be manually pinned to an older version in
-order to use rust 1.42.  You can do this by running:
-
-    cargo update -p bitflags --precise 1.2.1
+This crate requires a minimum rust version of 1.48.0 (2020-11-19).
 
 ## License
 

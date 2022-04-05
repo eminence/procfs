@@ -68,19 +68,19 @@ impl BinFmtEntry {
         for line in data.lines() {
             if line == "enabled" {
                 enabled = true;
-            } else if line.starts_with("interpreter ") {
-                interpreter = line[12..].to_string();
-            } else if line.starts_with("flags:") {
-                flags = BinFmtFlags::from_str(&line[6..]);
-            } else if line.starts_with("extension .") {
-                ext = Some(line[11..].to_string());
-            } else if line.starts_with("offset ") {
-                offset = from_str!(u8, &line[7..]);
-            } else if line.starts_with("magic ") {
-                let hex = &line[6..];
+            } else if let Some(stripped) = line.strip_prefix("interpreter ") {
+                interpreter = stripped.to_string();
+            } else if let Some(stripped) = line.strip_prefix("flags:") {
+                flags = BinFmtFlags::from_str(stripped);
+            } else if let Some(stripped) = line.strip_prefix("extension .") {
+                ext = Some(stripped.to_string());
+            } else if let Some(stripped) = line.strip_prefix("offset ") {
+                offset = from_str!(u8, stripped);
+            } else if let Some(stripped) = line.strip_prefix("magic ") {
+                let hex = stripped;
                 magic = hex_to_vec(dbg!(hex))?;
-            } else if line.starts_with("mask ") {
-                let hex = &line[5..];
+            } else if let Some(stripped) = line.strip_prefix("mask ") {
+                let hex = stripped;
                 mask = hex_to_vec(hex)?;
             }
         }

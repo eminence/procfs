@@ -4,13 +4,10 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 use std::str::FromStr;
 
-use libc::rlim_t;
-
 impl crate::process::Process {
     /// Return the limits for this process
     pub fn limits(&self) -> ProcResult<Limits> {
-        let path = self.root.join("limits");
-        let file = FileWrapper::open(&path)?;
+        let file = FileWrapper::open_at(&self.root, &self.fd, "limits")?;
         Limits::from_reader(file)
     }
 }
@@ -188,15 +185,15 @@ impl Limit {
 #[derive(Debug, Copy, Clone)]
 pub enum LimitValue {
     Unlimited,
-    Value(rlim_t),
+    Value(u64),
 }
 
 impl LimitValue {
     #[cfg(test)]
-    pub(crate) fn as_rlim_t(&self) -> libc::rlim_t {
+    pub(crate) fn as_limit(&self) -> Option<u64> {
         match self {
-            LimitValue::Unlimited => libc::RLIM_INFINITY,
-            LimitValue::Value(v) => *v,
+            LimitValue::Unlimited => None,
+            LimitValue::Value(v) => Some(*v),
         }
     }
 }
@@ -207,7 +204,7 @@ impl FromStr for LimitValue {
         if s == "unlimited" {
             Ok(LimitValue::Unlimited)
         } else {
-            Ok(LimitValue::Value(from_str!(rlim_t, s)))
+            Ok(LimitValue::Value(from_str!(u64, s)))
         }
     }
 }
@@ -215,6 +212,7 @@ impl FromStr for LimitValue {
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use rustix::process::Resource;
 
     #[test]
     fn test_limits() {
@@ -222,89 +220,84 @@ mod tests {
         let limits = me.limits().unwrap();
         println!("{:#?}", limits);
 
-        let mut libc_lim = libc::rlimit {
-            rlim_cur: 0,
-            rlim_max: 0,
-        };
-
         // Max cpu time
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_CPU, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_cpu_time.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_cpu_time.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Cpu);
+        assert_eq!(lim.current, limits.max_cpu_time.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_cpu_time.hard_limit.as_limit());
 
         // Max file size
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_file_size.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_file_size.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Fsize);
+        assert_eq!(lim.current, limits.max_file_size.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_file_size.hard_limit.as_limit());
 
         // Max data size
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_DATA, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_data_size.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_data_size.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Data);
+        assert_eq!(lim.current, limits.max_data_size.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_data_size.hard_limit.as_limit());
 
         // Max stack size
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_STACK, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_stack_size.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_stack_size.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Stack);
+        assert_eq!(lim.current, limits.max_stack_size.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_stack_size.hard_limit.as_limit());
 
         // Max core file size
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_CORE, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_core_file_size.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_core_file_size.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Core);
+        assert_eq!(lim.current, limits.max_core_file_size.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_core_file_size.hard_limit.as_limit());
 
         // Max resident set
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RSS, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_resident_set.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_resident_set.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Rss);
+        assert_eq!(lim.current, limits.max_resident_set.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_resident_set.hard_limit.as_limit());
 
         // Max processes
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NPROC, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_processes.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_processes.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Nproc);
+        assert_eq!(lim.current, limits.max_processes.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_processes.hard_limit.as_limit());
 
         // Max open files
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_open_files.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_open_files.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Nofile);
+        assert_eq!(lim.current, limits.max_open_files.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_open_files.hard_limit.as_limit());
 
         // Max locked memory
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_MEMLOCK, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_locked_memory.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_locked_memory.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Memlock);
+        assert_eq!(lim.current, limits.max_locked_memory.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_locked_memory.hard_limit.as_limit());
 
         // Max address space
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_AS, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_address_space.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_address_space.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::As);
+        assert_eq!(lim.current, limits.max_address_space.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_address_space.hard_limit.as_limit());
 
         // Max file locks
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_LOCKS, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_file_locks.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_file_locks.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Locks);
+        assert_eq!(lim.current, limits.max_file_locks.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_file_locks.hard_limit.as_limit());
 
         // Max pending signals
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_SIGPENDING, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_pending_signals.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_pending_signals.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Sigpending);
+        assert_eq!(lim.current, limits.max_pending_signals.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_pending_signals.hard_limit.as_limit());
 
         // Max msgqueue size
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_MSGQUEUE, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_msgqueue_size.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_msgqueue_size.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Msgqueue);
+        assert_eq!(lim.current, limits.max_msgqueue_size.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_msgqueue_size.hard_limit.as_limit());
 
         // Max nice priority
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_NICE, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_nice_priority.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_nice_priority.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Nice);
+        assert_eq!(lim.current, limits.max_nice_priority.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_nice_priority.hard_limit.as_limit());
 
         // Max realtime priority
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RTPRIO, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_realtime_priority.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_realtime_priority.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Rtprio);
+        assert_eq!(lim.current, limits.max_realtime_priority.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_realtime_priority.hard_limit.as_limit());
 
         // Max realtime timeout
-        assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_RTTIME, &mut libc_lim) }, 0);
-        assert_eq!(libc_lim.rlim_cur, limits.max_realtime_timeout.soft_limit.as_rlim_t());
-        assert_eq!(libc_lim.rlim_max, limits.max_realtime_timeout.hard_limit.as_rlim_t());
+        let lim = rustix::process::getrlimit(Resource::Rttime);
+        assert_eq!(lim.current, limits.max_realtime_timeout.soft_limit.as_limit());
+        assert_eq!(lim.maximum, limits.max_realtime_timeout.hard_limit.as_limit());
     }
 }

@@ -30,9 +30,8 @@ macro_rules! since_kernel {
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Stat {
-    _private: (),
-
     /// The process ID.
     pub pid: i32,
     /// The filename of the executable, in parentheses.
@@ -140,7 +139,7 @@ pub struct Stat {
     ///
     /// This is just the pages which count toward text,  data,  or stack space.
     /// This does not include pages which have not been demand-loaded in, or which are swapped out.
-    pub rss: i64,
+    pub rss: u64,
     /// Current soft limit in bytes on the rss of the process; see the description of RLIMIT_RSS in
     /// getrlimit(2).
     pub rsslim: u64,
@@ -317,7 +316,6 @@ impl Stat {
         let exit_code = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
 
         Ok(Stat {
-            _private: (),
             pid,
             comm,
             state,
@@ -416,7 +414,7 @@ impl Stat {
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
-    pub fn rss_bytes(&self) -> ProcResult<i64> {
+    pub fn rss_bytes(&self) -> ProcResult<u64> {
         let pagesize = PAGESIZE
             .as_ref()
             .map_err(|e| ProcError::Other(format!("Failed to get pagesize: {:?}", e)))?;

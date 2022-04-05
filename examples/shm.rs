@@ -10,6 +10,7 @@ fn main() {
         println!("============");
 
         for prc in procfs::process::all_processes().unwrap() {
+            let prc = prc.unwrap();
             match prc.smaps() {
                 Ok(memory_maps) => {
                     for (memory_map, _memory_map_data) in &memory_maps {

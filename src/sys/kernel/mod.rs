@@ -222,8 +222,8 @@ impl FromStr for BuildInfo {
         let mut splited = s.split(' ');
         let version_str = splited.next();
         if let Some(version_str) = version_str {
-            if version_str.starts_with('#') {
-                version.push_str(&version_str[1..]);
+            if let Some(stripped) = version_str.strip_prefix('#') {
+                version.push_str(stripped);
             } else {
                 return Err("Failed to parse kernel build version");
             }
@@ -441,7 +441,7 @@ pub fn threads_max() -> ProcResult<u32> {
 /// This function will return an error if that is not the case.
 pub fn set_threads_max(new_limit: u32) -> ProcResult<()> {
     if let Ok(kernel) = *KERNEL {
-        if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN <= new_limit && new_limit <= THREADS_MAX) {
+        if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN..=THREADS_MAX).contains(&new_limit) {
             return Err(ProcError::Other(format!(
                 "{} is outside the THREADS_MIN..=THREADS_MAX range",
                 new_limit
