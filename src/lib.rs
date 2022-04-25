@@ -52,7 +52,7 @@ use lazy_static::lazy_static;
 use rustix::fd::{AsFd, FromFd};
 use std::fmt;
 use std::fs::{File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::io::{self, BufRead, BufReader, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
@@ -404,6 +404,12 @@ impl Read for FileWrapper {
     }
     fn read_exact(&mut self, buf: &mut [u8]) -> io::Result<()> {
         wrap_io_error!(self.path, self.inner.read_exact(buf))
+    }
+}
+
+impl Seek for FileWrapper {
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        wrap_io_error!(self.path, self.inner.seek(pos))
     }
 }
 
