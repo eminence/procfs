@@ -17,11 +17,11 @@ default = ["chrono", "flate2"]
 [dependencies]
 rustix = "0.34.0"
 bitflags = "1.2"
-lazy_static = "1"
-chrono = {version = "0.4", optional = true }
-byteorder = {version="1", features=["i128"]}
+lazy_static = "1.0.2"
+chrono = {version = "0.4.1", optional = true }
+byteorder = {version="1.2.3", features=["i128"]}
 hex = "0.4"
-flate2 = { version = "1", optional = true }
+flate2 = { version = "1.0.3", optional = true }
 backtrace = { version = "0.3", optional = true }
 
 [dev-dependencies]
