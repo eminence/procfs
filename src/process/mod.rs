@@ -1042,13 +1042,13 @@ impl Process {
                 Mode::empty()
             )
         )?;
-        let fds = wrap_io_error!(self.root.join("fd"), rustix::fs::Dir::from(fds))?;
+        let fds = wrap_io_error!(self.root.join("fd"), rustix::fs::Dir::read_from(fds))?;
         Ok(fds.count())
     }
 
     /// Gets a iterator of open file descriptors for a process
     pub fn fd(&self) -> ProcResult<FDsIter> {
-        let dir = wrap_io_error!(
+        let dir_fd = wrap_io_error!(
             self.root.join("fd"),
             rustix::fs::openat(
                 &self.fd,
@@ -1057,9 +1057,10 @@ impl Process {
                 Mode::empty()
             )
         )?;
-        let dir = wrap_io_error!(self.root.join("fd"), rustix::fs::Dir::from(dir))?;
+        let dir = wrap_io_error!(self.root.join("fd"), rustix::fs::Dir::read_from(&dir_fd))?;
         Ok(FDsIter {
             inner: dir,
+            inner_fd: dir_fd,
             root: self.root.clone(),
         })
     }
@@ -1309,7 +1310,7 @@ impl Process {
     /// # }
     /// ```
     pub fn tasks(&self) -> ProcResult<TasksIter> {
-        let dir = wrap_io_error!(
+        let dir_fd = wrap_io_error!(
             self.root.join("task"),
             rustix::fs::openat(
                 &self.fd,
@@ -1318,10 +1319,11 @@ impl Process {
                 Mode::empty()
             )
         )?;
-        let dir = wrap_io_error!(self.root.join("task"), rustix::fs::Dir::from(dir))?;
+        let dir = wrap_io_error!(self.root.join("task"), rustix::fs::Dir::read_from(&dir_fd))?;
         Ok(TasksIter {
             pid: self.pid,
             inner: dir,
+            inner_fd: dir_fd,
             root: self.root.clone(),
         })
     }
@@ -1331,6 +1333,7 @@ impl Process {
 #[derive(Debug)]
 pub struct FDsIter {
     inner: rustix::fs::Dir,
+    inner_fd: rustix::io::OwnedFd,
     root: PathBuf,
 }
 
@@ -1342,7 +1345,8 @@ impl std::iter::Iterator for FDsIter {
                 Some(Ok(entry)) => {
                     let name = entry.file_name().to_string_lossy();
                     if let Ok(fd) = RawFd::from_str(&name) {
-                        if let Ok(info) = FDInfo::from_process_at(&self.root, self.inner.as_fd(), name.as_ref(), fd) {
+                        if let Ok(info) = FDInfo::from_process_at(&self.root, self.inner_fd.as_fd(), name.as_ref(), fd)
+                        {
                             break Some(Ok(info));
                         }
                     }
@@ -1359,6 +1363,7 @@ impl std::iter::Iterator for FDsIter {
 pub struct TasksIter {
     pid: i32,
     inner: rustix::fs::Dir,
+    inner_fd: rustix::io::OwnedFd,
     root: PathBuf,
 }
 
@@ -1370,7 +1375,7 @@ impl std::iter::Iterator for TasksIter {
                 Some(Ok(tp)) => {
                     if let Ok(tid) = i32::from_str(&tp.file_name().to_string_lossy()) {
                         if let Ok(task) =
-                            Task::from_process_at(&self.root, self.inner.as_fd(), tid.to_string(), self.pid, tid)
+                            Task::from_process_at(&self.root, self.inner_fd.as_fd(), tid.to_string(), self.pid, tid)
                         {
                             break Some(Ok(task));
                         }
@@ -1397,7 +1402,7 @@ pub fn all_processes() -> ProcResult<ProcessesIter> {
             Mode::empty()
         )
     )?;
-    let dir = wrap_io_error!(root, rustix::fs::Dir::from(dir))?;
+    let dir = wrap_io_error!(root, rustix::fs::Dir::read_from(dir))?;
     Ok(ProcessesIter { inner: dir })
 }
 

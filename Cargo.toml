@@ -15,7 +15,7 @@ edition = "2018"
 default = ["chrono", "flate2"]
 
 [dependencies]
-rustix = "0.34.0"
+rustix = { version = "0.35.6", features = ["fs", "process", "param"] }
 bitflags = "1.2"
 lazy_static = "1.0.2"
 chrono = {version = "0.4.1", optional = true }
