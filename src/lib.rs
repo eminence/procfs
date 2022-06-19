@@ -595,7 +595,7 @@ impl LoadAverage {
 /// count in ticks.  This is calculated from `sysconf(_SC_CLK_TCK)`.
 pub fn ticks_per_second() -> std::io::Result<u64> {
     if cfg!(unix) {
-        Ok(rustix::process::clock_ticks_per_second())
+        Ok(rustix::param::clock_ticks_per_second())
     } else {
         panic!("Not supported on non-unix platforms")
     }
@@ -648,7 +648,7 @@ thread_local! {
 /// This is calculated from `sysconf(_SC_PAGESIZE)`.
 pub fn page_size() -> std::io::Result<u64> {
     if cfg!(unix) {
-        Ok(rustix::process::page_size() as u64)
+        Ok(rustix::param::page_size() as u64)
     } else {
         panic!("Not supported on non-unix platforms")
     }
