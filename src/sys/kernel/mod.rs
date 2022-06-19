@@ -153,7 +153,11 @@ pub struct BuildInfo {
 
 impl BuildInfo {
     pub fn new(version: &str, flags: HashSet<String>, extra: String) -> BuildInfo {
-        BuildInfo { version: version.to_string(), flags, extra }
+        BuildInfo {
+            version: version.to_string(),
+            flags,
+            extra,
+        }
     }
 
     /// Read the kernel build information from current running kernel
@@ -180,7 +184,7 @@ impl BuildInfo {
     }
 
     /// Return version number
-    /// 
+    ///
     /// This would parse number from first digits of version string. For example, #21~1 to 21.
     pub fn version_number(&self) -> ProcResult<u32> {
         let mut version_str = String::new();
@@ -200,7 +204,9 @@ impl BuildInfo {
     /// This function may fail as TIMESTAMP can be various formats.
     #[cfg(feature = "chrono")]
     pub fn extra_date(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
-        if let Ok(dt) = chrono::DateTime::parse_from_str(&format!("{} +0000", &self.extra), "%a %b %d %H:%M:%S UTC %Y %z") {
+        if let Ok(dt) =
+            chrono::DateTime::parse_from_str(&format!("{} +0000", &self.extra), "%a %b %d %H:%M:%S UTC %Y %z")
+        {
             return Ok(dt.with_timezone(&chrono::Local));
         }
         if let Ok(dt) = chrono::DateTime::parse_from_str(&self.extra, "%a, %d %b %Y %H:%M:%S %z") {
@@ -215,7 +221,7 @@ impl FromStr for BuildInfo {
 
     /// Parse a kernel build information string
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut version= String::new();
+        let mut version = String::new();
         let mut flags: HashSet<String> = HashSet::new();
         let mut extra: String = String::new();
 
@@ -243,7 +249,7 @@ impl FromStr for BuildInfo {
         let remains: Vec<&str> = splited.collect();
         extra.push_str(&remains.join(" "));
 
-        Ok(BuildInfo{version, flags, extra})
+        Ok(BuildInfo { version, flags, extra })
     }
 }
 
