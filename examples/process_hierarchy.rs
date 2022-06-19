@@ -66,7 +66,7 @@ fn print_process(process: &ProcessEntry, all_processes: &Vec<ProcessEntry>, dept
 
 /// Get all children of a specific process, by iterating through all processes and
 /// checking their parent pid.
-fn get_children(pid: i32, all_processes: &Vec<ProcessEntry>) -> Vec<&ProcessEntry> {
+fn get_children(pid: i32, all_processes: &[ProcessEntry]) -> Vec<&ProcessEntry> {
     all_processes
         .iter()
         .filter(|process| process.stat.ppid == pid)

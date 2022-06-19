@@ -1,4 +1,4 @@
-#![allow(clippy::unknown_clippy_lints)]
+#![allow(unknown_lints)]
 // The suggested fix with `str::parse` removes support for Rust 1.48
 #![allow(clippy::from_str_radix_10)]
 #![deny(broken_intra_doc_links)]

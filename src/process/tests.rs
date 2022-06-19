@@ -224,8 +224,8 @@ fn test_error_handling() {
 
     if !i_have_access {
         // but accessing data should result in an error (unless we are running as root!)
-        assert!(!init.cwd().is_ok());
-        assert!(!init.environ().is_ok());
+        assert!(init.cwd().is_err());
+        assert!(init.environ().is_err());
     }
 }
 

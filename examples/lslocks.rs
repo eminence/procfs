@@ -17,10 +17,7 @@ fn main() {
                 },
                 |s| {
                     let p = Path::new(&s);
-                    print!(
-                        "{:18}",
-                        p.file_name().unwrap_or_else(|| p.as_os_str()).to_string_lossy()
-                    );
+                    print!("{:18}", p.file_name().unwrap_or(p.as_os_str()).to_string_lossy());
                 },
             );
 
