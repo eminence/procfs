@@ -58,6 +58,7 @@
 
 use super::*;
 use crate::from_iter;
+use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
 
 use rustix::fd::{AsFd, BorrowedFd, RawFd};
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
@@ -1326,6 +1327,30 @@ impl Process {
             inner_fd: dir_fd,
             root: self.root.clone(),
         })
+    }
+
+    /// Reads the tcp socket table from the process net namespace
+    pub fn tcp(&self) -> ProcResult<Vec<TcpNetEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/tcp")?;
+        read_tcp_table(BufReader::new(file))
+    }
+
+    /// Reads the tcp6 socket table from the process net namespace
+    pub fn tcp6(&self) -> ProcResult<Vec<TcpNetEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/tcp6")?;
+        read_tcp_table(BufReader::new(file))
+    }
+
+    /// Reads the udp socket table from the process net namespace
+    pub fn udp(&self) -> ProcResult<Vec<UdpNetEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/udp")?;
+        read_udp_table(BufReader::new(file))
+    }
+
+    /// Reads the udp6 socket table from the process net namespace
+    pub fn udp6(&self) -> ProcResult<Vec<UdpNetEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/udp6")?;
+        read_udp_table(BufReader::new(file))
     }
 }
 
