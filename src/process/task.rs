@@ -1,7 +1,8 @@
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use super::{FileWrapper, Io, Schedstat, Stat, Status};
-use crate::ProcResult;
+use crate::{ProcError, ProcResult};
 use rustix::fd::BorrowedFd;
 use rustix::io::OwnedFd;
 
@@ -74,6 +75,19 @@ impl Task {
     /// This data will be unique per task.
     pub fn schedstat(&self) -> ProcResult<Schedstat> {
         Schedstat::from_reader(FileWrapper::open_at(&self.root, &self.fd, "schedstat")?)
+    }
+
+    pub fn children(&self) -> ProcResult<Vec<u32>> {
+        let mut buf = String::new();
+        let mut file = FileWrapper::open_at(&self.root, &self.fd, "children")?;
+        file.read_to_string(&mut buf)?;
+        buf.split_whitespace()
+            .map(|child| {
+                child
+                    .parse()
+                    .map_err(|_| ProcError::Other("Failed to parse task's child PIDs".to_string()))
+            })
+            .collect()
     }
 }
 
