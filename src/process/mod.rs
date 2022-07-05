@@ -1147,9 +1147,6 @@ impl Process {
     }
 
     /// Returns the status info from `/proc/[pid]/stat`.
-    ///
-    /// Note that this data comes pre-loaded in the `stat` field.  This method is useful when you
-    /// get the latest status data (since some of it changes while the program is running)
     pub fn stat(&self) -> ProcResult<Stat> {
         let file = FileWrapper::open_at(&self.root, &self.fd, "stat")?;
         let stat = Stat::from_reader(file)?;
