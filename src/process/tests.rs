@@ -323,6 +323,64 @@ fn test_proc_auxv() {
     let myself = Process::myself().unwrap();
     let auxv = myself.auxv().unwrap();
     println!("{:?}", auxv);
+    for (k, v) in auxv {
+        // See bits/auxv.h
+        match k {
+            2 => println!("File descriptor of program: {}", v),
+            3 => println!("Address of the program headers of the executable: 0x{:x}", v),
+            4 => println!("Size of program header entry: {}", v),
+            5 => println!("Number of program headers: {}", v),
+            6 => {
+                println!("System page size: {}", v);
+                assert!(v > 0);
+            }
+            7 => {
+                println!("Base address: 0x{:x}", v);
+                assert!(v > 0);
+            }
+            8 => println!("Flags: 0x{:x}", v),
+            9 => {
+                println!("Entry address of the executable: 0x{:x}", v);
+                assert!(v > 0);
+            }
+            11 => {
+                println!("Real UID: {}", v);
+                assert_eq!(v as u32, rustix::process::getuid().as_raw());
+            }
+            12 => {
+                println!("Effective UID: {}", v);
+                assert!(v > 0);
+            }
+            13 => {
+                println!("Real GID: {}", v);
+                assert!(v > 0);
+            }
+            14 => {
+                println!("Effective GID: {}", v);
+                assert!(v > 0);
+            }
+            15 => {
+                println!("Platform string address: 0x{:x}", v);
+                let platform = unsafe { std::ffi::CStr::from_ptr(v as *const _) };
+                println!("Platform string: {:?}", platform);
+            }
+            16 => println!("HW Cap: 0x{:x}", v),
+            17 => {
+                println!("Clock ticks per second: {}", v);
+                assert_eq!(v, crate::ticks_per_second().unwrap());
+            }
+            19 => println!("Data cache block size: {}", v),
+            23 => println!("Run as setuid?: {}", v),
+            25 => println!("Address of 16 random bytes: 0x{:x}", v),
+            26 => println!("HW Cap2: 0x{:x}", v),
+            31 => {
+                println!("argv[0] address: 0x{:x}", v);
+                let argv0 = unsafe { std::ffi::CStr::from_ptr(v as *const _) };
+                println!("argv[0]: {:?}", argv0);
+            }
+            k => println!("Unknown key {}: {:x}", k, v),
+        }
+    }
 }
 
 #[test]
