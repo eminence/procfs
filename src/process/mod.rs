@@ -67,6 +67,7 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::read_link;
 use std::io::{self, Read};
+use std::mem;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
@@ -1103,7 +1104,7 @@ impl Process {
     /// Get the process's auxiliary vector
     ///
     /// (since 2.6.0-test7)
-    pub fn auxv(&self) -> ProcResult<HashMap<u32, u32>> {
+    pub fn auxv(&self) -> ProcResult<HashMap<u64, u64>> {
         use byteorder::{NativeEndian, ReadBytesExt};
 
         let mut file = FileWrapper::open_at(&self.root, &self.fd, "auxv")?;
@@ -1119,8 +1120,8 @@ impl Process {
         let mut file = std::io::Cursor::new(buf);
 
         loop {
-            let key = file.read_u32::<NativeEndian>()?;
-            let value = file.read_u32::<NativeEndian>()?;
+            let key = file.read_uint::<NativeEndian>(mem::size_of::<usize>())? as u64;
+            let value = file.read_uint::<NativeEndian>(mem::size_of::<usize>())? as u64;
             if key == 0 && value == 0 {
                 break;
             }
