@@ -94,6 +94,7 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use crate::process::Io;
+    use std::process;
     use std::sync::{Arc, Barrier};
 
     #[test]
@@ -201,5 +202,31 @@ mod tests {
 
         assert!(found_one);
         assert!(found_two);
+    }
+
+    #[test]
+    fn test_task_children() {
+        // Use tail -f /dev/null to create two infinite processes
+        let mut command = process::Command::new("tail");
+        command.arg("-f").arg("/dev/null");
+        let (mut child1, mut child2) = (command.spawn().unwrap(), command.spawn().unwrap());
+
+        // Cargo tests run on multiple threads under the same process by default
+        // There doesn't seem to be an easy way to get the current thread ID
+        // To verify that children() works, find our thead by looking for tasks with two children
+        // matching the PIDs for the processes we spawned
+        let task = crate::process::Process::myself()
+            .unwrap()
+            .tasks()
+            .unwrap()
+            .find(|task| {
+                let children = task.as_ref().unwrap().children().unwrap();
+                children.contains(&child1.id()) && children.contains(&child2.id())
+            });
+
+        assert!(task.is_some());
+
+        child1.kill().unwrap();
+        child2.kill().unwrap();
     }
 }
