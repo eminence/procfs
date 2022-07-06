@@ -77,6 +77,9 @@ impl Task {
         Schedstat::from_reader(FileWrapper::open_at(&self.root, &self.fd, "schedstat")?)
     }
 
+    /// Thread children from `/proc/<pid>/task/<tid>/children`
+    ///
+    /// This data will be unique per task.
     pub fn children(&self) -> ProcResult<Vec<u32>> {
         let mut buf = String::new();
         let mut file = FileWrapper::open_at(&self.root, &self.fd, "children")?;
