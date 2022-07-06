@@ -53,7 +53,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
     * [x] `/proc/[pid]/task/[tid]/stat`
     * [x] `/proc/[pid]/task/[tid]/status`
     * [x] `/proc/[pid]/task/[tid]/io`
-    * [ ] `/proc/[pid]/task/[tid]/children`
+    * [x] `/proc/[pid]/task/[tid]/children`
   * [ ] `/proc/[pid]/timers`
   * [ ] `/proc/[pid]/timerslack_ns`
   * [ ] `/proc/[pid]/uid_map`
