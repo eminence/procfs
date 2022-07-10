@@ -22,6 +22,9 @@ jobs:
     
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --verbose
+    - name: Pin plotters
+      if: matrix.toolchain == '1.48.0'
+      run: cargo update -p plotters --precise 0.3.1
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
