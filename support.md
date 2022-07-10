@@ -28,7 +28,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/limits`
   * [ ] `/proc/[pid]/map_files/`
   * [x] `/proc/[pid]/maps`
-  * [ ] `/proc/[pid]/mem`
+  * [x] `/proc/[pid]/mem`
   * [x] `/proc/[pid]/mountinfo`
   * [ ] `/proc/[pid]/mounts`
   * [x] `/proc/[pid]/mountstats`

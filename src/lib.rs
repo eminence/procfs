@@ -390,6 +390,11 @@ impl FileWrapper {
             path: p,
         })
     }
+
+    /// Returns the inner file
+    fn inner(self) -> File {
+        self.inner
+    }
 }
 
 impl Read for FileWrapper {
