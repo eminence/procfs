@@ -1350,6 +1350,42 @@ impl Process {
         let file = FileWrapper::open_at(&self.root, &self.fd, "net/udp6")?;
         read_udp_table(BufReader::new(file))
     }
+
+    /// Opens a file to the process's memory (`/proc/<pid>/mem`).
+    ///
+    /// Note: you cannot start reading from the start of the file.  You must first seek to
+    /// a mapped page.  See [Process::maps].
+    ///
+    /// Permission to access this file is governed by a ptrace access mode PTRACE_MODE_ATTACH_FSCREDS check
+    ///
+    /// # Example
+    ///
+    /// Find the offset of the "hello" string in the process's stack, and compare it to the
+    /// pointer of the variable containing "hello"
+    ///
+    /// ```rust
+    /// # use std::io::{Read, Seek, SeekFrom};
+    /// # use procfs::process::{MMapPath, Process};
+    /// let me = Process::myself().unwrap();
+    /// let mut mem = me.mem().unwrap();
+    /// let maps = me.maps().unwrap();
+    ///
+    /// let hello = "hello".to_string();
+    ///
+    /// for map in maps {
+    ///     if map.pathname == MMapPath::Heap {
+    ///         mem.seek(SeekFrom::Start(map.address.0)).unwrap();
+    ///         let mut buf = vec![0; (map.address.1 - map.address.0) as usize];
+    ///         mem.read_exact(&mut buf).unwrap();
+    ///         let idx = buf.windows(5).position(|p| p == b"hello").unwrap();
+    ///         assert_eq!(map.address.0 + idx as u64, hello.as_ptr() as u64);
+    ///     }
+    /// }
+    /// ```
+    pub fn mem(&self) -> ProcResult<File> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "mem")?;
+        Ok(file.inner())
+    }
 }
 
 /// The result of [`Process::fd`], iterates over all fds in a process
