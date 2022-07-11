@@ -1453,12 +1453,19 @@ impl std::iter::Iterator for TasksIter {
 ///
 /// If a process can't be constructed for some reason, it won't be returned in the iterator.
 pub fn all_processes() -> ProcResult<ProcessesIter> {
-    let root = PathBuf::from("/proc");
+    all_processes_with_root("/proc")
+}
+
+/// Return a list of all processes based on a specified `/proc` path
+///
+/// If a process can't be constructed for some reason, it won't be returned in the list.
+pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIter> {
+    let root = root.as_ref();
     let dir = wrap_io_error!(
         root,
         rustix::fs::openat(
             &rustix::fs::cwd(),
-            &root,
+            root,
             OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Mode::empty()
         )
