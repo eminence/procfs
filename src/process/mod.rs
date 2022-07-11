@@ -1034,6 +1034,8 @@ impl Process {
     }
 
     /// Gets the number of open file descriptors for a process
+    ///
+    /// Calling this function is more efficient than calling `fd().unwrap().count()`
     pub fn fd_count(&self) -> ProcResult<usize> {
         let fds = wrap_io_error!(
             self.root.join("fd"),
