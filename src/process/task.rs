@@ -79,6 +79,11 @@ impl Task {
 
     /// Thread children from `/proc/<pid>/task/<tid>/children`
     ///
+    /// WARNING:
+    /// This interface is not reliable unless all the child processes are stoppped or frozen.
+    /// If a child task exits while the file is being read, non-exiting children may be omitted.
+    /// See the procfs(5) man page for more information.
+    ///
     /// This data will be unique per task.
     pub fn children(&self) -> ProcResult<Vec<u32>> {
         let mut buf = String::new();
