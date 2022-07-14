@@ -97,6 +97,7 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use crate::process::Io;
+    use rustix;
     use std::process;
     use std::sync::{Arc, Barrier};
 
@@ -214,20 +215,17 @@ mod tests {
         command.arg("-f").arg("/dev/null");
         let (mut child1, mut child2) = (command.spawn().unwrap(), command.spawn().unwrap());
 
-        // Cargo tests run on multiple threads under the same process by default
-        // There doesn't seem to be an easy way to get the current thread ID
-        // To verify that children() works, find our thead by looking for tasks with two children
-        // matching the PIDs for the processes we spawned
-        let task = crate::process::Process::myself()
-            .unwrap()
-            .tasks()
-            .unwrap()
-            .find(|task| {
-                let children = task.as_ref().unwrap().children().unwrap();
-                children.contains(&child1.id()) && children.contains(&child2.id())
-            });
+        let tid = rustix::thread::gettid();
 
-        assert!(task.is_some());
+        let children = crate::process::Process::myself()
+            .unwrap()
+            .task_from_tid(tid.as_raw_nonzero().get() as i32)
+            .unwrap()
+            .children()
+            .unwrap();
+
+        assert!(children.contains(&child1.id()));
+        assert!(children.contains(&child2.id()));
 
         child1.kill().unwrap();
         child2.kill().unwrap();
