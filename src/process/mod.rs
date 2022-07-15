@@ -1178,6 +1178,22 @@ impl Process {
         Ok(from_str!(u32, oom.trim()))
     }
 
+    /// Used to adjust the badness heuristic used to select which
+    /// process gets killed in out of memory conditions.
+    /// The badness heuristic assigns a value to each candidate task ranging from 0
+    /// (never kill) to 1000 (always kill) to determine which process is targeted.  The
+    /// units are roughly a proportion along that range of allowed memory the process
+    /// may allocate from based on an estimation of its current memory and swap use.
+    /// For example, if a task is using all allowed memory, its badness score will be
+    /// 1000.  If it is using half of its allowed memory, its score will be 500.
+    pub fn oom_score_adj(&self) -> ProcResult<u32> {
+        let path = self.root.join("oom_score_adj");
+        let mut file = FileWrapper::open(&path)?;
+        let mut oom = String::new();
+        file.read_to_string(&mut oom)?;
+        Ok(from_str!(u32, oom.trim()))
+    }
+
     /// Set process memory information
     ///
     /// Much of this data is the same as the data from `stat()` and `status()`
