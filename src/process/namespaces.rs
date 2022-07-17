@@ -1,5 +1,6 @@
 use rustix::fs::AtFlags;
 use std::{
+    collections::HashMap,
     ffi::OsString,
     fs::{self},
     path::PathBuf,
@@ -12,9 +13,10 @@ use super::Process;
 impl Process {
     /// Describes namespaces to which the process with the corresponding PID belongs.
     /// Doc reference: https://man7.org/linux/man-pages/man7/namespaces.7.html
-    pub fn namespaces(&self) -> ProcResult<Vec<Namespace>> {
+    /// The namespace type is the key for the HashMap, i.e 'net', 'user', etc.
+    pub fn namespaces(&self) -> ProcResult<HashMap<OsString, Namespace>> {
         let ns = self.root.join("ns");
-        let mut namespaces = Vec::new();
+        let mut namespaces = HashMap::new();
         for entry in fs::read_dir(ns)? {
             let entry = entry?;
             let path = entry.path();
@@ -22,12 +24,20 @@ impl Process {
             let stat = rustix::fs::statat(&rustix::fs::cwd(), &path, AtFlags::empty())
                 .map_err(|_| build_internal_error!(format!("Unable to stat {:?}", path)))?;
 
-            namespaces.push(Namespace {
-                ns_type,
-                path,
-                identifier: stat.st_ino,
-                device_id: stat.st_dev,
-            })
+            if let Some(n) = namespaces.insert(
+                ns_type.clone(),
+                Namespace {
+                    ns_type,
+                    path,
+                    identifier: stat.st_ino,
+                    device_id: stat.st_dev,
+                },
+            ) {
+                return Err(build_internal_error!(format!(
+                    "NsType appears more than once {:?}",
+                    n.ns_type
+                )));
+            }
         }
 
         Ok(namespaces)
