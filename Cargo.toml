@@ -16,7 +16,7 @@ rust-version = "1.48"
 default = ["chrono", "flate2"]
 
 [dependencies]
-rustix = { version = "0.35.6", features = ["fs", "process", "param"] }
+rustix = { version = "0.35.6", features = ["fs", "process", "param", "thread"] }
 bitflags = "1.2"
 lazy_static = "1.0.2"
 chrono = {version = "0.4.1", optional = true }

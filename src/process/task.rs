@@ -1,7 +1,8 @@
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use super::{FileWrapper, Io, Schedstat, Stat, Status};
-use crate::ProcResult;
+use crate::{ProcError, ProcResult};
 use rustix::fd::BorrowedFd;
 use rustix::io::OwnedFd;
 
@@ -75,11 +76,34 @@ impl Task {
     pub fn schedstat(&self) -> ProcResult<Schedstat> {
         Schedstat::from_reader(FileWrapper::open_at(&self.root, &self.fd, "schedstat")?)
     }
+
+    /// Thread children from `/proc/<pid>/task/<tid>/children`
+    ///
+    /// WARNING:
+    /// This interface is not reliable unless all the child processes are stoppped or frozen.
+    /// If a child task exits while the file is being read, non-exiting children may be omitted.
+    /// See the procfs(5) man page for more information.
+    ///
+    /// This data will be unique per task.
+    pub fn children(&self) -> ProcResult<Vec<u32>> {
+        let mut buf = String::new();
+        let mut file = FileWrapper::open_at(&self.root, &self.fd, "children")?;
+        file.read_to_string(&mut buf)?;
+        buf.split_whitespace()
+            .map(|child| {
+                child
+                    .parse()
+                    .map_err(|_| ProcError::Other("Failed to parse task's child PIDs".to_string()))
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::process::Io;
+    use rustix;
+    use std::process;
     use std::sync::{Arc, Barrier};
 
     #[test]
@@ -187,5 +211,28 @@ mod tests {
 
         assert!(found_one);
         assert!(found_two);
+    }
+
+    #[test]
+    fn test_task_children() {
+        // Use tail -f /dev/null to create two infinite processes
+        let mut command = process::Command::new("tail");
+        command.arg("-f").arg("/dev/null");
+        let (mut child1, mut child2) = (command.spawn().unwrap(), command.spawn().unwrap());
+
+        let tid = rustix::thread::gettid();
+
+        let children = crate::process::Process::myself()
+            .unwrap()
+            .task_from_tid(tid.as_raw_nonzero().get() as i32)
+            .unwrap()
+            .children()
+            .unwrap();
+
+        assert!(children.contains(&child1.id()));
+        assert!(children.contains(&child2.id()));
+
+        child1.kill().unwrap();
+        child2.kill().unwrap();
     }
 }
