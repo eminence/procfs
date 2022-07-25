@@ -755,6 +755,20 @@ impl std::fmt::Debug for FDInfo {
 }
 
 /// Represents a process in `/proc/<pid>`.
+///
+/// **Note** The `Process` struct holds an open file descriptor to its `/proc/<pid>` directory.
+/// This makes it possible to construct a `Process` object and then later call the various methods
+/// on it without a risk of inadvertently getting information from the wrong process (due to PID
+/// reuse).
+///
+/// However the downside is that holding a lot of `Process` objects might cause the process to run
+/// out of file descriptors.
+///
+/// For use cases that don't involve holding a lot of `Process` objects, no special handler is
+/// needed.  But if you do hold a lot of these objects (for example if you're writing a `ps`
+/// or `top` -like program), you'll likely want to gather all of the necessary info from `Process`
+/// object into a new struct and then drop the `Process` object
+///
 #[derive(Debug)]
 pub struct Process {
     fd: OwnedFd,
@@ -762,6 +776,7 @@ pub struct Process {
     pub(crate) root: PathBuf,
 }
 
+/// Methods for constructing a new `Process` object.
 impl Process {
     /// Returns a `Process` based on a specified PID.
     ///
@@ -812,7 +827,9 @@ impl Process {
         let root = PathBuf::from("/proc/self");
         Self::new_with_root(root)
     }
+}
 
+impl Process {
     /// Returns the complete command line for the process, unless the process is a zombie.
     ///
     ///
@@ -1452,6 +1469,8 @@ impl std::iter::Iterator for TasksIter {
 /// Return a iterator of all processes
 ///
 /// If a process can't be constructed for some reason, it won't be returned in the iterator.
+///
+/// See also some important docs on the [ProcessesIter] struct.
 pub fn all_processes() -> ProcResult<ProcessesIter> {
     all_processes_with_root("/proc")
 }
@@ -1459,6 +1478,8 @@ pub fn all_processes() -> ProcResult<ProcessesIter> {
 /// Return a list of all processes based on a specified `/proc` path
 ///
 /// If a process can't be constructed for some reason, it won't be returned in the list.
+///
+/// See also some important docs on the [ProcessesIter] struct.
 pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIter> {
     let root = root.as_ref();
     let dir = wrap_io_error!(
@@ -1474,6 +1495,13 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
     Ok(ProcessesIter { inner: dir })
 }
 
+/// An iterator over all processes in the system.
+///
+/// **Note** This is a *lazy* iterator (like most iterators in rust).  You will likely want to consume
+/// this iterator as quickly as possible if you want a "snapshot" of the system (though it won't be a
+/// true snapshot).  Another important thing to keep in mind is that the [`Process`] struct holds an
+/// open file descriptor to its corresponding `/proc/<pid>` directory.  See the docs for [`Process`]
+/// for more information.
 #[derive(Debug)]
 pub struct ProcessesIter {
     inner: rustix::fs::Dir,
