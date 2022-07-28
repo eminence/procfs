@@ -568,10 +568,16 @@ pub struct LoadAverage {
 impl LoadAverage {
     /// Reads load average info from `/proc/loadavg`
     pub fn new() -> ProcResult<LoadAverage> {
-        let mut f = FileWrapper::open("/proc/loadavg")?;
-        let mut s = String::new();
-        f.read_to_string(&mut s)?;
-        let mut s = s.split_whitespace();
+        LoadAverage::from_reader(FileWrapper::open("/proc/loadavg")?)
+    }
+
+    /// Get LoadAverage from a custom Read instead of the default `/proc/loadavg`.
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<LoadAverage> {
+        let mut reader = BufReader::new(r);
+        let mut line = String::new();
+
+        reader.read_to_string(&mut line)?;
+        let mut s = line.split_whitespace();
 
         let one = expect!(f32::from_str(expect!(s.next())));
         let five = expect!(f32::from_str(expect!(s.next())));
