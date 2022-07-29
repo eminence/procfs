@@ -1,6 +1,6 @@
 [package]
 name = "procfs"
-version = "0.13.2"
+version = "0.14.0"
 authors = ["Andrew Chin <achin@eminence32.net>"]
 repository = "https://github.com/eminence/procfs"
 documentation = "https://docs.rs/procfs/"
