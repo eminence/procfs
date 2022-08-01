@@ -1,10 +1,5 @@
-use rustix::fs::AtFlags;
-use std::{
-    collections::HashMap,
-    ffi::OsString,
-    fs::{self},
-    path::PathBuf,
-};
+use rustix::fs::{AtFlags, Mode, OFlags};
+use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 
 use crate::ProcResult;
 
@@ -15,13 +10,27 @@ impl Process {
     /// Doc reference: https://man7.org/linux/man-pages/man7/namespaces.7.html
     /// The namespace type is the key for the HashMap, i.e 'net', 'user', etc.
     pub fn namespaces(&self) -> ProcResult<HashMap<OsString, Namespace>> {
-        let ns = self.root.join("ns");
         let mut namespaces = HashMap::new();
-        for entry in fs::read_dir(ns)? {
-            let entry = entry?;
-            let path = entry.path();
-            let ns_type = entry.file_name();
-            let stat = rustix::fs::statat(&rustix::fs::cwd(), &path, AtFlags::empty())
+        let dir_ns = wrap_io_error!(
+            self.root.join("ns"),
+            rustix::fs::openat(
+                &self.fd,
+                "ns",
+                OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+                Mode::empty()
+            )
+        )?;
+        let dir = wrap_io_error!(self.root.join("ns"), rustix::fs::Dir::read_from(&dir_ns))?;
+        for entry in dir {
+            let entry = entry.map_err(|_| build_internal_error!(format!("Unable to get ns dir entry")))?;
+            match entry.file_name().to_bytes() {
+                b"." | b".." => continue,
+                _ => {}
+            };
+
+            let path = self.root.join("ns").join(entry.file_name().to_string_lossy().as_ref());
+            let ns_type = OsString::from(entry.file_name().to_string_lossy().as_ref());
+            let stat = rustix::fs::statat(&dir_ns, entry.file_name(), AtFlags::empty())
                 .map_err(|_| build_internal_error!(format!("Unable to stat {:?}", path)))?;
 
             if let Some(n) = namespaces.insert(
