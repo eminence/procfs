@@ -1181,6 +1181,19 @@ mod tests {
     }
 
     #[test]
+    fn test_loadavg_from_reader() -> ProcResult<()> {
+        let load_average = LoadAverage::from_reader("2.63 1.00 1.42 3/4280 2496732".as_bytes())?;
+
+        assert_eq!(load_average.one, 2.63);
+        assert_eq!(load_average.five, 1.00);
+        assert_eq!(load_average.fifteen, 1.42);
+        assert_eq!(load_average.max, 4280);
+        assert_eq!(load_average.cur, 3);
+        assert_eq!(load_average.latest_pid, 2496732);
+        Ok(())
+    }
+
+    #[test]
     fn test_from_str() -> ProcResult<()> {
         assert_eq!(from_str!(u8, "12"), 12);
         assert_eq!(from_str!(u8, "A", 16), 10);
