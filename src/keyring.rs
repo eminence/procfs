@@ -5,6 +5,8 @@
 //! Additional functions can be found in the [kernel::keys](crate::sys::kernel::keys) module.
 use crate::{FileWrapper, ProcResult};
 use bitflags::bitflags;
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
@@ -13,6 +15,7 @@ use std::{
 
 bitflags! {
     /// Various key flags
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct KeyFlags: u32 {
             /// The key has been instantiated
             const INSTANTIATED = 0x01;
@@ -35,6 +38,7 @@ bitflags! {
 
 bitflags! {
     /// Bitflags that represent the permissions for a key
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct PermissionFlags: u32 {
         /// The attributes of the key may be read
         ///
@@ -101,6 +105,7 @@ impl KeyFlags {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Permissions {
     pub possessor: PermissionFlags,
     pub user: PermissionFlags,
@@ -131,6 +136,7 @@ impl Permissions {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum KeyTimeout {
     Permanent,
     Expired,
@@ -159,6 +165,7 @@ impl KeyTimeout {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum KeyType {
     /// This is a general-purpose key type.
     ///
@@ -222,6 +229,7 @@ impl KeyType {
 
 /// A key
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Key {
     /// The ID (serial number) of the key
     pub id: u64,
@@ -303,6 +311,7 @@ pub fn keys() -> ProcResult<Vec<Key>> {
 
 /// Information about a user with at least one key
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct KeyUser {
     /// The user that owns the key
     pub uid: u32,

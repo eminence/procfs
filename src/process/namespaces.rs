@@ -1,6 +1,9 @@
 use rustix::fs::{AtFlags, Mode, OFlags};
 use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 use crate::ProcResult;
 
 use super::Process;
@@ -57,6 +60,7 @@ impl Process {
 ///
 /// See also the [Process::namespaces()] method
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Namespace {
     /// Namespace type
     pub ns_type: OsString,

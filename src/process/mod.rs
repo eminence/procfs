@@ -63,6 +63,8 @@ use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
 use rustix::fd::{AsFd, BorrowedFd, RawFd};
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
 use rustix::io::OwnedFd;
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::read_link;
@@ -101,6 +103,7 @@ bitflags! {
     /// Kernel flags for a process
     ///
     /// See also the [Stat::flags()] method.
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct StatFlags: u32 {
         /// I am an IDLE thread
         const PF_IDLE = 0x0000_0002;
@@ -170,6 +173,7 @@ bitflags! {
 bitflags! {
 
     /// See the [coredump_filter()](struct.Process.html#method.coredump_filter) method.
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct CoredumpFlags: u32 {
         const ANONYMOUS_PRIVATE_MAPPINGS = 0x01;
         const ANONYMOUS_SHARED_MAPPINGS = 0x02;
@@ -190,6 +194,7 @@ bitflags! {
     /// [documented] to be within the `u16` range.
     ///
     /// [documented]: https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct FDPermissions: u16 {
         const READ = Mode::RUSR.bits() as u16;
         const WRITE = Mode::WUSR.bits() as u16;
@@ -200,6 +205,7 @@ bitflags! {
 bitflags! {
     /// Represents the kernel flags associated with the virtual memory area.
     /// The names of these flags are just those you'll find in the man page, but in upper case.
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct VmFlags: u32 {
         /// Invalid flags
         const INVALID = 0;
@@ -403,6 +409,7 @@ impl FromStr for ProcState {
 /// reads process B's `/proc/<pid>/io` while process  B is updating one of these 64-bit
 /// counters, process A could see an intermediate result.
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Io {
     /// Characters read
     ///
@@ -448,6 +455,7 @@ pub struct Io {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum MMapPath {
     /// The file that is backing the mapping.
     Path(PathBuf),
@@ -504,6 +512,7 @@ impl MMapPath {
 ///
 /// To construct this structure, see [Process::maps()] and [Process::smaps()].
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
@@ -556,6 +565,7 @@ impl MemoryMap {
 ///
 /// To construct this structure, see [Process::smaps()]
 #[derive(Default, Debug)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MemoryMapData {
     /// Key-Value pairs that may represent statistics about memory usage, or other interesting things,
     /// such a "ProtectionKey"(if you're on X86 and that kernel config option was specified).
@@ -608,6 +618,7 @@ impl Io {
 ///
 /// See also the [Process::fd()] method.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum FDTarget {
     /// A file or device
     Path(PathBuf),
@@ -675,6 +686,7 @@ impl FromStr for FDTarget {
 
 /// See the [Process::fd()] method
 #[derive(Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct FDInfo {
     /// The file descriptor
     pub fd: i32,
@@ -1534,6 +1546,7 @@ impl std::iter::Iterator for ProcessesIter {
 
 /// Provides information about memory usage, measured in pages.
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct StatM {
     /// Total program size, measured in pages
     ///

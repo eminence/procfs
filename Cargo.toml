@@ -14,6 +14,7 @@ rust-version = "1.48"
 
 [features]
 default = ["chrono", "flate2"]
+serde1 = ["serde"]
 
 [dependencies]
 rustix = { version = "0.35.6", features = ["fs", "process", "param", "thread"] }
@@ -24,6 +25,7 @@ byteorder = {version="1.2.3", features=["i128"]}
 hex = "0.4"
 flate2 = { version = "1.0.3", optional = true }
 backtrace = { version = "0.3", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
 criterion = "0.3"

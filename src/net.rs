@@ -60,7 +60,11 @@ use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::{path::PathBuf, str::FromStr};
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum TcpState {
     Established = 1,
     SynSent,
@@ -114,6 +118,7 @@ impl TcpState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum UdpState {
     Established = 1,
     Close = 7,
@@ -137,6 +142,7 @@ impl UdpState {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum UnixState {
     UNCONNECTED = 1,
     CONNECTING = 2,
@@ -167,6 +173,7 @@ impl UnixState {
 
 /// An entry in the TCP socket table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct TcpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
@@ -178,6 +185,7 @@ pub struct TcpNetEntry {
 
 /// An entry in the UDP socket table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct UdpNetEntry {
     pub local_address: SocketAddr,
     pub remote_address: SocketAddr,
@@ -189,6 +197,7 @@ pub struct UdpNetEntry {
 
 /// An entry in the Unix socket table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct UnixNetEntry {
     /// The number of users of the socket
     pub ref_count: u32,
@@ -387,6 +396,7 @@ pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
 
 /// An entry in the ARP table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct ARPEntry {
     /// IPv4 address
     pub ip_address: Ipv4Addr,
@@ -405,6 +415,7 @@ pub struct ARPEntry {
 bitflags! {
     /// Hardware type for an ARP table entry.
     // source: include/uapi/linux/if_arp.h
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct ARPHardware: u32 {
         /// NET/ROM pseudo
         const NETROM = 0;
@@ -442,6 +453,7 @@ bitflags! {
 bitflags! {
     /// Flags for ARP entries
     // source: include/uapi/linux/if_arp.h
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct ARPFlags: u32 {
             /// Completed entry
             const COM = 0x02;
@@ -529,6 +541,7 @@ pub fn arp() -> ProcResult<Vec<ARPEntry>> {
 /// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
 /// example in the source repo.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct DeviceStatus {
     /// Name of the interface
     pub name: String,
@@ -630,6 +643,7 @@ pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
 
 /// An entry in the ipv4 route table
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct RouteEntry {
     /// Interface to which packets for this route will be sent
     pub iface: String,

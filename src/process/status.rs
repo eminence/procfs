@@ -2,6 +2,9 @@ use crate::{FromStrRadix, ProcResult};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 /// Status information about the process, based on the `/proc/<pid>/status` file.
 ///
 /// To construct this structure, see [Process::status()](crate::process::Process::status).
@@ -14,6 +17,7 @@ use std::io::{BufRead, BufReader, Read};
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[non_exhaustive]
 pub struct Status {
     /// Command run by this process.

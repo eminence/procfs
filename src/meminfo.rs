@@ -2,6 +2,9 @@ use std::io;
 
 use super::{convert_to_kibibytes, FileWrapper, ProcResult};
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
 ///
@@ -25,6 +28,7 @@ use super::{convert_to_kibibytes, FileWrapper, ProcResult};
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[allow(non_snake_case)]
 #[non_exhaustive]
 pub struct Meminfo {

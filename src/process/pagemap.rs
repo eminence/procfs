@@ -7,6 +7,9 @@ use std::{
     ops::{Bound, RangeBounds},
 };
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 const fn genmask(high: usize, low: usize) -> u64 {
     let mask_bits = size_of::<u64>() * 8;
     (!0 - (1 << low) + 1) & (!0 >> (mask_bits - 1 - high))
@@ -18,6 +21,7 @@ const MAX_SWAPFILES_SHIFT: usize = 5;
 // source: fs/proc/task_mmu.c
 bitflags! {
     /// Represents the fields and flags in a page table entry for a swapped page.
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct SwapPageFlags: u64 {
         /// Swap type if swapped
         #[doc(hidden)]
@@ -53,6 +57,7 @@ impl SwapPageFlags {
 
 bitflags! {
     /// Represents the fields and flags in a page table entry for a memory page.
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct MemoryPageFlags: u64 {
         /// Page frame number if present
         #[doc(hidden)]
