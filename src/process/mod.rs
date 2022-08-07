@@ -1405,6 +1405,12 @@ impl Process {
         let file = FileWrapper::open_at(&self.root, &self.fd, "mem")?;
         Ok(file.inner())
     }
+
+    /// Returns a file which is part of the process proc structure
+    pub fn open_relative(&self, path: &str) -> ProcResult<File> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, path)?;
+        Ok(file.inner())
+    }
 }
 
 /// The result of [`Process::fd`], iterates over all fds in a process
