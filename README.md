@@ -75,7 +75,9 @@ The following cargo features are available:
 * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
 * `flate2` -- Default.  Optional.  This feature enables parsing gzip compressed `/proc/config.gz` file via the `procfs::kernel_config` method.
 * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
-* `serde1` -- Optional.  This feature allows most structs to be serialized and deserialized using serde 1.0.
+* `serde1` -- Optional.  This feature allows most structs to be serialized and deserialized using serde 1.0.  Note, this
+feature requires a version of rust newer than 1.48.0 (which is the MSRV for procfs).  The exact version required is not
+specified here, since serde does not not have an MSRV policy.
 
 ## Minimum Rust Version
 
