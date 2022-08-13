@@ -59,6 +59,8 @@ use std::{collections::HashMap, time::Duration};
 
 #[cfg(feature = "chrono")]
 use chrono::{DateTime, Local};
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 
 const PROC_CONFIG_GZ: &str = "/proc/config.gz";
 const BOOT_CONFIG: &str = "/boot/config";
@@ -460,6 +462,7 @@ pub enum ProcError {
 ///
 /// If you compile with the optional `backtrace` feature (disabled by default),
 /// you can gain access to a stack trace of where the error happened.
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct InternalError {
     pub msg: String,
     pub file: &'static str,
@@ -550,6 +553,7 @@ impl std::error::Error for ProcError {}
 /// Load averages are calculated as the number of jobs in the run queue (state R) or waiting for
 /// disk I/O (state D) averaged over 1, 5, and 15 minutes.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct LoadAverage {
     /// The one-minute load average
     pub one: f32,
@@ -742,6 +746,7 @@ pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
 /// To convert this value to seconds, you can divide by the tps.  There are also convenience methods
 /// that you can use too.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct CpuTime {
     /// Ticks spent in user mode
     pub user: u64,
@@ -943,6 +948,7 @@ impl CpuTime {
 
 /// Kernel/system statistics, from `/proc/stat`
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct KernelStats {
     /// The amount of time the system spent in various states
     pub total: CpuTime,
@@ -1047,6 +1053,7 @@ pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
 /// For an example, see the [lsmod.rs](https://github.com/eminence/procfs/tree/master/examples)
 /// example in the source repo.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct KernelModule {
     /// The name of the module
     pub name: String,

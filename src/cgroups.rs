@@ -2,7 +2,11 @@ use crate::ProcResult;
 
 use super::process::Process;
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 /// Container group controller information.
 ///
 /// See also the [cgroups()] method.
@@ -65,6 +69,7 @@ pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
 ///
 /// See also the [Process::cgroups()] method.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct ProcessCgroup {
     /// For cgroups version 1 hierarchies, this field contains a  unique  hierarchy  ID  number
     /// that  can  be  matched  to  a  hierarchy  ID  in /proc/cgroups.  For the cgroups version 2

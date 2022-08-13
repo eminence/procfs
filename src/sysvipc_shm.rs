@@ -3,9 +3,13 @@ use std::io;
 use super::{FileWrapper, ProcResult};
 use std::str::FromStr;
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 /// A shared memory segment parsed from `/proc/sysvipc/shm`
 /// Relation with `[crate::process::process::MMapPath::Vsys]`
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[allow(non_snake_case)]
 pub struct Shm {
     /// Segment key

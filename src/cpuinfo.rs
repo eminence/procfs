@@ -1,5 +1,7 @@
 use crate::{FileWrapper, ProcResult};
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::Read};
 
 /// Represents the data from `/proc/cpuinfo`.
@@ -11,6 +13,7 @@ use std::{collections::HashMap, io::Read};
 /// data type.  These methods will all return `None` if the field doesn't exist, or is in some
 /// unexpected format (in that case, you'll have to access the string data directly).
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct CpuInfo {
     /// This stores fields that are common among all CPUs
     pub fields: HashMap<String, String>,

@@ -1,4 +1,6 @@
 use crate::{FileWrapper, ProcResult};
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
 
 /// Disk IO stat information
@@ -11,6 +13,7 @@ use std::io::{BufRead, BufReader};
 // Doc reference: https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats
 // Doc reference: https://www.kernel.org/doc/Documentation/iostats.txt
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct DiskStat {
     /// The device major number
     pub major: i32,

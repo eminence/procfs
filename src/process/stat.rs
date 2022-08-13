@@ -4,6 +4,8 @@ use super::StatFlags;
 use crate::TICKS_PER_SECOND;
 use crate::{from_iter, KernelVersion, ProcResult};
 use crate::{ProcError, KERNEL, PAGESIZE};
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 
 use std::io::Read;
 use std::str::FromStr;
@@ -30,6 +32,7 @@ macro_rules! since_kernel {
 ///
 /// New fields to this struct may be added at any time (even without a major or minor semver bump).
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[non_exhaustive]
 pub struct Stat {
     /// The process ID.

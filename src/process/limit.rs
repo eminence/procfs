@@ -4,6 +4,9 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 use std::str::FromStr;
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 impl crate::process::Process {
     /// Return the limits for this process
     pub fn limits(&self) -> ProcResult<Limits> {
@@ -16,6 +19,7 @@ impl crate::process::Process {
 ///
 /// For more details about each of these limits, see the `getrlimit` man page.
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Limits {
     /// Max Cpu Time
     ///
@@ -167,6 +171,7 @@ impl Limits {
 }
 
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Limit {
     pub soft_limit: LimitValue,
     pub hard_limit: LimitValue,
@@ -183,6 +188,7 @@ impl Limit {
 }
 
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum LimitValue {
     Unlimited,
     Value(u64),
