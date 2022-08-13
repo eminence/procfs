@@ -462,12 +462,13 @@ pub enum ProcError {
 ///
 /// If you compile with the optional `backtrace` feature (disabled by default),
 /// you can gain access to a stack trace of where the error happened.
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize))]
 pub struct InternalError {
     pub msg: String,
     pub file: &'static str,
     pub line: u32,
     #[cfg(feature = "backtrace")]
+    #[cfg_attr(feature = "serde1", serde(skip))]
     pub backtrace: backtrace::Backtrace,
 }
 
