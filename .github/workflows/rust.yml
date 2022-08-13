@@ -26,9 +26,9 @@ jobs:
       if: matrix.toolchain == '1.48.0'
       run: cargo update -p plotters --precise 0.3.1
     - name: Run tests
-      run: cargo +${{ matrix.toolchain }} test --verbose -- --skip _runsinglethread --all-features
+      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
-      run: cargo +${{ matrix.toolchain }} test --verbose -- _runsinglethread --test-threads 1 --all-features
+      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- _runsinglethread --test-threads 1
 
     - name: Build docs (all features)
       run: cargo +${{ matrix.toolchain }} doc --all-features
