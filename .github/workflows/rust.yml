@@ -27,7 +27,7 @@ jobs:
       run: cargo update -p plotters --precise 0.3.1
     - name: Pin serde
       if: matrix.toolchain == '1.48.0'
-      run: cargo update -p serde --precise 1.0.142
+      run: cargo update -p serde --precise 1.0.142 && cargo update -p serde_derive --precise 1.0.142
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
@@ -62,7 +62,7 @@ jobs:
 
       - name: Pin serde
         if: matrix.toolchain == '1.48.0'
-        run: cargo update -p serde --precise 1.0.142
+        run: cargo update -p serde --precise 1.0.142 && cargo update -p serde_derive --precise 1.0.142
       - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android
       - name: cargo check (i686)
