@@ -862,8 +862,14 @@ impl Process {
     }
 
     /// Is this process still alive?
+    /// 
+    /// Processes in the Zombie or Dead state are not considered alive.
     pub fn is_alive(&self) -> bool {
-        rustix::fs::statat(&self.fd, "stat", AtFlags::empty()).is_ok()
+        if let Ok(stat) = self.stat() {
+            stat.state != 'Z' && stat.state != 'X'
+        } else {
+            false
+        }
     }
 
     /// What user owns this process?
