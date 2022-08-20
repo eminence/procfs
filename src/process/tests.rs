@@ -204,6 +204,25 @@ fn test_smaps() {
 fn test_proc_alive() {
     let myself = Process::myself().unwrap();
     assert!(myself.is_alive());
+
+    // zombies should not be considered alive
+    let mut command = std::process::Command::new("sleep");
+    command
+        .arg("0")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    let mut child = command.spawn().unwrap();
+    let child_pid = child.id() as i32;
+
+    // sleep very briefly to allow the child to start and then exit
+    std::thread::sleep(std::time::Duration::from_millis(20));
+
+    let child_proc = Process::new(child_pid).unwrap();
+    assert!(!child_proc.is_alive(), "Child state is: {:?}", child_proc.stat());
+    assert!(child_proc.stat().unwrap().state().unwrap() == ProcState::Zombie);
+    child.wait().unwrap();
+    assert!(Process::new(child_pid).is_err());
+    assert!(!child_proc.is_alive(), "Child state is: {:?}", child_proc.stat());
 }
 
 #[test]
