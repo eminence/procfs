@@ -822,7 +822,12 @@ impl Process {
             .or_else(|| {
                 rustix::fs::readlinkat(&rustix::fs::cwd(), &root, Vec::new())
                     .ok()
-                    .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
+                    .and_then(|s| {
+                        let s = s.to_string_lossy();
+                        // Symlink for /proc/thread-self has the thread PID at the end
+                        // of the path like /proc/pid/task/tid
+                        s.split("/").last().and_then(|l| l.parse::<i32>().ok())
+                    })
             });
         let pid = match pidres {
             Some(pid) => pid,
@@ -835,8 +840,25 @@ impl Process {
     /// Returns a `Process` for the currently running process.
     ///
     /// This is done by using the `/proc/self` symlink
+    ///
+    /// Note that if this is called from a thread then the returned `Process` will be
+    /// that of the thread leader. This is the behaviour of /proc/self.
     pub fn myself() -> ProcResult<Process> {
         let root = PathBuf::from("/proc/self");
+        Self::new_with_root(root)
+    }
+
+    /// Returns a `Process` for the currently running thread.
+    ///
+    /// This is done by using the `/proc/thread-self` symlink
+    ///
+    /// Unlike `myself()`, the returned `Process` will be that of the thread if called
+    /// from a thread in a thread group.
+    /// Some information, such as schedstats, will be different between the thread
+    /// and the thread group leader process.
+    /// Certain information, such as `tasks` will be unavailable on threads.
+    pub fn thread_myself() -> ProcResult<Process> {
+        let root = PathBuf::from("/proc/thread-self");
         Self::new_with_root(root)
     }
 }

@@ -247,7 +247,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/vm/user_reserve_kbytes`
 * [ ] `/proc/sysrq-trigger`
 * [ ] `/proc/sysvipc`
-* [ ] `/proc/thread-self`
+* [x] `/proc/thread-self`
 * [ ] `/proc/timer_list`
 * [ ] `/proc/timer_stats`
 * [ ] `/proc/tty`
