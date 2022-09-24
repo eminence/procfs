@@ -215,7 +215,7 @@ fn test_proc_alive() {
     let child_pid = child.id() as i32;
 
     // sleep very briefly to allow the child to start and then exit
-    std::thread::sleep(std::time::Duration::from_millis(20));
+    std::thread::sleep(std::time::Duration::from_millis(30));
 
     let child_proc = Process::new(child_pid).unwrap();
     assert!(!child_proc.is_alive(), "Child state is: {:?}", child_proc.stat());
