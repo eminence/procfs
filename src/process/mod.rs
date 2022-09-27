@@ -862,7 +862,7 @@ impl Process {
     }
 
     /// Is this process still alive?
-    /// 
+    ///
     /// Processes in the Zombie or Dead state are not considered alive.
     pub fn is_alive(&self) -> bool {
         if let Ok(stat) = self.stat() {
@@ -1516,7 +1516,10 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
         )
     )?;
     let dir = wrap_io_error!(root, rustix::fs::Dir::read_from(dir))?;
-    Ok(ProcessesIter { inner: dir })
+    Ok(ProcessesIter {
+        root: PathBuf::from(root),
+        inner: dir,
+    })
 }
 
 /// An iterator over all processes in the system.
@@ -1528,6 +1531,7 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
 /// for more information.
 #[derive(Debug)]
 pub struct ProcessesIter {
+    root: PathBuf,
     inner: rustix::fs::Dir,
 }
 
@@ -1538,7 +1542,7 @@ impl std::iter::Iterator for ProcessesIter {
             match self.inner.next() {
                 Some(Ok(entry)) => {
                     if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                        if let Ok(proc) = Process::new(pid) {
+                        if let Ok(proc) = Process::new_with_root(self.root.join(pid.to_string())) {
                             break Some(Ok(proc));
                         }
                     }
