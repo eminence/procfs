@@ -479,3 +479,17 @@ fn test_fdtarget() {
     let _ = FDTarget::from_str("n:ǟF");
     let _ = FDTarget::from_str("pipe:");
 }
+
+#[test]
+fn test_thread_self() {
+    let handler = std::thread::spawn(|| {
+	let me_process = Process::myself().unwrap();
+	let me_thread = Process::thread_myself().unwrap();
+        // In a thread, the thread Process and thread group leader process (myself)
+        // should be different.
+        assert_ne!(me_process.pid, me_thread.pid);
+        // Thread should have schedstats
+        me_thread.schedstat().unwrap();
+    });
+    handler.join().unwrap();
+}
