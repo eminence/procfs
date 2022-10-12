@@ -670,7 +670,6 @@ impl FromStr for FDTarget {
                     Ok(FDTarget::Pipe(inode))
                 }
                 "anon_inode" => Ok(FDTarget::AnonInode(expect!(s.next(), "anon inode").to_string())),
-                "/memfd" => Ok(FDTarget::MemFD(expect!(s.next(), "memfd name").to_string())),
                 "" => Err(ProcError::Incomplete(None)),
                 x => {
                     let inode = expect!(s.next(), "other inode");
@@ -678,6 +677,8 @@ impl FromStr for FDTarget {
                     Ok(FDTarget::Other(x.to_string(), inode))
                 }
             }
+        } else if let Some(s) = s.strip_prefix("/memfd:") {
+            Ok(FDTarget::MemFD(s.to_string()))
         } else {
             Ok(FDTarget::Path(PathBuf::from(s)))
         }

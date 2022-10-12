@@ -479,3 +479,9 @@ fn test_fdtarget() {
     let _ = FDTarget::from_str("n:ǟF");
     let _ = FDTarget::from_str("pipe:");
 }
+
+#[test]
+fn test_fdtarget_memfd() {
+    let memfd = FDTarget::from_str("/memfd:test").unwrap();
+    assert!(matches!(memfd, FDTarget::MemFD(s) if s == "test"));
+}
