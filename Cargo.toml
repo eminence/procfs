@@ -17,6 +17,7 @@ default = ["chrono", "flate2"]
 serde1 = ["serde"]
 
 [dependencies]
+libc = "0.2.58"
 rustix = { version = "0.35.6", features = ["fs", "process", "param", "thread"] }
 bitflags = "1.2"
 lazy_static = "1.0.2"
