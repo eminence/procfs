@@ -59,6 +59,7 @@ use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::{path::PathBuf, str::FromStr};
+use libc::pid_t;
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -348,6 +349,20 @@ pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
     read_tcp_table(BufReader::new(file))
 }
 
+/// Reads the specific tcp socket table
+pub fn tcp_with_pid(pid: pid_t) -> ProcResult<Vec<TcpNetEntry>> {
+    let file = FileWrapper::open(format!("/proc/{}/net/tcp", pid))?;
+
+    read_tcp_table(BufReader::new(file))
+}
+
+/// Reads the specific tcp6 socket table
+pub fn tcp6_with_pid(pid: pid_t) -> ProcResult<Vec<TcpNetEntry>> {
+    let file = FileWrapper::open(format!("/proc/{}/net/tcp6", pid))?;
+
+    read_tcp_table(BufReader::new(file))
+}
+
 /// Reads the udp socket table
 pub fn udp() -> ProcResult<Vec<UdpNetEntry>> {
     let file = FileWrapper::open("/proc/net/udp")?;
@@ -630,6 +645,11 @@ impl DeviceStatus {
 /// example in the source repo.
 pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
     let file = FileWrapper::open("/proc/net/dev")?;
+    read_dev_status(file)
+}
+
+/// Returns basic network device statistics for all interfaces
+fn read_dev_status(file: FileWrapper) -> ProcResult<HashMap<String, DeviceStatus>> {
     let buf = BufReader::new(file);
     let mut map = HashMap::new();
     // the first two lines are headers, so skip them
@@ -639,6 +659,17 @@ pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
     }
 
     Ok(map)
+}
+
+/// Returns basic network device statistics for all interfaces
+///
+/// This data is from the `/proc/{pid}/net/dev` file.
+///
+/// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
+/// example in the source repo.
+pub fn dev_status_with_pid(pid: pid_t) -> ProcResult<HashMap<String, DeviceStatus>> {
+    let file = FileWrapper::open(format!("/proc/{}/net/dev", pid))?;
+    read_dev_status(file)
 }
 
 /// An entry in the ipv4 route table
