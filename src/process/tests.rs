@@ -201,6 +201,20 @@ fn test_smaps() {
 }
 
 #[test]
+fn test_smaps_rollup() {
+    let me = Process::myself().unwrap();
+    let smaps_rollup = match me.smaps_rollup() {
+        Ok(x) => x,
+        Err(ProcError::NotFound(_)) => {
+            // ignored because not all kernerls have smaps_rollup
+            return;
+        }
+        Err(e) => panic!("{}", e),
+    };
+    println!("{:#?}", smaps_rollup);
+}
+
+#[test]
 fn test_proc_alive() {
     let myself = Process::myself().unwrap();
     assert!(myself.is_alive());
