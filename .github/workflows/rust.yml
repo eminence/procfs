@@ -32,6 +32,12 @@ jobs:
     - name: Pin once_cell
       if: matrix.toolchain == '1.48.0'
       run: cargo update -p once_cell --precise 1.14.0
+    - name: Pin rayon
+      if: matrix.toolchain == '1.48.0'
+      run: cargo update -p rayon --precise 1.5.3
+    - name: Pin rayon-core
+      if: matrix.toolchain == '1.48.0'
+      run: cargo update -p rayon-core --precise 1.9.3
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
