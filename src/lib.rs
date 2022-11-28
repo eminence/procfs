@@ -49,7 +49,7 @@
 use bitflags::bitflags;
 use lazy_static::lazy_static;
 
-use rustix::fd::{AsFd, FromFd};
+use rustix::fd::AsFd;
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Read, Seek, Write};
@@ -388,7 +388,7 @@ impl FileWrapper {
             rustix::fs::openat(dirfd, path.as_ref(), OFlags::RDONLY | OFlags::CLOEXEC, Mode::empty())
         )?;
         Ok(FileWrapper {
-            inner: File::from_fd(fd.into()),
+            inner: File::from(fd),
             path: p,
         })
     }
