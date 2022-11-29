@@ -142,3 +142,13 @@ Lists all processes as a tree. Sub-processes will be hierarchically ordered bene
 ...
 ```
 
+## pfn.rs
+
+List memory mapping, and physical address for each virtual address. Must be run as root, see [pagemap.txt](https://github.com/torvalds/linux/blob/v4.9/Documentation/vm/pagemap.txt)
+
+```text
+Memory mapping MemoryMap { address: (140561525968896, 140561525972992), perms: "r--p", offset: 884736, dev: (252, 0), inode: 18221539, pathname: Path("/usr/lib64/libm.so.6") }
+virt_mem: 0x7fd707d31000, pfn: 0x1fd37d, phys_addr: 0x1fd37d000
+Memory mapping MemoryMap { address: (140561525972992, 140561525977088), perms: "rw-p", offset: 888832, dev: (252, 0), inode: 18221539, pathname: Path("/usr/lib64/libm.so.6") }
+virt_mem: 0x7fd707d32000, pfn: 0x1fcb97, phys_addr: 0x1fcb97000
+```
