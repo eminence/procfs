@@ -92,6 +92,9 @@ pub use status::*;
 mod schedstat;
 pub use schedstat::*;
 
+mod smaps_rollup;
+pub use smaps_rollup::*;
+
 mod task;
 pub use task::*;
 
@@ -1059,6 +1062,15 @@ impl Process {
         }
 
         Ok(vec)
+    }
+
+    /// This is the sum of all the smaps data but it is much more performant to get it this way.
+    ///
+    /// Since 4.14 and requires CONFIG_PROC_PAGE_MONITOR.
+    pub fn smaps_rollup(&self) -> ProcResult<SmapsRollup> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "smaps_rollup")?;
+
+        SmapsRollup::from_reader(file)
     }
 
     /// Returns a struct that can be used to access information in the `/proc/pid/pagemap` file.
