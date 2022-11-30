@@ -3,8 +3,7 @@ use std::path::{Path, PathBuf};
 
 use super::{FileWrapper, Io, Schedstat, Stat, Status};
 use crate::{ProcError, ProcResult};
-use rustix::fd::BorrowedFd;
-use rustix::io::OwnedFd;
+use rustix::fd::{OwnedFd, BorrowedFd};
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
 ///

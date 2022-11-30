@@ -60,9 +60,8 @@ use super::*;
 use crate::from_iter;
 use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
 
-use rustix::fd::{AsFd, BorrowedFd, RawFd};
+use rustix::fd::{AsFd, BorrowedFd, RawFd, OwnedFd};
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
-use rustix::io::OwnedFd;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -1436,7 +1435,7 @@ impl Process {
 #[derive(Debug)]
 pub struct FDsIter {
     inner: rustix::fs::Dir,
-    inner_fd: rustix::io::OwnedFd,
+    inner_fd: rustix::fd::OwnedFd,
     root: PathBuf,
 }
 
@@ -1466,7 +1465,7 @@ impl std::iter::Iterator for FDsIter {
 pub struct TasksIter {
     pid: i32,
     inner: rustix::fs::Dir,
-    inner_fd: rustix::io::OwnedFd,
+    inner_fd: rustix::fd::OwnedFd,
     root: PathBuf,
 }
 
