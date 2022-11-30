@@ -59,6 +59,7 @@ use byteorder::{ByteOrder, NativeEndian, NetworkEndian};
 use std::io::{BufRead, BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::{path::PathBuf, str::FromStr};
+use libc::pid_t;
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
