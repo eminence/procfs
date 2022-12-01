@@ -288,6 +288,9 @@ pub mod keyring;
 mod uptime;
 pub use uptime::*;
 
+mod iomem;
+pub use iomem::*;
+
 lazy_static! {
     /// The number of clock ticks per second.
     ///
