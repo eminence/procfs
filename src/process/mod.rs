@@ -60,7 +60,7 @@ use super::*;
 use crate::from_iter;
 use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
 
-use rustix::fd::{AsFd, BorrowedFd, RawFd, OwnedFd};
+use rustix::fd::{AsFd, BorrowedFd, OwnedFd, RawFd};
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -806,7 +806,7 @@ impl Process {
         let file = wrap_io_error!(
             root,
             rustix::fs::openat(
-                &rustix::fs::cwd(),
+                rustix::fs::cwd(),
                 &root,
                 OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
                 Mode::empty()
@@ -823,7 +823,7 @@ impl Process {
             })
             .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
             .or_else(|| {
-                rustix::fs::readlinkat(&rustix::fs::cwd(), &root, Vec::new())
+                rustix::fs::readlinkat(rustix::fs::cwd(), &root, Vec::new())
                     .ok()
                     .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
             });
@@ -1521,7 +1521,7 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
     let dir = wrap_io_error!(
         root,
         rustix::fs::openat(
-            &rustix::fs::cwd(),
+            rustix::fs::cwd(),
             root,
             OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Mode::empty()

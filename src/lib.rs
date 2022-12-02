@@ -1,7 +1,7 @@
 #![allow(unknown_lints)]
 // The suggested fix with `str::parse` removes support for Rust 1.48
 #![allow(clippy::from_str_radix_10)]
-#![deny(broken_intra_doc_links)]
+#![deny(rustdoc::broken_intra_doc_links)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.
 //!
@@ -369,7 +369,7 @@ struct FileWrapper {
 impl FileWrapper {
     fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
         let p = path.as_ref();
-        let f = wrap_io_error!(p, File::open(&p))?;
+        let f = wrap_io_error!(p, File::open(p))?;
         Ok(FileWrapper {
             inner: f,
             path: p.to_owned(),
@@ -671,7 +671,7 @@ pub fn page_size() -> std::io::Result<u64> {
 }
 
 /// Possible values for a kernel config option
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfigSetting {
     Yes,
     Module,

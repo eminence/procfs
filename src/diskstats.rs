@@ -103,7 +103,7 @@ pub fn diskstats() -> ProcResult<Vec<DiskStat>> {
 
 impl DiskStat {
     pub fn from_line(line: &str) -> ProcResult<DiskStat> {
-        let mut s = line.trim().split_whitespace();
+        let mut s = line.split_whitespace();
 
         let major = from_str!(i32, expect!(s.next()));
         let minor = from_str!(i32, expect!(s.next()));
