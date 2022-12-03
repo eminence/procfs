@@ -38,7 +38,7 @@ pub fn compact_memory() -> ProcResult<()> {
 }
 
 /// drop clean caches, dentries, and inodes from memory, causing that memory to become free.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DropCache {
     /// default
     Default = 0,

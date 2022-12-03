@@ -369,7 +369,7 @@ struct FileWrapper {
 impl FileWrapper {
     fn open<P: AsRef<Path>>(path: P) -> Result<FileWrapper, io::Error> {
         let p = path.as_ref();
-        let f = wrap_io_error!(p, File::open(&p))?;
+        let f = wrap_io_error!(p, File::open(p))?;
         Ok(FileWrapper {
             inner: f,
             path: p.to_owned(),
@@ -671,7 +671,7 @@ pub fn page_size() -> std::io::Result<u64> {
 }
 
 /// Possible values for a kernel config option
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfigSetting {
     Yes,
     Module,

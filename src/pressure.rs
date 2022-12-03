@@ -1,9 +1,9 @@
 //! Pressure stall information retreived from `/proc/pressure/cpu`,
 //! `/proc/pressure/memory` and `/proc/pressure/io`
 //! may not be available on kernels older than 4.20.0
-//! For reference: https://lwn.net/Articles/759781/
+//! For reference: <https://lwn.net/Articles/759781/>
 //!
-//! See also: https://www.kernel.org/doc/Documentation/accounting/psi.txt
+//! See also: <https://www.kernel.org/doc/Documentation/accounting/psi.txt>
 
 use crate::{ProcError, ProcResult};
 use std::collections::HashMap;
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// Pressure stall information for either CPU, memory, or IO.
 ///
-/// See also: https://www.kernel.org/doc/Documentation/accounting/psi.txt
+/// See also: <https://www.kernel.org/doc/Documentation/accounting/psi.txt>
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct PressureRecord {

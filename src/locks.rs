@@ -150,7 +150,7 @@ pub struct Lock {
 
 impl Lock {
     fn from_line(line: &str) -> ProcResult<Lock> {
-        let mut s = line.trim().split_whitespace();
+        let mut s = line.split_whitespace();
 
         let _ = expect!(s.next());
         let typ = {
