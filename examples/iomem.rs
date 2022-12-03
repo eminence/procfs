@@ -8,7 +8,7 @@ fn main() {
         println!("WARNING: Access to /proc/iomem requires root, re-run with sudo");
     }
 
-    let iomem = procfs::IoMem::new().expect("Can't read /proc/iomem");
+    let iomem = procfs::iomem().expect("Can't read /proc/iomem");
 
     for map in iomem.iter() {
         if map.name == "System RAM" {

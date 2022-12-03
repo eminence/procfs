@@ -1,39 +1,28 @@
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
-use std::io;
+use std::io::{BufRead, BufReader};
 
 use super::{FileWrapper, ProcResult};
 use crate::split_into_num;
 
-pub struct IoMem;
+/// Reads and parses the `/proc/iomem`, returning an error if there are problems.
+///
+/// Requires root, otherwise every memory address will be zero
+pub fn iomem() -> ProcResult<Vec<PhysicalMemoryMap>> {
+    let f = FileWrapper::open("/proc/iomem")?;
 
-impl IoMem {
-    /// Reads and parses the `/proc/iomem`, returning an error if there are problems.
-    ///
-    /// Requires root, otherwise every memory address will be zero
-    pub fn new() -> ProcResult<Vec<PhysicalMemoryMap>> {
-        let f = FileWrapper::open("/proc/iomem")?;
+    let reader = BufReader::new(f);
+    let mut vec = Vec::new();
 
-        IoMem::from_reader(f)
+    for line in reader.lines() {
+        let line = expect!(line);
+
+        let map = PhysicalMemoryMap::from_line(&line)?;
+
+        vec.push(map);
     }
 
-    /// Get Meminfo from a custom Read instead of the default `/proc/iomem`.
-    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Vec<PhysicalMemoryMap>> {
-        use std::io::{BufRead, BufReader};
-
-        let reader = BufReader::new(r);
-        let mut vec = Vec::new();
-
-        for line in reader.lines() {
-            let line = expect!(line);
-
-            let map = PhysicalMemoryMap::from_line(&line)?;
-
-            vec.push(map);
-        }
-
-        Ok(vec)
-    }
+    Ok(vec)
 }
 
 /// To construct this structure, see [crate::IoMem::new].
