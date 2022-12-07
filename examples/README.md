@@ -144,7 +144,7 @@ Lists all processes as a tree. Sub-processes will be hierarchically ordered bene
 
 ## pfn.rs
 
-List memory mapping, and physical address for each virtual address. Must be run as root, see [pagemap.txt](https://github.com/torvalds/linux/blob/v4.9/Documentation/vm/pagemap.txt)
+List memory mapping, and physical address for each virtual address. Must be run as root, see [pagemap.txt](https://www.kernel.org/doc/Documentation/vm/pagemap.txt)
 
 ```text
 Memory mapping MemoryMap { address: (140561525968896, 140561525972992), perms: "r--p", offset: 884736, dev: (252, 0), inode: 18221539, pathname: Path("/usr/lib64/libm.so.6") }
