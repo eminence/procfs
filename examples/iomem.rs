@@ -10,13 +10,13 @@ fn main() {
 
     let iomem = procfs::iomem().expect("Can't read /proc/iomem");
 
-    for map in iomem.iter() {
+    for (indent, map) in iomem.iter() {
         if map.name == "System RAM" {
             println!("Found RAM here: 0x{:x}-0x{:x}", map.address.0, map.address.1);
         }
     }
 
     if !rustix::process::geteuid().is_root() {
-        println!("\n\nWARNING: Access to /proc/<PID>/pagemap requires root, re-run with sudo");
+        println!("\n\nWARNING: Access to /proc/iomem requires root, re-run with sudo");
     }
 }

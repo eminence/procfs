@@ -8,7 +8,7 @@ use crate::split_into_num;
 /// Reads and parses the `/proc/iomem`, returning an error if there are problems.
 ///
 /// Requires root, otherwise every memory address will be zero
-pub fn iomem() -> ProcResult<Vec<PhysicalMemoryMap>> {
+pub fn iomem() -> ProcResult<Vec<(usize, PhysicalMemoryMap)>> {
     let f = FileWrapper::open("/proc/iomem")?;
 
     let reader = BufReader::new(f);
@@ -17,9 +17,9 @@ pub fn iomem() -> ProcResult<Vec<PhysicalMemoryMap>> {
     for line in reader.lines() {
         let line = expect!(line);
 
-        let map = PhysicalMemoryMap::from_line(&line)?;
+        let (indent, map) = PhysicalMemoryMap::from_line(&line)?;
 
-        vec.push(map);
+        vec.push((indent, map));
     }
 
     Ok(vec)
@@ -35,15 +35,19 @@ pub struct PhysicalMemoryMap {
 }
 
 impl PhysicalMemoryMap {
-    fn from_line(line: &str) -> ProcResult<PhysicalMemoryMap> {
+    fn from_line(line: &str) -> ProcResult<(usize, PhysicalMemoryMap)> {
+        let indent = line.chars().take_while(|c| *c == ' ').count() / 2;
         let line = line.trim();
         let mut s = line.split(" : ");
         let address = expect!(s.next());
         let name = expect!(s.next());
 
-        Ok(PhysicalMemoryMap {
-            address: split_into_num(address, '-', 16)?,
-            name: String::from(name),
-        })
+        Ok((
+            indent,
+            PhysicalMemoryMap {
+                address: split_into_num(address, '-', 16)?,
+                name: String::from(name),
+            },
+        ))
     }
 }
