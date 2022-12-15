@@ -25,7 +25,7 @@ pub fn iomem() -> ProcResult<Vec<(usize, PhysicalMemoryMap)>> {
     Ok(vec)
 }
 
-/// To construct this structure, see [crate::IoMem::new].
+/// To construct this structure, see [crate::iomem()].
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct PhysicalMemoryMap {
