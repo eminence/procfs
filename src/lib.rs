@@ -627,7 +627,9 @@ pub fn boot_time() -> ProcResult<DateTime<Local>> {
     use chrono::TimeZone;
     let secs = boot_time_secs()?;
 
-    Ok(chrono::Local.timestamp(secs as i64, 0))
+    let date_time = expect!(chrono::Local.timestamp_opt(secs as i64, 0).single());
+
+    Ok(date_time)
 }
 
 /// The boottime of the system, in seconds since the epoch
