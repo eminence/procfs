@@ -117,6 +117,8 @@ impl PageMap {
     }
 
     /// Retrieves information in the page table entry for the page at index `page_index`.
+    ///
+    /// Some mappings are not accessible, and will return an Err: `vsyscall`
     pub fn get_info(&mut self, page_index: usize) -> ProcResult<PageInfo> {
         self.get_range_info(page_index..page_index + 1)
             .map(|mut vec| vec.pop().unwrap())
