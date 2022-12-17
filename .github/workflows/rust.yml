@@ -38,6 +38,12 @@ jobs:
     - name: Pin rayon-core
       if: matrix.toolchain == '1.48.0'
       run: cargo update -p rayon-core --precise 1.9.3
+    - name: Pin backtrace
+      if: matrix.toolchain == '1.48.0'
+      run: cargo update -p backtrace --precise 0.3.66
+    - name: Pin object
+      if: matrix.toolchain == '1.48.0'
+      run: cargo update -p object --precise 0.29.0
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
@@ -73,6 +79,12 @@ jobs:
       - name: Pin once_cell
         if: matrix.toolchain == '1.48.0'
         run: cargo update -p once_cell --precise 1.14.0
+      - name: Pin backtrace
+        if: matrix.toolchain == '1.48.0'
+        run: cargo update -p backtrace --precise 0.3.66
+      - name: Pin object
+        if: matrix.toolchain == '1.48.0'
+        run: cargo update -p object --precise 0.29.0
       - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android --all-features
       - name: cargo check (i686)
