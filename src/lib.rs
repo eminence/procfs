@@ -204,7 +204,7 @@ macro_rules! wrap_io_error {
                     kind,
                     crate::IoErrorWrapper {
                         path: $path.to_owned(),
-                        inner: Some(Box::new(e)),
+                        inner: e.into(),
                     },
                 ))
             }
@@ -346,17 +346,13 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> ProcResult
 #[derive(Debug)]
 struct IoErrorWrapper {
     path: PathBuf,
-    inner: Option<Box<dyn std::error::Error + Send + Sync>>,
+    inner: std::io::Error,
 }
 
 impl std::error::Error for IoErrorWrapper {}
 impl fmt::Display for IoErrorWrapper {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        if let Some(inner) = &self.inner {
-            write!(f, "IO Error({}): {}", self.path.display(), inner)
-        } else {
-            write!(f, "IO Error({})", self.path.display())
-        }
+        write!(f, "IoErrorWrapper({}): {}", self.path.display(), self.inner)
     }
 }
 
@@ -496,13 +492,40 @@ impl From<std::io::Error> for ProcError {
     fn from(io: std::io::Error) -> Self {
         use std::io::ErrorKind;
         let kind = io.kind();
-        let path: Option<PathBuf> = io
-            .get_ref()
-            .and_then(|inner| inner.downcast_ref::<IoErrorWrapper>().map(|inner| inner.path.clone()));
-        match kind {
-            ErrorKind::PermissionDenied => ProcError::PermissionDenied(path),
-            ErrorKind::NotFound => ProcError::NotFound(path),
-            _other => ProcError::Io(io, path),
+        // the only way we'll have a path for the IO error is if this IO error
+        // has a inner type
+        if io.get_ref().is_some() {
+            let inner = io.into_inner().unwrap();
+
+            // is this inner type a IoErrorWrapper?
+            match inner.downcast::<IoErrorWrapper>() {
+                Ok(wrapper) => {
+                    let path = wrapper.path;
+                    match kind {
+                        ErrorKind::PermissionDenied => ProcError::PermissionDenied(Some(path)),
+                        ErrorKind::NotFound => ProcError::NotFound(Some(path)),
+                        _other => {
+                            use rustix::io::Errno;
+                            if matches!(wrapper.inner.raw_os_error(), Some(raw) if raw == Errno::SRCH.raw_os_error()) {
+                                // This "No such process" error gets mapped into a NotFound error
+                                ProcError::NotFound(Some(path))
+                            } else {
+                                ProcError::Io(wrapper.inner, Some(path))
+                            }
+                        }
+                    }
+                }
+                Err(io) => {
+                    // reconstruct the original error
+                    ProcError::Io(std::io::Error::new(kind, io), None)
+                }
+            }
+        } else {
+            match kind {
+                ErrorKind::PermissionDenied => ProcError::PermissionDenied(None),
+                ErrorKind::NotFound => ProcError::NotFound(None),
+                _other => ProcError::Io(io, None),
+            }
         }
     }
 }
@@ -1387,5 +1410,21 @@ mod tests {
         let _ = inner2();
         // Unwrapping this failure should produce a message that looks like:
         // thread 'tests::test_failure' panicked at 'called `Result::unwrap()` on an `Err` value: PermissionDenied(Some("/proc/1/maps"))', src/libcore/result.rs:997:5
+    }
+
+    /// Test that an ESRCH error gets mapped into a ProcError::NotFound
+    #[test]
+    fn test_esrch() {
+        let mut command = std::process::Command::new("sleep")
+            .arg("10000")
+            .spawn()
+            .expect("Failed to start sleep");
+        let p = crate::process::Process::new(command.id() as i32).expect("Failed to create Process");
+        command.kill().expect("Failed to kill sleep");
+        command.wait().expect("Failed to wait for sleep");
+        let e = p.stat().unwrap_err();
+        println!("{:?}", e);
+
+        assert!(matches!(e, ProcError::NotFound(_)));
     }
 }
