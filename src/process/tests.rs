@@ -499,3 +499,16 @@ fn test_fdtarget_memfd() {
     let memfd = FDTarget::from_str("/memfd:test").unwrap();
     assert!(matches!(memfd, FDTarget::MemFD(s) if s == "test"));
 }
+
+#[test]
+fn test_network_stuff() {
+    let myself = Process::myself().unwrap();
+    let _tcp = myself.tcp().unwrap();
+    let _tcp6 = myself.tcp().unwrap();
+    let _udp = myself.udp().unwrap();
+    let _udp6 = myself.udp6().unwrap();
+    let _arp = myself.arp().unwrap();
+    let _route = myself.route().unwrap();
+    let _dev = myself.dev_status().unwrap();
+    let _unix = myself.unix().unwrap();
+}

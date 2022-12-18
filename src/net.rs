@@ -335,6 +335,9 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
 }
 
 /// Reads the tcp socket table
+///
+/// Note that this is the socket table for the current progress.  If you want to
+/// see the socket table for another process, then see [Process::tcp()](crate::process::Process::tcp())
 pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
     let file = FileWrapper::open("/proc/net/tcp")?;
 
@@ -342,6 +345,9 @@ pub fn tcp() -> ProcResult<Vec<TcpNetEntry>> {
 }
 
 /// Reads the tcp6 socket table
+///
+/// Note that this is the socket table for the current progress.  If you want to
+/// see the socket table for another process, then see [Process::tcp6()](crate::process::Process::tcp6())
 pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
     let file = FileWrapper::open("/proc/net/tcp6")?;
 
@@ -349,6 +355,9 @@ pub fn tcp6() -> ProcResult<Vec<TcpNetEntry>> {
 }
 
 /// Reads the udp socket table
+///
+/// Note that this is the socket table for the current progress.  If you want to
+/// see the socket table for another process, then see [Process::udp()](crate::process::Process::udp())
 pub fn udp() -> ProcResult<Vec<UdpNetEntry>> {
     let file = FileWrapper::open("/proc/net/udp")?;
 
@@ -356,6 +365,9 @@ pub fn udp() -> ProcResult<Vec<UdpNetEntry>> {
 }
 
 /// Reads the udp6 socket table
+///
+/// Note that this is the socket table for the current progress.  If you want to
+/// see the socket table for another process, then see [Process::udp6()](crate::process::Process::udp6())
 pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
     let file = FileWrapper::open("/proc/net/udp6")?;
 
@@ -363,8 +375,15 @@ pub fn udp6() -> ProcResult<Vec<UdpNetEntry>> {
 }
 
 /// Reads the unix socket table
+///
+/// Note that this is the socket table for the current progress.  If you want to
+/// see the socket table for another process, then see [Process::unix()](crate::process::Process::unix())
 pub fn unix() -> ProcResult<Vec<UnixNetEntry>> {
     let file = FileWrapper::open("/proc/net/unix")?;
+    unix_from_reader(file)
+}
+
+pub(crate) fn unix_from_reader(file: impl Read) -> ProcResult<Vec<UnixNetEntry>> {
     let reader = BufReader::new(file);
 
     let mut vec = Vec::new();
@@ -471,8 +490,14 @@ bitflags! {
 }
 
 /// Reads the ARP table
+///
+/// Note that this is the ARP table for the current progress.  If you want to
+/// see the ARP table for another process, then see [Process::arp()](crate::process::Process::arp())
 pub fn arp() -> ProcResult<Vec<ARPEntry>> {
     let file = FileWrapper::open("/proc/net/arp")?;
+    arp_from_reader(file)
+}
+pub(crate) fn arp_from_reader(file: impl Read) -> ProcResult<Vec<ARPEntry>> {
     let reader = BufReader::new(file);
 
     let mut vec = Vec::new();
@@ -628,8 +653,16 @@ impl DeviceStatus {
 ///
 /// For an example, see the [interface_stats.rs](https://github.com/eminence/procfs/tree/master/examples)
 /// example in the source repo.
+///
+/// Note that this returns information from the networking namespace of the
+/// current process.  If you want information for some otherr process, see
+/// [Process::dev_status()](crate::process::Process::dev_status())
 pub fn dev_status() -> ProcResult<HashMap<String, DeviceStatus>> {
     let file = FileWrapper::open("/proc/net/dev")?;
+
+    dev_status_from_reader(file)
+}
+pub(crate) fn dev_status_from_reader(file: impl Read) -> ProcResult<HashMap<String, DeviceStatus>> {
     let buf = BufReader::new(file);
     let mut map = HashMap::new();
     // the first two lines are headers, so skip them
@@ -669,8 +702,16 @@ pub struct RouteEntry {
 /// Reads the ipv4 route table
 ///
 /// This data is from the `/proc/net/route` file
+///
+/// Note that this returns information from the networking namespace of the
+/// current process.  If you want information for some other process, see
+/// [Process::route()](crate::process::Process::route())
 pub fn route() -> ProcResult<Vec<RouteEntry>> {
     let file = FileWrapper::open("/proc/net/route")?;
+    route_from_reader(file)
+}
+
+pub(crate) fn route_from_reader(file: impl Read) -> ProcResult<Vec<RouteEntry>> {
     let reader = BufReader::new(file);
 
     let mut vec = Vec::new();

@@ -1400,6 +1400,35 @@ impl Process {
         read_udp_table(BufReader::new(file))
     }
 
+    /// Returns basic network device statistics for all interfaces in the process net namespace
+    ///
+    /// See also the [dev_status()](crate::net::dev_status()) function.
+    pub fn dev_status(&self) -> ProcResult<HashMap<String, net::DeviceStatus>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/dev")?;
+
+        net::dev_status_from_reader(file)
+    }
+
+    /// Reads the unix socket table
+    pub fn unix(&self) -> ProcResult<Vec<net::UnixNetEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/unix")?;
+
+        net::unix_from_reader(file)
+    }
+
+    /// Reads the ARP table from the process net namespace
+    pub fn arp(&self) -> ProcResult<Vec<net::ARPEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/arp")?;
+
+        net::arp_from_reader(file)
+    }
+
+    /// Reads the ipv4 route table from the process net namespace
+    pub fn route(&self) -> ProcResult<Vec<net::RouteEntry>> {
+        let file = FileWrapper::open_at(&self.root, &self.fd, "net/route")?;
+        net::route_from_reader(file)
+    }
+
     /// Opens a file to the process's memory (`/proc/<pid>/mem`).
     ///
     /// Note: you cannot start reading from the start of the file.  You must first seek to
