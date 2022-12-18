@@ -563,7 +563,7 @@ impl MemoryMap {
     }
 }
 
-/// Represents the information about a specific mapping as presented in /proc/<pid>/smaps
+/// Represents the information about a specific mapping as presented in /proc/\<pid\>/smaps
 ///
 /// To construct this structure, see [Process::smaps()]
 #[derive(Default, Debug)]
@@ -1572,15 +1572,15 @@ impl std::iter::Iterator for ProcessesIter {
 pub struct StatM {
     /// Total program size, measured in pages
     ///
-    /// (same as VmSize in /proc/<pid>/status)
+    /// (same as VmSize in /proc/\<pid\>/status)
     pub size: u64,
     /// Resident set size, measured in pages
     ///
-    /// (same as VmRSS in /proc/<pid>/status)
+    /// (same as VmRSS in /proc/\<pid\>/status)
     pub resident: u64,
     /// number of resident shared pages (i.e., backed by a file)
     ///
-    /// (same as RssFile+RssShmem in /proc/<pid>/status)
+    /// (same as RssFile+RssShmem in /proc/\<pid\>/status)
     pub shared: u64,
     /// Text (code)
     pub text: u64,
