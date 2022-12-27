@@ -423,6 +423,11 @@ fn test_proc_auxv() {
             }
             k => println!("Unknown key {}: {:x}", k, v),
         }
+        if k != 16 {
+            // for reasons i do not understand, getauxval(AT_HWCAP) doesn't return the expected
+            // value
+            assert_eq!(v, unsafe { libc::getauxval(k) });
+        }
     }
 }
 
