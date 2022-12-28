@@ -411,7 +411,22 @@ fn test_proc_auxv() {
                 let argv0 = unsafe { std::ffi::CStr::from_ptr(v as *const _) };
                 println!("argv[0]: {:?}", argv0);
             }
+            33 => {
+                println!("Base addr of vDSO: 0x{:x}", v);
+                // confirm that this base addr from the aux vector matches what our maps file says:
+                let maps = myself.maps().unwrap();
+                let vsdo = maps
+                    .iter()
+                    .find(|map| map.pathname == MMapPath::Vdso)
+                    .expect("Failed to find mapping for the vdso");
+                assert_eq!(vsdo.address.0, v);
+            }
             k => println!("Unknown key {}: {:x}", k, v),
+        }
+        if k != 16 {
+            // for reasons i do not understand, getauxval(AT_HWCAP) doesn't return the expected
+            // value
+            assert_eq!(v, unsafe { libc::getauxval(k) });
         }
     }
 }
