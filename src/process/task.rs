@@ -96,11 +96,19 @@ impl Task {
             })
             .collect()
     }
+
+    /// Deliberately generate an IO error
+    #[cfg(test)]
+    pub(crate) fn generate_error(&self) -> ProcResult<()> {
+        let _ = FileWrapper::open_at(&self.root, &self.fd, "does_not_exist")?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::process::Io;
+    use crate::ProcError;
     use rustix;
     use std::process;
     use std::sync::{Arc, Barrier};
@@ -233,5 +241,27 @@ mod tests {
 
         child1.kill().unwrap();
         child2.kill().unwrap();
+    }
+
+    #[test]
+    fn test_error_msg() {
+        let myself = crate::process::Process::myself().unwrap();
+        // let mytask = myself.task_main_thread().unwrap();
+        for task in myself.tasks().unwrap() {
+            let task = task.unwrap();
+            let err = task.generate_error().unwrap_err();
+            // make sure the contained path in the error is correct
+            if let ProcError::NotFound(Some(p)) = err {
+                assert!(
+                    p.display()
+                        .to_string()
+                        .ends_with(&format!("/task/{}/does_not_exist", task.tid)),
+                    "NotFound path({:?}) doesn't look right",
+                    p
+                );
+            } else {
+                panic!("Unexpected error from task.generate_error()");
+            }
+        }
     }
 }

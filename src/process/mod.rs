@@ -1358,8 +1358,9 @@ impl Process {
     /// # }
     /// ```
     pub fn tasks(&self) -> ProcResult<TasksIter> {
+        let task_path = self.root.join("task");
         let dir_fd = wrap_io_error!(
-            self.root.join("task"),
+            &task_path,
             rustix::fs::openat(
                 &self.fd,
                 "task",
@@ -1367,12 +1368,12 @@ impl Process {
                 Mode::empty()
             )
         )?;
-        let dir = wrap_io_error!(self.root.join("task"), rustix::fs::Dir::read_from(&dir_fd))?;
+        let dir = wrap_io_error!(&task_path, rustix::fs::Dir::read_from(&dir_fd))?;
         Ok(TasksIter {
             pid: self.pid,
             inner: dir,
             inner_fd: dir_fd,
-            root: self.root.clone(),
+            root: task_path,
         })
     }
 
