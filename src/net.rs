@@ -173,6 +173,7 @@ impl UnixState {
 
 /// An entry in the TCP socket table
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct TcpNetEntry {
     pub local_address: SocketAddr,
@@ -180,11 +181,13 @@ pub struct TcpNetEntry {
     pub state: TcpState,
     pub rx_queue: u32,
     pub tx_queue: u32,
+    pub uid: u32,
     pub inode: u64,
 }
 
 /// An entry in the UDP socket table
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct UdpNetEntry {
     pub local_address: SocketAddr,
@@ -192,11 +195,13 @@ pub struct UdpNetEntry {
     pub state: UdpState,
     pub rx_queue: u32,
     pub tx_queue: u32,
+    pub uid: u32,
     pub inode: u64,
 }
 
 /// An entry in the Unix socket table
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct UnixNetEntry {
     /// The number of users of the socket
@@ -283,7 +288,7 @@ pub fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEnt
         let rx_queue = from_str!(u32, expect!(tx_rx_queue.next(), "tcp::rx_queue"), 16);
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
-        s.next(); // skip uid
+        let uid = from_str!(u32, expect!(s.next(), "tcp::uid"));
         s.next(); // skip timeout
         let inode = expect!(s.next(), "tcp::inode");
 
@@ -293,6 +298,7 @@ pub fn read_tcp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<TcpNetEnt
             rx_queue,
             tx_queue,
             state: expect!(TcpState::from_u8(from_str!(u8, state, 16))),
+            uid,
             inode: from_str!(u64, inode),
         });
     }
@@ -317,7 +323,7 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
         let rx_queue: u32 = from_str!(u32, expect!(tx_rx_queue.next(), "udp::rx_queue"), 16);
         s.next(); // skip tr and tm->when
         s.next(); // skip retrnsmt
-        s.next(); // skip uid
+        let uid = from_str!(u32, expect!(s.next(), "udp::uid"));
         s.next(); // skip timeout
         let inode = expect!(s.next(), "udp::inode");
 
@@ -327,6 +333,7 @@ pub fn read_udp_table<R: Read>(reader: BufReader<R>) -> ProcResult<Vec<UdpNetEnt
             rx_queue,
             tx_queue,
             state: expect!(UdpState::from_u8(from_str!(u8, state, 16))),
+            uid,
             inode: from_str!(u64, inode),
         });
     }
