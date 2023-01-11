@@ -91,7 +91,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/kpagecgroup`
 * [ ] `/proc/kpagecgroup`
 * [ ] `/proc/kpagecount`
-* [ ] `/proc/kpageflags`
+* [x] `/proc/kpageflags`
 * [ ] `/proc/ksyms`
 * [x] `/proc/loadavg`
 * [x] `/proc/locks`

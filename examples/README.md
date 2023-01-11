@@ -152,3 +152,17 @@ virt_mem: 0x7fd707d31000, pfn: 0x1fd37d, phys_addr: 0x1fd37d000
 Memory mapping MemoryMap { address: (140561525972992, 140561525977088), perms: "rw-p", offset: 888832, dev: (252, 0), inode: 18221539, pathname: Path("/usr/lib64/libm.so.6") }
 virt_mem: 0x7fd707d32000, pfn: 0x1fcb97, phys_addr: 0x1fcb97000
 ```
+
+## process_kpageflags.rs
+
+Search for a pointer (virtual address) in physical memory. Display physical page flags
+
+Requires root or sudo
+
+```text
+Virtual address of `variable`: 0x7ffd2de4708f
+Found memory mapping
+MemoryMap { address: (140725373272064, 140725373407232), perms: "rw-p", offset: 0, dev: (0, 0), inode: 0, pathname: Stack }
+Found page
+virt_mem: 0x7ffd2de47000, pfn: 0x107b06, phys_addr: 0x107b06000, flags: UPTODATE | LRU | MMAP | ANON | SWAPBACKED
+```
