@@ -1084,6 +1084,15 @@ impl Process {
     ///
     /// Calling this function is more efficient than calling `fd().unwrap().count()`
     pub fn fd_count(&self) -> ProcResult<usize> {
+        // Use fast path if available (Linux v6.2): https://github.com/torvalds/linux/commit/f1f1f2569901
+        let stat = wrap_io_error!(
+            self.root.join("fd"),
+            rustix::fs::statat(&self.fd, "fd", AtFlags::SYMLINK_NOFOLLOW)
+        )?;
+        if stat.st_size > 0 {
+            return Ok(stat.st_size as usize);
+        }
+
         let fds = wrap_io_error!(
             self.root.join("fd"),
             rustix::fs::openat(
