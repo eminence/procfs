@@ -1,6 +1,8 @@
-use std::{fs::File, ops::Range, path::Path};
+use std::{ops::Range, path::Path};
 
 use rustix::fs::FileExt;
+
+use crate::FileWrapper;
 
 use super::ProcResult;
 
@@ -8,7 +10,7 @@ use super::ProcResult;
 ///
 /// Require root or CAP_SYS_ADMIN
 pub struct KPageCount {
-    reader: File,
+    reader: FileWrapper,
 }
 
 impl KPageCount {
@@ -26,7 +28,7 @@ impl KPageCount {
         let mut path = root.as_ref().to_path_buf();
         path.push("kpagecount");
 
-        let reader = File::open(&path)?;
+        let reader = FileWrapper::open(path)?;
 
         Ok(Self { reader })
     }
@@ -43,7 +45,7 @@ impl KPageCount {
         let offset = pfn * ENTRY_SIZE as u64;
 
         let mut buf = [0; ENTRY_SIZE];
-        self.reader.read_exact_at(&mut buf, offset)?;
+        self.reader.inner.read_exact_at(&mut buf, offset)?;
         let page_references: u64 = u64::from_le_bytes(buf);
 
         Ok(page_references)
@@ -65,7 +67,7 @@ impl KPageCount {
 
         for pfn in page_range {
             let offset = pfn * ENTRY_SIZE as u64;
-            self.reader.read_exact_at(&mut buf, offset)?;
+            self.reader.inner.read_exact_at(&mut buf, offset)?;
             let page_references: u64 = u64::from_le_bytes(buf);
 
             result.push(page_references);
