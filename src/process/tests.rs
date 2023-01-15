@@ -337,6 +337,33 @@ fn test_proc_fds() {
 }
 
 #[test]
+fn test_proc_fd_count_runsinglethread() {
+    let myself = Process::myself().unwrap();
+
+    let before = myself.fd_count().unwrap();
+
+    let one = File::open("/proc/self").unwrap();
+    let two = File::open("/proc/self/status").unwrap();
+
+    let after = myself.fd_count().unwrap();
+
+    assert_eq!(
+        before + 2,
+        after,
+        "opened two files and expected {} open fds, saw {}",
+        before + 2,
+        after
+    );
+
+    drop(one);
+    drop(two);
+
+    let after_closing = myself.fd_count().unwrap();
+
+    assert_eq!(before, after_closing);
+}
+
+#[test]
 fn test_proc_fd() {
     let myself = Process::myself().unwrap();
     let raw_fd = myself.fd().unwrap().next().unwrap().unwrap().fd as i32;
