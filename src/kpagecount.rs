@@ -1,6 +1,9 @@
-use std::{ops::Range, path::Path};
-
-use rustix::fs::FileExt;
+use std::{
+    io::{BufReader, Read, Seek, SeekFrom},
+    mem::size_of,
+    ops::{Bound, Range, RangeBounds},
+    path::Path,
+};
 
 use crate::FileWrapper;
 
@@ -10,7 +13,7 @@ use super::ProcResult;
 ///
 /// Require root or CAP_SYS_ADMIN
 pub struct KPageCount {
-    reader: FileWrapper,
+    reader: BufReader<FileWrapper>,
 }
 
 impl KPageCount {
@@ -28,7 +31,7 @@ impl KPageCount {
         let mut path = root.as_ref().to_path_buf();
         path.push("kpagecount");
 
-        let reader = FileWrapper::open(path)?;
+        let reader = BufReader::new(FileWrapper::open(path)?);
 
         Ok(Self { reader })
     }
@@ -39,16 +42,7 @@ impl KPageCount {
     ///
     /// See [crate::process::Process::pagemap] and [crate::process::MemoryPageFlags::get_page_frame_number]
     pub fn get_count_at_pfn(&mut self, pfn: u64) -> ProcResult<u64> {
-        // Each entry is a 64 bits counter
-        // 64 bits or 8 Bytes
-        const ENTRY_SIZE: usize = 8;
-        let offset = pfn * ENTRY_SIZE as u64;
-
-        let mut buf = [0; ENTRY_SIZE];
-        self.reader.inner.read_exact_at(&mut buf, offset)?;
-        let page_references: u64 = u64::from_le_bytes(buf);
-
-        Ok(page_references)
+        self.get_count_in_range(pfn..pfn + 1).map(|mut vec| vec.pop().unwrap())
     }
 
     /// Get the number of references to physical memory at for PFNs within range `page_range`
@@ -57,17 +51,32 @@ impl KPageCount {
     ///
     /// See [crate::process::Process::pagemap] and [crate::process::MemoryPageFlags::get_page_frame_number]
     pub fn get_count_in_range(&mut self, page_range: Range<u64>) -> ProcResult<Vec<u64>> {
-        // Each entry is a 64 bits counter
-        // 64 bits or 8 Bytes
-        const ENTRY_SIZE: usize = 8;
+        // `start` is always included
+        let start = match page_range.start_bound() {
+            Bound::Included(v) => *v,
+            Bound::Excluded(v) => *v + 1,
+            Bound::Unbounded => 0,
+        };
 
-        let mut buf = [0; ENTRY_SIZE];
+        // `end` is always excluded
+        let end = match page_range.end_bound() {
+            Bound::Included(v) => *v + 1,
+            Bound::Excluded(v) => *v,
+            Bound::Unbounded => std::u64::MAX,
+        };
 
         let mut result: Vec<u64> = Vec::new();
 
-        for pfn in page_range {
-            let offset = pfn * ENTRY_SIZE as u64;
-            self.reader.inner.read_exact_at(&mut buf, offset)?;
+        let start_position = start * size_of::<u64>() as u64;
+        self.reader.seek(SeekFrom::Start(start_position))?;
+
+        for _pfn in start..end {
+            // Each entry is a 64 bits counter
+            // 64 bits or 8 Bytes
+            const ENTRY_SIZE: usize = 8;
+            let mut buf = [0; ENTRY_SIZE];
+
+            self.reader.read_exact(&mut buf)?;
             let page_references: u64 = u64::from_le_bytes(buf);
 
             result.push(page_references);
