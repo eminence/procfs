@@ -291,6 +291,9 @@ pub use uptime::*;
 mod iomem;
 pub use iomem::*;
 
+mod kpageflags;
+pub use kpageflags::*;
+
 lazy_static! {
     /// The number of clock ticks per second.
     ///
