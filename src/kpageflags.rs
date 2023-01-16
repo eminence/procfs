@@ -137,7 +137,7 @@ impl KPageFlags {
         let end = match page_range.end_bound() {
             Bound::Included(v) => *v + 1,
             Bound::Excluded(v) => *v,
-            Bound::Unbounded => std::u64::MAX / crate::page_size().unwrap(),
+            Bound::Unbounded => std::u64::MAX / crate::page_size(),
         };
 
         let start_position = start * size_of::<u64>() as u64;

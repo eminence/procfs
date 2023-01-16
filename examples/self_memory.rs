@@ -4,7 +4,7 @@ fn main() {
     let me = Process::myself().expect("Unable to load myself!");
     println!("PID: {}", me.pid);
 
-    let page_size = procfs::page_size().expect("Unable to determinte page size!") as u64;
+    let page_size = procfs::page_size();
     println!("Memory page size: {}", page_size);
 
     // Note: when comparing the below values to what "top" will display, note that "top" will use
@@ -16,7 +16,7 @@ fn main() {
         println!(
             "Total resident set: {} pages ({} bytes)",
             stat.rss,
-            stat.rss as u64 * page_size
+            stat.rss * page_size
         );
         println!();
     }

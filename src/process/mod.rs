@@ -19,7 +19,7 @@
 //! ```rust
 //! let me = procfs::process::Process::myself().unwrap();
 //! let me_stat = me.stat().unwrap();
-//! let tps = procfs::ticks_per_second().unwrap();
+//! let tps = procfs::ticks_per_second();
 //!
 //! println!("{: >10} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 //!
@@ -49,7 +49,7 @@
 //! # use procfs::process::Process;
 //! let me = Process::myself().unwrap();
 //! let me_stat = me.stat().unwrap();
-//! let page_size = procfs::page_size().unwrap() as u64;
+//! let page_size = procfs::page_size();
 //!
 //! println!("== Data from /proc/self/stat:");
 //! println!("Total virtual memory used: {} bytes", me_stat.vsize);

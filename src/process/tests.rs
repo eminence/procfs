@@ -296,7 +296,7 @@ fn test_proc_pagemap() {
     let maps = myself.maps().unwrap();
 
     let stack_map = maps.iter().find(|m| matches!(m.pathname, MMapPath::Stack)).unwrap();
-    let page_size = crate::page_size().unwrap() as usize;
+    let page_size = crate::page_size() as usize;
     let start_page = stack_map.address.0 as usize / page_size;
     let end_page = stack_map.address.1 as usize / page_size;
 
@@ -427,7 +427,7 @@ fn test_proc_auxv() {
             16 => println!("HW Cap: 0x{:x}", v),
             17 => {
                 println!("Clock ticks per second: {}", v);
-                assert_eq!(v, crate::ticks_per_second().unwrap());
+                assert_eq!(v, crate::ticks_per_second());
             }
             19 => println!("Data cache block size: {}", v),
             23 => println!("Run as setuid?: {}", v),

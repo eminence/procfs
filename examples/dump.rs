@@ -13,5 +13,5 @@ fn main() {
 
     let stat = prc.stat().unwrap();
     println!("State: {:?}", stat.state());
-    println!("RSS:   {} bytes", stat.rss_bytes().unwrap());
+    println!("RSS:   {} bytes", stat.rss_bytes());
 }
