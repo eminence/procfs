@@ -17,7 +17,7 @@ fn main() {
         println!("WARNING: Access to /proc/<PID>/pagemap requires root, re-run with sudo");
     }
 
-    let page_size = procfs::page_size().unwrap();
+    let page_size = procfs::page_size();
 
     let process = Process::myself().expect("Unable to load myself!");
 

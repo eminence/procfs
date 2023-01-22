@@ -7,7 +7,7 @@ extern crate procfs;
 
 fn main() {
     let mestat = procfs::process::Process::myself().unwrap().stat().unwrap();
-    let tps = procfs::ticks_per_second().unwrap();
+    let tps = procfs::ticks_per_second();
 
     println!("{: >10} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 

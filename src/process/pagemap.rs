@@ -137,7 +137,7 @@ impl PageMap {
         let end = match page_range.end_bound() {
             Bound::Included(v) => *v + 1,
             Bound::Excluded(v) => *v,
-            Bound::Unbounded => std::usize::MAX / crate::page_size().unwrap() as usize,
+            Bound::Unbounded => std::usize::MAX / crate::page_size() as usize,
         };
 
         let start_position = (start * size_of::<u64>()) as u64;

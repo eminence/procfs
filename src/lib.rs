@@ -298,8 +298,8 @@ lazy_static! {
     /// The number of clock ticks per second.
     ///
     /// This is calculated from `sysconf(_SC_CLK_TCK)`.
-    static ref TICKS_PER_SECOND: ProcResult<u64> = {
-        Ok(ticks_per_second()?)
+    static ref TICKS_PER_SECOND: u64 = {
+        ticks_per_second()
     };
     /// The version of the currently running kernel.
     ///
@@ -311,8 +311,8 @@ lazy_static! {
     /// Memory page size, in bytes.
     ///
     /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-    static ref PAGESIZE: ProcResult<u64> = {
-        Ok(page_size()?)
+    static ref PAGESIZE: u64 = {
+        page_size()
     };
 }
 
@@ -638,12 +638,8 @@ impl LoadAverage {
 ///
 /// This isn't part of the proc file system, but it's a useful thing to have, since several fields
 /// count in ticks.  This is calculated from `sysconf(_SC_CLK_TCK)`.
-pub fn ticks_per_second() -> std::io::Result<u64> {
-    if cfg!(unix) {
-        Ok(rustix::param::clock_ticks_per_second())
-    } else {
-        panic!("Not supported on non-unix platforms")
-    }
+pub fn ticks_per_second() -> u64 {
+    rustix::param::clock_ticks_per_second()
 }
 
 /// The boot time of the system, as a `DateTime` object.
@@ -693,12 +689,8 @@ thread_local! {
 /// Memory page size, in bytes.
 ///
 /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-pub fn page_size() -> std::io::Result<u64> {
-    if cfg!(unix) {
-        Ok(rustix::param::page_size() as u64)
-    } else {
-        panic!("Not supported on non-unix platforms")
-    }
+pub fn page_size() -> u64 {
+    rustix::param::page_size() as u64
 }
 
 /// Possible values for a kernel config option
@@ -837,7 +829,7 @@ impl CpuTime {
 
         // Store this field in the struct so we don't have to attempt to unwrap ticks_per_second() when we convert
         // from ticks into other time units
-        let tps = crate::ticks_per_second()?;
+        let tps = crate::ticks_per_second();
 
         s.next();
         let user = from_str!(u64, expect!(s.next()));
@@ -1385,7 +1377,7 @@ mod tests {
 
     #[test]
     fn tests_tps() {
-        let tps = ticks_per_second().unwrap();
+        let tps = ticks_per_second();
         println!("{} ticks per second", tps);
     }
 

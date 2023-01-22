@@ -405,10 +405,7 @@ impl Stat {
     /// This function requires the "chrono" features to be enabled (which it is by default).
     #[cfg(feature = "chrono")]
     pub fn starttime(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
-        let tts = TICKS_PER_SECOND
-            .as_ref()
-            .map_err(|e| ProcError::Other(format!("Failed to get ticks_per_second: {:?}", e)))?;
-        let seconds_since_boot = self.starttime as f32 / *tts as f32;
+        let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
         let boot_time = crate::boot_time()?;
 
         Ok(boot_time + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
@@ -417,10 +414,7 @@ impl Stat {
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
-    pub fn rss_bytes(&self) -> ProcResult<u64> {
-        let pagesize = PAGESIZE
-            .as_ref()
-            .map_err(|e| ProcError::Other(format!("Failed to get pagesize: {:?}", e)))?;
-        Ok(self.rss * *pagesize)
+    pub fn rss_bytes(&self) -> u64 {
+        self.rss * *PAGESIZE
     }
 }

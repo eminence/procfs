@@ -22,7 +22,7 @@ fn main() {
         panic!("ERROR: Access to /proc/kpageflags requires root, re-run with sudo");
     }
 
-    let page_size = procfs::page_size().unwrap();
+    let page_size = procfs::page_size();
 
     // We will inspect this process's own memory
     let process = Process::myself().expect("Unable to load myself!");
