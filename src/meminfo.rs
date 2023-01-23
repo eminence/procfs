@@ -146,7 +146,7 @@ pub struct Meminfo {
     /// (since Linux 2.6.18)
     pub page_tables: Option<u64>,
     /// Amount of memory allocated for seconary page tables. This currently includes KVM mmu
-    /// allocaitons on x86 and arm64.
+    /// allocations on x86 and arm64.
     ///
     /// (since Linux 6.1)
     pub secondary_page_tables: Option<u64>,
