@@ -18,7 +18,7 @@ fn main() {
         panic!("ERROR: Access to /proc/iomem requires root, re-run with sudo");
     }
 
-    let page_size = procfs::page_size().expect("Can't get page size");
+    let page_size = procfs::page_size();
 
     // /proc/iomem contain a list of memory mapping, but we're only interested in RAM mapping
     let iomem = procfs::iomem().expect("Can't open /proc/iomem");
