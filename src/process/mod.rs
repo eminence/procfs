@@ -553,8 +553,8 @@ impl MemoryMaps {
 
                             let flags = flags
                                 .map(VmFlags::from_str)
-                                .reduce(std::ops::BitOr::bitor)
-                                .unwrap_or_default();
+                                // FUTURE: use `Iterator::reduce`
+                                .fold(VmFlags::NONE, std::ops::BitOr::bitor);
 
                             mm.extension.vm_flags = flags;
                         } else {
