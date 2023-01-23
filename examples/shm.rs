@@ -13,7 +13,7 @@ fn main() {
             let prc = prc.unwrap();
             match prc.smaps() {
                 Ok(memory_maps) => {
-                    for (memory_map, _memory_map_data) in &memory_maps {
+                    for memory_map in &memory_maps {
                         if let procfs::process::MMapPath::Vsys(key) = memory_map.pathname {
                             if key == shared_memory.key && memory_map.inode == shared_memory.shmid {
                                 println!("{}: {:?}", prc.pid, prc.cmdline().unwrap());
