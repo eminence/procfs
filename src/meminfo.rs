@@ -145,6 +145,11 @@ pub struct Meminfo {
     ///
     /// (since Linux 2.6.18)
     pub page_tables: Option<u64>,
+    /// Amount of memory allocated for seconary page tables. This currently includes KVM mmu
+    /// allocations on x86 and arm64.
+    ///
+    /// (since Linux 6.1)
+    pub secondary_page_tables: Option<u64>,
     /// [To be documented.]
     ///
     /// (CONFIG_QUICKLIST is required.  Since Linux 2.6.27)
@@ -277,6 +282,16 @@ pub struct Meminfo {
     ///
     /// (CONFIG_TRANSPARENT_HUGEPAGE is required.  Since Linux 5.4)
     pub file_huge_pages: Option<u64>,
+
+    /// Memory consumed by the zswap backend (compressed size).
+    ///
+    /// (CONFIG_ZSWAP is required.  Since Linux 5.19)
+    pub z_swap: Option<u64>,
+
+    /// Amount of anonymous memory stored in zswap (original size).
+    ///
+    /// (CONFIG_ZSWAP is required.  Since Linux 5.19)
+    pub z_swapped: Option<u64>,
 }
 
 impl Meminfo {
@@ -351,6 +366,7 @@ impl Meminfo {
             s_unreclaim: map.remove("SUnreclaim"),
             kernel_stack: map.remove("KernelStack"),
             page_tables: map.remove("PageTables"),
+            secondary_page_tables: map.remove("SecPageTables"),
             quicklists: map.remove("Quicklists"),
             nfs_unstable: map.remove("NFS_Unstable"),
             bounce: map.remove("Bounce"),
@@ -380,6 +396,8 @@ impl Meminfo {
             hugetlb: map.remove("Hugetlb"),
             file_pmd_mapped: map.remove("FilePmdMapped"),
             file_huge_pages: map.remove("FileHugePages"),
+            z_swap: map.remove("Zswap"),
+            z_swapped: map.remove("Zswapped"),
         };
 
         if cfg!(test) {
