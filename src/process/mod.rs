@@ -205,6 +205,54 @@ bitflags! {
 }
 
 bitflags! {
+    /// The permissions a process has on memory map entries.
+    #[derive(Default)]
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    pub struct MMPermissions: u8 {
+        /// No permissions
+        const NONE = 0;
+        /// Read permission
+        const READ = 1 << 0;
+        /// Write permission
+        const WRITE = 1 << 1;
+        /// Execute permission
+        const EXECUTE = 1 << 2;
+        /// Memory is shared with another process.
+        ///
+        /// Mutually exclusive with PRIVATE.
+        const SHARED = 1 << 3;
+        /// Memory is private (and copy-on-write)
+        ///
+        /// Mutually exclusive with SHARED.
+        const PRIVATE = 1 << 4;
+    }
+}
+
+impl MMPermissions {
+    fn from_ascii_char(b: u8) -> Self {
+        match b {
+            b'r' => Self::READ,
+            b'w' => Self::WRITE,
+            b'x' => Self::EXECUTE,
+            b's' => Self::SHARED,
+            b'p' => Self::PRIVATE,
+            _ => Self::NONE,
+        }
+    }
+}
+
+impl FromStr for MMPermissions {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Only operate on ASCII (byte) values
+        Ok(s.bytes()
+            .map(Self::from_ascii_char)
+            .fold(Self::default(), std::ops::BitOr::bitor))
+    }
+}
+
+bitflags! {
     /// Represents the kernel flags associated with the virtual memory area.
     /// The names of these flags are just those you'll find in the man page, but in upper case.
     #[derive(Default)]
@@ -627,7 +675,7 @@ impl IntoIterator for MemoryMaps {
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
-    pub perms: String,
+    pub perms: MMPermissions,
     /// The offset into the file/whatever
     pub offset: u64,
     /// The device (major, minor)
@@ -656,7 +704,7 @@ impl MemoryMap {
 
         Ok(MemoryMap {
             address: split_into_num(address, '-', 16)?,
-            perms: perms.to_string(),
+            perms: perms.parse()?,
             offset: from_str!(u64, offset, 16),
             dev: split_into_num(dev, ':', 16)?,
             inode: from_str!(u64, inode),
@@ -1696,4 +1744,14 @@ impl StatM {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_memory_map_permissions() {
+        use MMPermissions as P;
+        assert_eq!("rw-p".parse(), Ok(P::READ | P::WRITE | P::PRIVATE));
+        assert_eq!("r-xs".parse(), Ok(P::READ | P::EXECUTE | P::SHARED));
+        assert_eq!("----".parse(), Ok(P::NONE));
+    }
+}
