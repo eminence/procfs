@@ -2,6 +2,7 @@ use crate::{FileWrapper, ProcResult};
 
 use bitflags::bitflags;
 use std::{
+    fmt,
     io::{BufReader, Read, Seek, SeekFrom},
     mem::size_of,
     ops::{Bound, RangeBounds},
@@ -78,8 +79,30 @@ bitflags! {
 
 impl MemoryPageFlags {
     /// Returns the page frame number recorded in this entry.
-    pub fn get_page_frame_number(&self) -> u64 {
-        (*self & Self::PFN).bits()
+    pub fn get_page_frame_number(&self) -> Pfn {
+        Pfn((*self & Self::PFN).bits())
+    }
+}
+
+/// A Page Frame Number, representing a 4 kiB physical memory page
+///
+/// See also [crate::iomem()]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Pfn(pub u64);
+
+impl fmt::UpperHex for Pfn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let val = self.0;
+
+        fmt::UpperHex::fmt(&val, f)
+    }
+}
+
+impl fmt::LowerHex for Pfn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let val = self.0;
+
+        fmt::LowerHex::fmt(&val, f)
     }
 }
 
@@ -177,7 +200,7 @@ mod tests {
         if let PageInfo::MemoryPage(memory_flags) = info {
             assert!(memory_flags
                 .contains(MemoryPageFlags::PRESENT | MemoryPageFlags::MMAP_EXCLUSIVE | MemoryPageFlags::SOFT_DIRTY));
-            assert_eq!(memory_flags.get_page_frame_number(), 0b11);
+            assert_eq!(memory_flags.get_page_frame_number(), Pfn(0b11));
         } else {
             panic!("Wrong SWAP decoding");
         }

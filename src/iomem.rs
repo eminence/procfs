@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
 
 use super::{FileWrapper, ProcResult};
-use crate::split_into_num;
+use crate::{process::Pfn, split_into_num};
 
 /// Reads and parses the `/proc/iomem`, returning an error if there are problems.
 ///
@@ -49,5 +49,16 @@ impl PhysicalMemoryMap {
                 name: String::from(name),
             },
         ))
+    }
+
+    /// Get the PFN range for the mapping
+    ///
+    /// First element of the tuple (start) is included.
+    /// Second element (end) is excluded
+    pub fn get_range(&self) -> (Pfn, Pfn) {
+        let start = self.address.0 / crate::page_size();
+        let end = (self.address.1 + 1) / crate::page_size();
+
+        (Pfn(start), Pfn(end))
     }
 }

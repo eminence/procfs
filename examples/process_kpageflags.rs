@@ -77,7 +77,7 @@ fn main() {
             match page_info {
                 procfs::process::PageInfo::MemoryPage(memory_page) => {
                     let pfn = memory_page.get_page_frame_number();
-                    let phys_addr = pfn * page_size;
+                    let phys_addr = pfn.0 * page_size;
 
                     let physical_page_info = kpageflags.get_info(pfn).expect("Can't get kpageflags info");
 
@@ -86,7 +86,15 @@ fn main() {
                         virt_mem, pfn, phys_addr, physical_page_info
                     );
                 }
-                procfs::process::PageInfo::SwapPage(_) => (), // page is in swap
+                procfs::process::PageInfo::SwapPage(swap_page_flags) => {
+                    let swap_type = swap_page_flags.get_swap_type();
+                    let swap_offset = swap_page_flags.get_swap_offset();
+
+                    println!(
+                        "Found page\nvirt_mem: 0x{:x}, swap_type: {:}, swap_offset: 0x{:x}, flags: {:?}",
+                        virt_mem, swap_type, swap_offset, swap_page_flags
+                    );
+                }
             }
         }
     }
