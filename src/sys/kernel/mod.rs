@@ -15,7 +15,7 @@ pub mod keys;
 pub mod random;
 
 /// Represents a kernel version, in major.minor.release version.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
