@@ -566,15 +566,23 @@ pub struct MemoryMaps {
 }
 
 impl MemoryMaps {
+    /// Read a [MemoryMaps] from the given byte source.
+    ///
+    /// The data should be formatted according to procfs /proc/pid/{maps,smaps,smaps_rollup}.
     pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Self> {
         Self::read(r, None)
     }
 
+    /// Read a [MemoryMaps] from the given path.
+    ///
+    /// The file data should be formatted according to procfs
+    /// /proc/pid/{maps,smaps,smaps_rollup}.
     pub fn from_path<P: AsRef<Path>>(path: P) -> ProcResult<Self> {
         let file = FileWrapper::open(path.as_ref())?;
         Self::read(file, Some(path.as_ref()))
     }
 
+    /// Return an iterator over [MemoryMap].
     pub fn iter(&self) -> std::slice::Iter<MemoryMap> {
         self.memory_maps.iter()
     }
@@ -1143,7 +1151,7 @@ impl Process {
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
     pub fn maps(&self) -> ProcResult<MemoryMaps> {
-        MemoryMaps::from_path(self.root.join("maps"))
+        MemoryMaps::from_reader(FileWrapper::open_at(&self.root, &self.fd, "maps")?)
     }
 
     /// Returns a list of currently mapped memory regions and verbose information about them,
@@ -1151,16 +1159,14 @@ impl Process {
     ///
     /// (since Linux 2.6.14 and requires CONFIG_PROG_PAGE_MONITOR)
     pub fn smaps(&self) -> ProcResult<MemoryMaps> {
-        MemoryMaps::from_path(self.root.join("smaps"))
+        MemoryMaps::from_reader(FileWrapper::open_at(&self.root, &self.fd, "smaps")?)
     }
 
     /// This is the sum of all the smaps data but it is much more performant to get it this way.
     ///
     /// Since 4.14 and requires CONFIG_PROC_PAGE_MONITOR.
     pub fn smaps_rollup(&self) -> ProcResult<SmapsRollup> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "smaps_rollup")?;
-
-        SmapsRollup::from_reader(file)
+        SmapsRollup::from_reader(FileWrapper::open_at(&self.root, &self.fd, "smaps_rollup")?)
     }
 
     /// Returns a struct that can be used to access information in the `/proc/pid/pagemap` file.
