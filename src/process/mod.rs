@@ -205,12 +205,61 @@ bitflags! {
 }
 
 bitflags! {
+    /// The permissions a process has on memory map entries.
+    #[derive(Default)]
+    #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    pub struct MMPermissions: u8 {
+        /// No permissions
+        const NONE = 0;
+        /// Read permission
+        const READ = 1 << 0;
+        /// Write permission
+        const WRITE = 1 << 1;
+        /// Execute permission
+        const EXECUTE = 1 << 2;
+        /// Memory is shared with another process.
+        ///
+        /// Mutually exclusive with PRIVATE.
+        const SHARED = 1 << 3;
+        /// Memory is private (and copy-on-write)
+        ///
+        /// Mutually exclusive with SHARED.
+        const PRIVATE = 1 << 4;
+    }
+}
+
+impl MMPermissions {
+    fn from_ascii_char(b: u8) -> Self {
+        match b {
+            b'r' => Self::READ,
+            b'w' => Self::WRITE,
+            b'x' => Self::EXECUTE,
+            b's' => Self::SHARED,
+            b'p' => Self::PRIVATE,
+            _ => Self::NONE,
+        }
+    }
+}
+
+impl FromStr for MMPermissions {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Only operate on ASCII (byte) values
+        Ok(s.bytes()
+            .map(Self::from_ascii_char)
+            .fold(Self::default(), std::ops::BitOr::bitor))
+    }
+}
+
+bitflags! {
     /// Represents the kernel flags associated with the virtual memory area.
     /// The names of these flags are just those you'll find in the man page, but in upper case.
+    #[derive(Default)]
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct VmFlags: u32 {
-        /// Invalid flags
-        const INVALID = 0;
+        /// No flags
+        const NONE = 0;
         /// Readable
         const RD = 1 << 0;
         /// Writable
@@ -279,45 +328,45 @@ bitflags! {
 }
 
 impl VmFlags {
-    fn from_str(flag: &str) -> Option<Self> {
+    fn from_str(flag: &str) -> Self {
         if flag.len() != 2 {
-            return None;
+            return VmFlags::NONE;
         }
 
         match flag {
-            "rd" => Some(VmFlags::RD),
-            "wr" => Some(VmFlags::WR),
-            "ex" => Some(VmFlags::EX),
-            "sh" => Some(VmFlags::SH),
-            "mr" => Some(VmFlags::MR),
-            "mw" => Some(VmFlags::MW),
-            "me" => Some(VmFlags::ME),
-            "ms" => Some(VmFlags::MS),
-            "gd" => Some(VmFlags::GD),
-            "pf" => Some(VmFlags::PF),
-            "dw" => Some(VmFlags::DW),
-            "lo" => Some(VmFlags::LO),
-            "io" => Some(VmFlags::IO),
-            "sr" => Some(VmFlags::SR),
-            "rr" => Some(VmFlags::RR),
-            "dc" => Some(VmFlags::DC),
-            "de" => Some(VmFlags::DE),
-            "ac" => Some(VmFlags::AC),
-            "nr" => Some(VmFlags::NR),
-            "ht" => Some(VmFlags::HT),
-            "sf" => Some(VmFlags::SF),
-            "nl" => Some(VmFlags::NL),
-            "ar" => Some(VmFlags::AR),
-            "wf" => Some(VmFlags::WF),
-            "dd" => Some(VmFlags::DD),
-            "sd" => Some(VmFlags::SD),
-            "mm" => Some(VmFlags::MM),
-            "hg" => Some(VmFlags::HG),
-            "nh" => Some(VmFlags::NH),
-            "mg" => Some(VmFlags::MG),
-            "um" => Some(VmFlags::UM),
-            "uw" => Some(VmFlags::UW),
-            _ => None,
+            "rd" => VmFlags::RD,
+            "wr" => VmFlags::WR,
+            "ex" => VmFlags::EX,
+            "sh" => VmFlags::SH,
+            "mr" => VmFlags::MR,
+            "mw" => VmFlags::MW,
+            "me" => VmFlags::ME,
+            "ms" => VmFlags::MS,
+            "gd" => VmFlags::GD,
+            "pf" => VmFlags::PF,
+            "dw" => VmFlags::DW,
+            "lo" => VmFlags::LO,
+            "io" => VmFlags::IO,
+            "sr" => VmFlags::SR,
+            "rr" => VmFlags::RR,
+            "dc" => VmFlags::DC,
+            "de" => VmFlags::DE,
+            "ac" => VmFlags::AC,
+            "nr" => VmFlags::NR,
+            "ht" => VmFlags::HT,
+            "sf" => VmFlags::SF,
+            "nl" => VmFlags::NL,
+            "ar" => VmFlags::AR,
+            "wf" => VmFlags::WF,
+            "dd" => VmFlags::DD,
+            "sd" => VmFlags::SD,
+            "mm" => VmFlags::MM,
+            "hg" => VmFlags::HG,
+            "nh" => VmFlags::NH,
+            "mg" => VmFlags::MG,
+            "um" => VmFlags::UM,
+            "uw" => VmFlags::UW,
+            _ => VmFlags::NONE,
         }
     }
 }
@@ -476,6 +525,8 @@ pub enum MMapPath {
     Vvar,
     /// obsolete virtual syscalls, succeeded by vdso
     Vsyscall,
+    /// rollup memory mappings, from `/proc/<pid>/smaps_rollup`
+    Rollup,
     /// An anonymous mapping as obtained via mmap(2).
     Anonymous,
     /// Shared memory segment
@@ -485,11 +536,6 @@ pub enum MMapPath {
 }
 
 impl MMapPath {
-    /// Needed for MemoryMap::new().
-    fn new() -> MMapPath {
-        MMapPath::Anonymous
-    }
-
     fn from(path: &str) -> ProcResult<MMapPath> {
         Ok(match path.trim() {
             "" => MMapPath::Anonymous,
@@ -498,6 +544,7 @@ impl MMapPath {
             "[vdso]" => MMapPath::Vdso,
             "[vvar]" => MMapPath::Vvar,
             "[vsyscall]" => MMapPath::Vsyscall,
+            "[rollup]" => MMapPath::Rollup,
             x if x.starts_with("[stack:") => {
                 let mut s = x[1..x.len() - 1].split(':');
                 let tid = from_str!(u32, expect!(s.nth(1)));
@@ -510,15 +557,134 @@ impl MMapPath {
     }
 }
 
-/// Represents an entry in a `/proc/<pid>/maps` file.
+/// Represents all entries in a `/proc/<pid>/maps` or `/proc/<pid>/smaps` file.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[non_exhaustive]
+pub struct MemoryMaps {
+    pub memory_maps: Vec<MemoryMap>,
+}
+
+impl MemoryMaps {
+    /// Read a [MemoryMaps] from the given byte source.
+    ///
+    /// The data should be formatted according to procfs /proc/pid/{maps,smaps,smaps_rollup}.
+    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Self> {
+        Self::read(r, None)
+    }
+
+    /// Read a [MemoryMaps] from the given path.
+    ///
+    /// The file data should be formatted according to procfs
+    /// /proc/pid/{maps,smaps,smaps_rollup}.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> ProcResult<Self> {
+        let file = FileWrapper::open(path.as_ref())?;
+        Self::read(file, Some(path.as_ref()))
+    }
+
+    /// Return an iterator over [MemoryMap].
+    pub fn iter(&self) -> std::slice::Iter<MemoryMap> {
+        self.memory_maps.iter()
+    }
+
+    fn read<R: io::Read>(r: R, path: Option<&Path>) -> ProcResult<Self> {
+        let reader = BufReader::new(r);
+
+        let mut memory_maps = Vec::new();
+
+        let mut line_iter = reader
+            .lines()
+            .map(|r| r.map_err(|_| ProcError::Incomplete(path.map(ToOwned::to_owned))));
+        let mut current_memory_map: Option<MemoryMap> = None;
+        while let Some(line) = line_iter.next().transpose()? {
+            // Assumes all extension fields (in `/proc/<pid>/smaps`) start with a capital letter,
+            // which seems to be the case.
+            if line.starts_with(|c: char| c.is_ascii_uppercase()) {
+                match current_memory_map.as_mut() {
+                    None => return Err(ProcError::Incomplete(path.map(ToOwned::to_owned))),
+                    Some(mm) => {
+                        // This is probably an attribute
+                        if line.starts_with("VmFlags") {
+                            let flags = line.split_ascii_whitespace();
+                            let flags = flags.skip(1); // Skips the `VmFlags:` part since we don't need it.
+
+                            let flags = flags
+                                .map(VmFlags::from_str)
+                                // FUTURE: use `Iterator::reduce`
+                                .fold(VmFlags::NONE, std::ops::BitOr::bitor);
+
+                            mm.extension.vm_flags = flags;
+                        } else {
+                            let mut parts = line.split_ascii_whitespace();
+
+                            let key = parts.next();
+                            let value = parts.next();
+
+                            if let (Some(k), Some(v)) = (key, value) {
+                                // While most entries do have one, not all of them do.
+                                let size_suffix = parts.next();
+
+                                // Limited poking at /proc/<pid>/smaps and then checking if "MB", "GB", and "TB" appear in the C file that is
+                                // supposedly responsible for creating smaps, has lead me to believe that the only size suffixes we'll ever encounter
+                                // "kB", which is most likely kibibytes. Actually checking if the size suffix is any of the above is a way to
+                                // future-proof the code, but I am not sure it is worth doing so.
+                                let size_multiplier = if size_suffix.is_some() { 1024 } else { 1 };
+
+                                let v = v.parse::<u64>().map_err(|_| {
+                                    ProcError::Other("Value in `Key: Value` pair was not actually a number".into())
+                                })?;
+
+                                // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
+                                let k = k.trim_end_matches(':');
+
+                                mm.extension.map.insert(k.into(), v * size_multiplier);
+                            }
+                        }
+                    }
+                }
+            } else {
+                if let Some(mm) = current_memory_map.take() {
+                    memory_maps.push(mm);
+                }
+                current_memory_map = Some(MemoryMap::from_line(&line)?);
+            }
+        }
+        if let Some(mm) = current_memory_map.take() {
+            memory_maps.push(mm);
+        }
+
+        Ok(MemoryMaps { memory_maps })
+    }
+}
+
+impl<'a> IntoIterator for &'a MemoryMaps {
+    type IntoIter = std::slice::Iter<'a, MemoryMap>;
+    type Item = &'a MemoryMap;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl IntoIterator for MemoryMaps {
+    type IntoIter = std::vec::IntoIter<MemoryMap>;
+    type Item = MemoryMap;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.memory_maps.into_iter()
+    }
+}
+
+/// Represents an entry in a `/proc/<pid>/maps` or `/proc/<pid>/smaps` file.
 ///
-/// To construct this structure, see [Process::maps()] and [Process::smaps()].
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+/// To construct this structure for the current process, see [Process::maps()] and
+/// [Process::smaps()].
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MemoryMap {
     /// The address space in the process that the mapping occupies.
     pub address: (u64, u64),
-    pub perms: String,
+    pub perms: MMPermissions,
     /// The offset into the file/whatever
     pub offset: u64,
     /// The device (major, minor)
@@ -529,20 +695,13 @@ pub struct MemoryMap {
     /// BSS (uninitialized data).
     pub inode: u64,
     pub pathname: MMapPath,
+    /// Memory mapping extension information, populated when parsing `/proc/<pid>/smaps`.
+    ///
+    /// The members will be `Default::default()` (empty/none) when the information isn't available.
+    pub extension: MMapExtension,
 }
 
 impl MemoryMap {
-    /// Used internally in Process::smaps() as a "default value" thing
-    fn new() -> Self {
-        Self {
-            address: (0, 0),
-            perms: "".into(),
-            offset: 0,
-            dev: (0, 0),
-            inode: 0,
-            pathname: MMapPath::new(),
-        }
-    }
     fn from_line(line: &str) -> ProcResult<MemoryMap> {
         let mut s = line.splitn(6, ' ');
         let address = expect!(s.next());
@@ -554,11 +713,12 @@ impl MemoryMap {
 
         Ok(MemoryMap {
             address: split_into_num(address, '-', 16)?,
-            perms: perms.to_string(),
+            perms: perms.parse()?,
             offset: from_str!(u64, offset, 16),
             dev: split_into_num(dev, ':', 16)?,
             inode: from_str!(u64, inode),
             pathname: MMapPath::from(path)?,
+            extension: Default::default(),
         })
     }
 }
@@ -566,20 +726,27 @@ impl MemoryMap {
 /// Represents the information about a specific mapping as presented in /proc/\<pid\>/smaps
 ///
 /// To construct this structure, see [Process::smaps()]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-pub struct MemoryMapData {
-    /// Key-Value pairs that may represent statistics about memory usage, or other interesting things,
-    /// such a "ProtectionKey"(if you're on X86 and that kernel config option was specified).
+pub struct MMapExtension {
+    /// Key-value pairs that may represent statistics about memory usage, or other interesting things,
+    /// such a "ProtectionKey" (if you're on X86 and that kernel config option was specified).
     ///
-    /// Note that should a Key-Value pair represent a memory usage statistic, it will be in bytes.
+    /// Note that should a key-value pair represent a memory usage statistic, it will be in bytes.
     ///
     /// Check your manpage for more information
     pub map: HashMap<String, u64>,
     /// Kernel flags associated with the virtual memory area
     ///
     /// (since Linux 3.8)
-    pub vm_flags: Option<VmFlags>,
+    pub vm_flags: VmFlags,
+}
+
+impl MMapExtension {
+    /// Return whether the extension information is empty.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty() && self.vm_flags == VmFlags::NONE
+    }
 }
 
 impl Io {
@@ -983,94 +1150,23 @@ impl Process {
 
     /// Return a list of the currently mapped memory regions and their access permissions, based on
     /// the `/proc/pid/maps` file.
-    pub fn maps(&self) -> ProcResult<Vec<MemoryMap>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "maps")?;
-
-        let reader = BufReader::new(file);
-
-        let mut vec = Vec::new();
-
-        for line in reader.lines() {
-            let line = line.map_err(|_| ProcError::Incomplete(Some(self.root.join("maps"))))?;
-            vec.push(MemoryMap::from_line(&line)?);
-        }
-
-        Ok(vec)
+    pub fn maps(&self) -> ProcResult<MemoryMaps> {
+        MemoryMaps::from_reader(FileWrapper::open_at(&self.root, &self.fd, "maps")?)
     }
 
     /// Returns a list of currently mapped memory regions and verbose information about them,
     /// such as memory consumption per mapping, based on the `/proc/pid/smaps` file.
     ///
     /// (since Linux 2.6.14 and requires CONFIG_PROG_PAGE_MONITOR)
-    pub fn smaps(&self) -> ProcResult<Vec<(MemoryMap, MemoryMapData)>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "smaps")?;
-
-        let reader = BufReader::new(file);
-
-        let mut vec: Vec<(MemoryMap, MemoryMapData)> = Vec::new();
-
-        let mut current_mapping = MemoryMap::new();
-        let mut current_data = Default::default();
-        for line in reader.lines() {
-            let line = line.map_err(|_| ProcError::Incomplete(Some(self.root.join("smaps"))))?;
-
-            if let Ok(mapping) = MemoryMap::from_line(&line) {
-                vec.push((current_mapping, current_data));
-                current_mapping = mapping;
-                current_data = Default::default();
-            } else {
-                // This is probably an attribute
-                if line.starts_with("VmFlags") {
-                    let flags = line.split_ascii_whitespace();
-                    let flags = flags.skip(1); // Skips the `VmFlags:` part since we don't need it.
-
-                    let flags = flags
-                        .map(|v| match VmFlags::from_str(v) {
-                            None => VmFlags::INVALID,
-                            Some(v) => v,
-                        })
-                        .fold(VmFlags::INVALID, |a, b| a | b);
-
-                    current_data.vm_flags = Some(flags);
-                } else {
-                    let mut parts = line.split_ascii_whitespace();
-
-                    let key = parts.next();
-                    let value = parts.next();
-
-                    if let (Some(k), Some(v)) = (key, value) {
-                        // While most entries do have one, not all of them do.
-                        let size_suffix = parts.next();
-
-                        // Limited poking at /proc/<pid>/smaps and then checking if "MB", "GB", and "TB" appear in the C file that is
-                        // supposedly responsible for creating smaps, has lead me to believe that the only size suffixes we'll ever encounter
-                        // "kB", which is most likely kibibytes. Actually checking if the size suffix is any of the above is a way to
-                        // future-proof the code, but I am not sure it is worth doing so.
-                        let size_multiplier = if size_suffix.is_some() { 1024 } else { 1 };
-
-                        let v = v.parse::<u64>().map_err(|_| {
-                            ProcError::Other("Value in `Key: Value` pair was not actually a number".into())
-                        })?;
-
-                        // This ignores the case when our Key: Value pairs are really Key Value pairs. Is this a good idea?
-                        let k = k.trim_end_matches(':');
-
-                        current_data.map.insert(k.into(), v * size_multiplier);
-                    }
-                }
-            }
-        }
-
-        Ok(vec)
+    pub fn smaps(&self) -> ProcResult<MemoryMaps> {
+        MemoryMaps::from_reader(FileWrapper::open_at(&self.root, &self.fd, "smaps")?)
     }
 
     /// This is the sum of all the smaps data but it is much more performant to get it this way.
     ///
     /// Since 4.14 and requires CONFIG_PROC_PAGE_MONITOR.
     pub fn smaps_rollup(&self) -> ProcResult<SmapsRollup> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "smaps_rollup")?;
-
-        SmapsRollup::from_reader(file)
+        SmapsRollup::from_reader(FileWrapper::open_at(&self.root, &self.fd, "smaps_rollup")?)
     }
 
     /// Returns a struct that can be used to access information in the `/proc/pid/pagemap` file.
@@ -1662,4 +1758,14 @@ impl StatM {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_memory_map_permissions() {
+        use MMPermissions as P;
+        assert_eq!("rw-p".parse(), Ok(P::READ | P::WRITE | P::PRIVATE));
+        assert_eq!("r-xs".parse(), Ok(P::READ | P::EXECUTE | P::SHARED));
+        assert_eq!("----".parse(), Ok(P::NONE));
+    }
+}
