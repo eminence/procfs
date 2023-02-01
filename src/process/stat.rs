@@ -3,7 +3,7 @@ use super::StatFlags;
 #[cfg(feature = "chrono")]
 use crate::TICKS_PER_SECOND;
 use crate::{from_iter, KernelVersion, ProcResult};
-use crate::{ProcError, KERNEL, PAGESIZE};
+use crate::{KERNEL, PAGESIZE};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 

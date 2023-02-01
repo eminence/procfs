@@ -560,6 +560,7 @@ impl MMapPath {
 /// Represents all entries in a `/proc/<pid>/maps` or `/proc/<pid>/smaps` file.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[non_exhaustive]
 pub struct MemoryMaps {
     pub memory_maps: Vec<MemoryMap>,
 }
@@ -731,6 +732,13 @@ pub struct MMapExtension {
     ///
     /// (since Linux 3.8)
     pub vm_flags: VmFlags,
+}
+
+impl MMapExtension {
+    /// Return whether the extension information is empty.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty() && self.vm_flags == VmFlags::NONE
+    }
 }
 
 impl Io {
