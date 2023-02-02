@@ -890,26 +890,10 @@ impl FDInfo {
     /// Gets a file descriptor from a directory fd and a path relative to it.
     ///
     /// `base` is the path to the directory fd, and is used for error messages.
-    fn from_process_at<P: AsRef<Path>, Q: AsRef<Path>>(
-        base: P,
-        dirfd: BorrowedFd,
-        path: Q,
-        fd: i32,
-    ) -> ProcResult<Self> {
+    fn from_process_at<Q: AsRef<Path>>(dirfd: BorrowedFd, path: Q, fd: i32) -> ProcResult<Self> {
         let p = path.as_ref();
-        let root = base.as_ref().join(p);
-        let file = wrap_io_error!(
-            root,
-            rustix::fs::openat(
-                dirfd,
-                p,
-                OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
-                Mode::empty()
-            )
-        )?;
-        let link = rustix::fs::readlinkat(&file, "", Vec::new()).map_err(io::Error::from)?;
-        let md =
-            rustix::fs::statat(&file, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).map_err(io::Error::from)?;
+        let link = rustix::fs::readlinkat(&dirfd, p, Vec::new()).map_err(io::Error::from)?;
+        let md = rustix::fs::statat(&dirfd, p, AtFlags::empty()).map_err(io::Error::from)?;
 
         let link_os = link.to_string_lossy();
         let target = FDTarget::from_str(link_os.as_ref())?;
@@ -1217,13 +1201,12 @@ impl Process {
         Ok(FDsIter {
             inner: dir,
             inner_fd: dir_fd,
-            root: self.root.clone(),
         })
     }
 
     pub fn fd_from_fd(&self, fd: i32) -> ProcResult<FDInfo> {
         let path = PathBuf::from("fd").join(fd.to_string());
-        FDInfo::from_process_at(&self.root, self.fd.as_fd(), path, fd)
+        FDInfo::from_process_at(self.fd.as_fd(), path, fd)
     }
 
     /// Lists which memory segments are written to the core dump in the event that a core dump is performed.
@@ -1583,7 +1566,6 @@ impl Process {
 pub struct FDsIter {
     inner: rustix::fs::Dir,
     inner_fd: rustix::fd::OwnedFd,
-    root: PathBuf,
 }
 
 impl std::iter::Iterator for FDsIter {
@@ -1594,8 +1576,7 @@ impl std::iter::Iterator for FDsIter {
                 Some(Ok(entry)) => {
                     let name = entry.file_name().to_string_lossy();
                     if let Ok(fd) = RawFd::from_str(&name) {
-                        if let Ok(info) = FDInfo::from_process_at(&self.root, self.inner_fd.as_fd(), name.as_ref(), fd)
-                        {
+                        if let Ok(info) = FDInfo::from_process_at(self.inner_fd.as_fd(), name.as_ref(), fd) {
                             break Some(Ok(info));
                         }
                     }
