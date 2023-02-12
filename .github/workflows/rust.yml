@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.48.0", "stable", "beta", "nightly"]
+        toolchain: ["stable", "beta", "nightly"]
     runs-on: ubuntu-latest
 
     steps:
@@ -26,24 +26,6 @@ jobs:
     
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --verbose
-    - name: Pin plotters
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p plotters --precise 0.3.1
-    - name: Pin once_cell
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p once_cell --precise 1.14.0
-    - name: Pin rayon
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p rayon --precise 1.5.3
-    - name: Pin rayon-core
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p rayon-core --precise 1.9.3
-    - name: Pin backtrace
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p backtrace --precise 0.3.66
-    - name: Pin object
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p object --precise 0.29.0
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
@@ -60,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.48.0", "stable", "beta", "nightly"]
+        toolchain: ["stable", "beta", "nightly"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -76,15 +58,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           target: i686-unknown-linux-gnu
 
-      - name: Pin once_cell
-        if: matrix.toolchain == '1.48.0'
-        run: cargo update -p once_cell --precise 1.14.0
-      - name: Pin backtrace
-        if: matrix.toolchain == '1.48.0'
-        run: cargo update -p backtrace --precise 0.3.66
-      - name: Pin object
-        if: matrix.toolchain == '1.48.0'
-        run: cargo update -p object --precise 0.29.0
       - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android --all-features
       - name: cargo check (i686)

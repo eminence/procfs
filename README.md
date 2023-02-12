@@ -81,7 +81,8 @@ specified here, since serde does not not have an MSRV policy.
 
 ## Minimum Rust Version
 
-This crate requires a minimum rust version of 1.48.0 (2020-11-19).
+This crate is only tested against the latest stable rustc compiler, but may
+work with older compilers.  See [msrv.md](msrv.md) for more details.
 
 ## License
 
