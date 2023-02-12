@@ -19,7 +19,7 @@ pub struct Shm {
     /// Access permissions, as octal
     pub perms: u16,
     /// Size in bytes
-    pub size: u32,
+    pub size: u64,
     /// Creator PID
     pub cpid: i32,
     /// Last operator PID
@@ -70,7 +70,7 @@ impl Shm {
             let key = expect!(i32::from_str(expect!(s.next())));
             let shmid = expect!(u64::from_str(expect!(s.next())));
             let perms = expect!(u16::from_str(expect!(s.next())));
-            let size = expect!(u32::from_str(expect!(s.next())));
+            let size = expect!(u64::from_str(expect!(s.next())));
             let cpid = expect!(i32::from_str(expect!(s.next())));
             let lpid = expect!(i32::from_str(expect!(s.next())));
             let nattch = expect!(u32::from_str(expect!(s.next())));
