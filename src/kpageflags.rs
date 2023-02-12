@@ -1,10 +1,9 @@
-use crate::{FileWrapper, ProcResult};
+use crate::{process::Pfn, FileWrapper, ProcResult};
 
 use bitflags::bitflags;
 use std::{
     io::{BufReader, Read, Seek, SeekFrom},
     mem::size_of,
-    ops::{Bound, RangeBounds},
     path::Path,
 };
 
@@ -116,36 +115,22 @@ impl KPageFlags {
     ///
     /// Return Err if the PFN is not in RAM (see [crate::iomem()]):
     /// Io(Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }, None)
-    pub fn get_info(&mut self, page_index: u64) -> ProcResult<PhysicalPageFlags> {
-        self.get_range_info(page_index..page_index + 1)
+    pub fn get_info(&mut self, pfn: Pfn) -> ProcResult<PhysicalPageFlags> {
+        self.get_range_info(pfn, Pfn(pfn.0 + 1))
             .map(|mut vec| vec.pop().unwrap())
     }
 
-    /// Retrieve information in the page table entry for the PFNs within range `page_range`.
+    /// Retrieve information in the page table entry for the PFNs within range `start` (included) and `end` (excluded) PFNs.
     ///
     /// Return Err if any PFN is not in RAM (see [crate::iomem()]):
     /// Io(Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }, None)
-    pub fn get_range_info(&mut self, page_range: impl RangeBounds<u64>) -> ProcResult<Vec<PhysicalPageFlags>> {
-        // `start` is always included
-        let start = match page_range.start_bound() {
-            Bound::Included(v) => *v,
-            Bound::Excluded(v) => *v + 1,
-            Bound::Unbounded => 0,
-        };
-
-        // `end` is always excluded
-        let end = match page_range.end_bound() {
-            Bound::Included(v) => *v + 1,
-            Bound::Excluded(v) => *v,
-            Bound::Unbounded => std::u64::MAX / crate::page_size(),
-        };
-
-        let start_position = start * size_of::<u64>() as u64;
+    pub fn get_range_info(&mut self, start: Pfn, end: Pfn) -> ProcResult<Vec<PhysicalPageFlags>> {
+        let start_position = start.0 * size_of::<PhysicalPageFlags>() as u64;
         self.reader.seek(SeekFrom::Start(start_position))?;
 
-        let mut page_infos = Vec::with_capacity((end - start) as usize);
-        for _ in start..end {
-            let mut info_bytes = [0; size_of::<u64>()];
+        let mut page_infos = Vec::with_capacity((end.0 - start.0) as usize);
+        for _ in start.0..end.0 {
+            let mut info_bytes = [0; size_of::<PhysicalPageFlags>()];
             self.reader.read_exact(&mut info_bytes)?;
             page_infos.push(PhysicalPageFlags::parse_info(u64::from_ne_bytes(info_bytes)));
         }

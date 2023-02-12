@@ -33,11 +33,10 @@ fn main() {
 
         // Physical memory is divided into pages of `page_size` bytes (usually 4kiB)
         // Each page is referenced by its Page Fram Number (PFN)
-        let start_pfn = map.address.0 / page_size;
-        let end_pfn = map.address.1 / page_size;
+        let (start_pfn, end_pfn) = map.get_range();
 
         let page_references = kpagecount
-            .get_count_in_range(start_pfn..end_pfn)
+            .get_count_in_range(start_pfn, end_pfn)
             .expect("Can't read from /proc/kpagecount");
 
         // find the page with most references
