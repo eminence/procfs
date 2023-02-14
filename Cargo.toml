@@ -28,7 +28,7 @@ backtrace = { version = "0.3", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 procinfo = "0.4.2"
 failure = "0.1"
 libc = "0.2.139"
