@@ -1420,7 +1420,7 @@ mod tests {
             .arg("10000")
             .spawn()
             .expect("Failed to start sleep");
-        let p = crate::process::Process::new(command.id() as i32).expect("Failed to create Process");
+        let p = crate::process::Process::new(command.id()).expect("Failed to create Process");
         command.kill().expect("Failed to kill sleep");
         command.wait().expect("Failed to wait for sleep");
         let e = p.stat().unwrap_err();

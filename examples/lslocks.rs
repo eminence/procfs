@@ -21,7 +21,8 @@ fn main() {
                 },
             );
 
-        print!("{:<12} ", lock.pid.unwrap_or(-1));
+        let display_pid = lock.pid.map(|x| x.to_string()).unwrap_or((-1).to_string());
+        print!("{:<12} ", display_pid);
         print!("{:12} ", lock.lock_type.as_str());
         print!("{:12} ", lock.mode.as_str());
         print!("{:12} ", lock.kind.as_str());

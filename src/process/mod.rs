@@ -870,12 +870,12 @@ pub struct FDInfo {
 
 impl FDInfo {
     /// Gets a file descriptor from a raw fd
-    pub fn from_raw_fd(pid: i32, raw_fd: i32) -> ProcResult<Self> {
+    pub fn from_raw_fd(pid: u32, raw_fd: i32) -> ProcResult<Self> {
         Self::from_raw_fd_with_root("/proc", pid, raw_fd)
     }
 
     /// Gets a file descriptor from a raw fd based on a specified `/proc` path
-    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: i32, raw_fd: i32) -> ProcResult<Self> {
+    pub fn from_raw_fd_with_root(root: impl AsRef<Path>, pid: u32, raw_fd: i32) -> ProcResult<Self> {
         let path = root.as_ref().join(pid.to_string()).join("fd").join(raw_fd.to_string());
         let link = wrap_io_error!(path, read_link(&path))?;
         let md = wrap_io_error!(path, path.symlink_metadata())?;
@@ -954,7 +954,7 @@ impl std::fmt::Debug for FDInfo {
 #[derive(Debug)]
 pub struct Process {
     fd: OwnedFd,
-    pub pid: i32,
+    pub pid: u32,
     pub(crate) root: PathBuf,
 }
 
@@ -963,7 +963,7 @@ impl Process {
     /// Returns a `Process` based on a specified PID.
     ///
     /// This can fail if the process doesn't exist, or if you don't have permission to access it.
-    pub fn new(pid: i32) -> ProcResult<Process> {
+    pub fn new(pid: u32) -> ProcResult<Process> {
         let root = PathBuf::from("/proc").join(pid.to_string());
         Self::new_with_root(root)
     }
@@ -988,11 +988,11 @@ impl Process {
                 std::path::Component::Normal(s) => Some(s),
                 _ => None,
             })
-            .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
+            .and_then(|s| s.to_string_lossy().parse::<u32>().ok())
             .or_else(|| {
                 rustix::fs::readlinkat(rustix::fs::cwd(), &root, Vec::new())
                     .ok()
-                    .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
+                    .and_then(|s| s.to_string_lossy().parse::<u32>().ok())
             });
         let pid = match pidres {
             Some(pid) => pid,
@@ -1027,7 +1027,7 @@ impl Process {
 
     /// Returns the process ID for this process, if the process was created from an ID. Otherwise
     /// use stat().pid.
-    pub fn pid(&self) -> i32 {
+    pub fn pid(&self) -> u32 {
         self.pid
     }
 
@@ -1344,7 +1344,7 @@ impl Process {
     }
 
     /// Return a task for the main thread of this process
-    pub fn task_from_tid(&self, tid: i32) -> ProcResult<Task> {
+    pub fn task_from_tid(&self, tid: u32) -> ProcResult<Task> {
         let path = PathBuf::from("task").join(tid.to_string());
         Task::from_process_at(&self.root, self.fd.as_fd(), path, self.pid, tid)
     }
@@ -1610,7 +1610,7 @@ impl std::iter::Iterator for FDsIter {
 /// The result of [`Process::tasks`], iterates over all tasks in a process
 #[derive(Debug)]
 pub struct TasksIter {
-    pid: i32,
+    pid: u32,
     inner: rustix::fs::Dir,
     inner_fd: rustix::fd::OwnedFd,
     root: PathBuf,
@@ -1622,7 +1622,7 @@ impl std::iter::Iterator for TasksIter {
         loop {
             match self.inner.next() {
                 Some(Ok(tp)) => {
-                    if let Ok(tid) = i32::from_str(&tp.file_name().to_string_lossy()) {
+                    if let Ok(tid) = u32::from_str(&tp.file_name().to_string_lossy()) {
                         if let Ok(task) =
                             Task::from_process_at(&self.root, self.inner_fd.as_fd(), tid.to_string(), self.pid, tid)
                         {
@@ -1688,7 +1688,7 @@ impl std::iter::Iterator for ProcessesIter {
         loop {
             match self.inner.next() {
                 Some(Ok(entry)) => {
-                    if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
+                    if let Ok(pid) = u32::from_str(&entry.file_name().to_string_lossy()) {
                         if let Ok(proc) = Process::new_with_root(self.root.join(pid.to_string())) {
                             break Some(Ok(proc));
                         }

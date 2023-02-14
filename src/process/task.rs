@@ -13,9 +13,9 @@ use rustix::fd::{BorrowedFd, OwnedFd};
 pub struct Task {
     fd: OwnedFd,
     /// The ID of the process that this task belongs to
-    pub pid: i32,
+    pub pid: u32,
     /// The task ID
-    pub tid: i32,
+    pub tid: u32,
     /// Task root: `/proc/<pid>/task/<tid>`
     pub(crate) root: PathBuf,
 }
@@ -28,8 +28,8 @@ impl Task {
         base: P,
         dirfd: BorrowedFd,
         path: Q,
-        pid: i32,
-        tid: i32,
+        pid: u32,
+        tid: u32,
     ) -> ProcResult<Task> {
         use rustix::fs::{Mode, OFlags};
 
@@ -231,7 +231,7 @@ mod tests {
 
         let children = crate::process::Process::myself()
             .unwrap()
-            .task_from_tid(tid.as_raw_nonzero().get() as i32)
+            .task_from_tid(tid.as_raw_nonzero().get())
             .unwrap()
             .children()
             .unwrap();

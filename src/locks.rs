@@ -130,7 +130,7 @@ pub struct Lock {
     ///
     /// Before kernel 4.14 a bug meant that the PID of of the process that initially
     /// acquired the lock was displayed instead of `None`.
-    pub pid: Option<i32>,
+    pub pid: Option<u32>,
     /// The major ID of the device containing the FS that contains this lock
     pub devmaj: u32,
     /// The minor ID of the device containing the FS that contains this lock
@@ -178,7 +178,7 @@ impl Lock {
             lock_type: typ,
             mode,
             kind,
-            pid: if pid == "-1" { None } else { Some(from_str!(i32, pid)) },
+            pid: if pid == "-1" { None } else { Some(from_str!(u32, pid)) },
             devmaj,
             devmin,
             inode,
