@@ -1183,7 +1183,7 @@ impl Process {
         // Use fast path if available (Linux v6.2): https://github.com/torvalds/linux/commit/f1f1f2569901
         let stat = wrap_io_error!(
             self.root.join("fd"),
-            rustix::fs::statat(&self.fd, "fd", AtFlags::SYMLINK_NOFOLLOW)
+            rustix::fs::statat(&self.fd, "fd", AtFlags::empty())
         )?;
         if stat.st_size > 0 {
             return Ok(stat.st_size as usize);
