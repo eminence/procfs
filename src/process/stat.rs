@@ -37,7 +37,7 @@ macro_rules! since_kernel {
 pub struct Stat {
     /// The process ID.
     pub pid: i32,
-    /// The filename of the executable, in parentheses.
+    /// The filename of the executable, without the parentheses.
     ///
     /// This is visible whether or not the executable is swapped out.
     ///
