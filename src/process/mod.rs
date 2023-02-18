@@ -206,6 +206,10 @@ bitflags! {
 
 bitflags! {
     /// The permissions a process has on memory map entries.
+    ///
+    /// Note that the `SHARED` and `PRIVATE` are mutually exclusive, so while you can
+    /// use `MMPermissions::all()` to construct an instance that has all bits set,
+    /// this particular value would never been seen in procfs.
     #[derive(Default)]
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
     pub struct MMPermissions: u8 {
@@ -238,6 +242,26 @@ impl MMPermissions {
             b'p' => Self::PRIVATE,
             _ => Self::NONE,
         }
+    }
+    /// Returns this permission map as a 4-character string, similar to what you
+    /// might see in `/proc/\<pid\>/maps`.
+    ///
+    /// Note that the SHARED and PRIVATE bits are mutually exclusive, so this
+    /// string is 4 characters long, not 5.
+    pub fn as_str(&self) -> String {
+        let mut s = String::with_capacity(4);
+        s.push(if self.contains(Self::READ) { 'r' } else { '-' });
+        s.push(if self.contains(Self::WRITE) { 'w' } else { '-' });
+        s.push(if self.contains(Self::EXECUTE) { 'x' } else { '-' });
+        s.push(if self.contains(Self::SHARED) {
+            's'
+        } else if self.contains(Self::PRIVATE) {
+            'p'
+        } else {
+            '-'
+        });
+
+        s
     }
 }
 
@@ -1767,5 +1791,9 @@ mod tests {
         assert_eq!("rw-p".parse(), Ok(P::READ | P::WRITE | P::PRIVATE));
         assert_eq!("r-xs".parse(), Ok(P::READ | P::EXECUTE | P::SHARED));
         assert_eq!("----".parse(), Ok(P::NONE));
+
+        assert_eq!((P::READ | P::WRITE | P::PRIVATE).as_str(), "rw-p");
+        assert_eq!((P::READ | P::EXECUTE | P::SHARED).as_str(), "r-xs");
+        assert_eq!(P::NONE.as_str(), "----");
     }
 }
