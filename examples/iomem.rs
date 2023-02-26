@@ -3,6 +3,7 @@
 // This requires CAP_SYS_ADMIN privilege, or root, otherwise physical memory addresses will be zero
 //
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     if !rustix::process::geteuid().is_root() {
         println!("WARNING: Access to /proc/iomem requires root, re-run with sudo");
@@ -19,4 +20,9 @@ fn main() {
     if !rustix::process::geteuid().is_root() {
         println!("\n\nWARNING: Access to /proc/iomem requires root, re-run with sudo");
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

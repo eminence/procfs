@@ -1,8 +1,12 @@
 use super::ProcState;
 use super::StatFlags;
 #[cfg(feature = "chrono")]
+#[cfg(not(feature = "parsing_only"))]
 use crate::TICKS_PER_SECOND;
-use crate::{from_iter, KernelVersion, ProcResult};
+use crate::{from_iter, ProcResult};
+#[cfg(not(feature = "parsing_only"))]
+use crate::KernelVersion;
+#[cfg(not(feature = "parsing_only"))]
 use crate::{KERNEL, PAGESIZE};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -10,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::str::FromStr;
 
+#[cfg(not(feature = "parsing_only"))]
 macro_rules! since_kernel {
     ($a:tt, $b:tt, $c:tt, $e:expr) => {
         if let Ok(kernel) = *KERNEL {
@@ -21,6 +26,13 @@ macro_rules! since_kernel {
         } else {
             None
         }
+    };
+}
+
+#[cfg(feature = "parsing_only")]
+macro_rules! since_kernel {
+    ($a:tt, $b:tt, $c:tt, $e:expr) => {
+        None
     };
 }
 
@@ -404,6 +416,7 @@ impl Stat {
     ///
     /// This function requires the "chrono" features to be enabled (which it is by default).
     #[cfg(feature = "chrono")]
+    #[cfg(not(feature = "parsing_only"))]
     pub fn starttime(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
         let seconds_since_boot = self.starttime as f32 / *TICKS_PER_SECOND as f32;
         let boot_time = crate::boot_time()?;
@@ -414,6 +427,7 @@ impl Stat {
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
+    #[cfg(not(feature = "parsing_only"))]
     pub fn rss_bytes(&self) -> u64 {
         self.rss * *PAGESIZE
     }

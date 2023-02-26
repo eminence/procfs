@@ -10,9 +10,10 @@
 //
 
 use procfs::process::MMapPath;
-use procfs::process::Process;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::process::Process;
     if !rustix::process::geteuid().is_root() {
         println!("WARNING: Access to /proc/<PID>/pagemap requires root, re-run with sudo");
     }
@@ -62,4 +63,9 @@ fn main() {
     if !rustix::process::geteuid().is_root() {
         println!("\n\nWARNING: Access to /proc/<PID>/pagemap requires root, re-run with sudo");
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

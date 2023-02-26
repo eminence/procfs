@@ -5,6 +5,7 @@ extern crate procfs;
 /// A very basic clone of `ps` on Linux, in the simple no-argument mode.
 /// It shows all the processes that share the same tty as our self
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     let mestat = procfs::process::Process::myself().unwrap().stat().unwrap();
     let tps = procfs::ticks_per_second();
@@ -22,4 +23,9 @@ fn main() {
             }
         }
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

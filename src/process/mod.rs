@@ -60,7 +60,9 @@ use super::*;
 use crate::from_iter;
 use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
 
+#[cfg(not(feature = "parsing_only"))]
 use rustix::fd::{AsFd, BorrowedFd, OwnedFd, RawFd};
+#[cfg(not(feature = "parsing_only"))]
 use rustix::fs::{AtFlags, Mode, OFlags, RawMode};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -69,7 +71,9 @@ use std::ffi::OsString;
 use std::fs::read_link;
 use std::io::{self, Read};
 use std::mem;
+#[cfg(not(feature = "parsing_only"))]
 use std::os::unix::ffi::OsStringExt;
+#[cfg(not(feature = "parsing_only"))]
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -98,7 +102,9 @@ pub use smaps_rollup::*;
 mod task;
 pub use task::*;
 
+#[cfg(not(feature = "parsing_only"))]
 mod pagemap;
+#[cfg(not(feature = "parsing_only"))]
 pub use pagemap::*;
 
 bitflags! {
@@ -189,6 +195,7 @@ bitflags! {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 bitflags! {
     /// The mode (read/write permissions) for an open file descriptor
     ///
@@ -881,6 +888,7 @@ impl FromStr for FDTarget {
 /// See the [Process::fd()] method
 #[derive(Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[cfg(not(feature = "parsing_only"))]
 pub struct FDInfo {
     /// The file descriptor
     pub fd: i32,
@@ -892,6 +900,7 @@ pub struct FDInfo {
     pub target: FDTarget,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl FDInfo {
     /// Gets a file descriptor from a raw fd
     pub fn from_raw_fd(pid: i32, raw_fd: i32) -> ProcResult<Self> {
@@ -950,6 +959,7 @@ impl FDInfo {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl std::fmt::Debug for FDInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -975,6 +985,7 @@ impl std::fmt::Debug for FDInfo {
 /// or `top` -like program), you'll likely want to gather all of the necessary info from `Process`
 /// object into a new struct and then drop the `Process` object
 ///
+#[cfg(not(feature = "parsing_only"))]
 #[derive(Debug)]
 pub struct Process {
     fd: OwnedFd,
@@ -983,6 +994,7 @@ pub struct Process {
 }
 
 /// Methods for constructing a new `Process` object.
+#[cfg(not(feature = "parsing_only"))]
 impl Process {
     /// Returns a `Process` based on a specified PID.
     ///
@@ -1035,6 +1047,7 @@ impl Process {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl Process {
     /// Returns the complete command line for the process, unless the process is a zombie.
     ///
@@ -1603,6 +1616,7 @@ impl Process {
 }
 
 /// The result of [`Process::fd`], iterates over all fds in a process
+#[cfg(not(feature = "parsing_only"))]
 #[derive(Debug)]
 pub struct FDsIter {
     inner: rustix::fs::Dir,
@@ -1610,6 +1624,7 @@ pub struct FDsIter {
     root: PathBuf,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl std::iter::Iterator for FDsIter {
     type Item = ProcResult<FDInfo>;
     fn next(&mut self) -> Option<ProcResult<FDInfo>> {
@@ -1632,6 +1647,7 @@ impl std::iter::Iterator for FDsIter {
 }
 
 /// The result of [`Process::tasks`], iterates over all tasks in a process
+#[cfg(not(feature = "parsing_only"))]
 #[derive(Debug)]
 pub struct TasksIter {
     pid: i32,
@@ -1640,6 +1656,7 @@ pub struct TasksIter {
     root: PathBuf,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl std::iter::Iterator for TasksIter {
     type Item = ProcResult<Task>;
     fn next(&mut self) -> Option<ProcResult<Task>> {
@@ -1666,6 +1683,7 @@ impl std::iter::Iterator for TasksIter {
 /// If a process can't be constructed for some reason, it won't be returned in the iterator.
 ///
 /// See also some important docs on the [ProcessesIter] struct.
+#[cfg(not(feature = "parsing_only"))]
 pub fn all_processes() -> ProcResult<ProcessesIter> {
     all_processes_with_root("/proc")
 }
@@ -1675,6 +1693,7 @@ pub fn all_processes() -> ProcResult<ProcessesIter> {
 /// If a process can't be constructed for some reason, it won't be returned in the list.
 ///
 /// See also some important docs on the [ProcessesIter] struct.
+#[cfg(not(feature = "parsing_only"))]
 pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIter> {
     let root = root.as_ref();
     let dir = wrap_io_error!(
@@ -1700,12 +1719,14 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
 /// true snapshot).  Another important thing to keep in mind is that the [`Process`] struct holds an
 /// open file descriptor to its corresponding `/proc/<pid>` directory.  See the docs for [`Process`]
 /// for more information.
+#[cfg(not(feature = "parsing_only"))]
 #[derive(Debug)]
 pub struct ProcessesIter {
     root: PathBuf,
     inner: rustix::fs::Dir,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl std::iter::Iterator for ProcessesIter {
     type Item = ProcResult<Process>;
     fn next(&mut self) -> Option<ProcResult<Process>> {

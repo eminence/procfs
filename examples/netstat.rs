@@ -6,6 +6,7 @@ use procfs::process::{FDTarget, Stat};
 
 use std::collections::HashMap;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     // get all processes
     let all_procs = procfs::process::all_processes().unwrap();
@@ -50,4 +51,9 @@ fn main() {
             );
         }
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

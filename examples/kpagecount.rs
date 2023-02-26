@@ -13,6 +13,7 @@
 // Lots of references to this locations: addr=0x1b575000, pfn=111989, refs=134
 //
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     if !rustix::process::geteuid().is_root() {
         panic!("ERROR: Access to /proc/iomem requires root, re-run with sudo");
@@ -53,4 +54,9 @@ fn main() {
             refs
         );
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

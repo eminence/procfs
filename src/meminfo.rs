@@ -409,6 +409,7 @@ impl Meminfo {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod test {
     use super::*;
     use crate::{kernel_config, KernelVersion};

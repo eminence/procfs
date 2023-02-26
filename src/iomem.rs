@@ -3,11 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
 
 use super::{FileWrapper, ProcResult};
-use crate::{process::Pfn, split_into_num};
+use crate::{split_into_num};
+#[cfg(not(feature = "parsing_only"))]
+use crate::process::Pfn;
 
 /// Reads and parses the `/proc/iomem`, returning an error if there are problems.
 ///
 /// Requires root, otherwise every memory address will be zero
+#[cfg(not(feature = "parsing_only"))]
 pub fn iomem() -> ProcResult<Vec<(usize, PhysicalMemoryMap)>> {
     let f = FileWrapper::open("/proc/iomem")?;
 
@@ -55,6 +58,7 @@ impl PhysicalMemoryMap {
     ///
     /// First element of the tuple (start) is included.
     /// Second element (end) is excluded
+    #[cfg(not(feature = "parsing_only"))]
     pub fn get_range(&self) -> (Pfn, Pfn) {
         let start = self.address.0 / crate::page_size();
         let end = (self.address.1 + 1) / crate::page_size();

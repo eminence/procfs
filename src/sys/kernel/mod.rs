@@ -9,7 +9,9 @@ use std::str::FromStr;
 
 use bitflags::bitflags;
 
-use crate::{read_value, write_value, ProcError, ProcResult, KERNEL};
+use crate::{read_value, write_value, ProcError, ProcResult};
+#[cfg(not(feature = "parsing_only"))]
+use crate::KERNEL;
 
 pub mod keys;
 pub mod random;
@@ -30,6 +32,7 @@ impl Version {
     /// Returns the kernel version of the currently running kernel.
     ///
     /// This is taken from `/proc/sys/kernel/osrelease`;
+    #[cfg(not(feature = "parsing_only"))]
     pub fn current() -> ProcResult<Self> {
         read_value("/proc/sys/kernel/osrelease")
     }
@@ -445,6 +448,7 @@ pub fn threads_max() -> ProcResult<u32> {
 ///
 /// Since Linux 4.1, this value is bounded, and must be in the range [THREADS_MIN]..=[THREADS_MAX].
 /// This function will return an error if that is not the case.
+#[cfg(not(feature = "parsing_only"))]
 pub fn set_threads_max(new_limit: u32) -> ProcResult<()> {
     if let Ok(kernel) = *KERNEL {
         if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN..=THREADS_MAX).contains(&new_limit) {
@@ -527,6 +531,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "parsing_only"))]
     fn test_current() {
         let _ = Version::current().unwrap();
         let _ = Type::current().unwrap();

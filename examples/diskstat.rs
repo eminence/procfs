@@ -1,8 +1,9 @@
-use procfs::{diskstats, process::Process, DiskStat};
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::{diskstats, process::Process, DiskStat};
     let me = Process::myself().unwrap();
     let mounts = me.mountinfo().unwrap();
 
@@ -28,4 +29,9 @@ fn main() {
             );
         }
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

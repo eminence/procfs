@@ -7,6 +7,7 @@ use std::str::FromStr;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(feature = "parsing_only"))]
 impl crate::process::Process {
     /// Return the limits for this process
     pub fn limits(&self) -> ProcResult<Limits> {
@@ -216,6 +217,7 @@ impl FromStr for LimitValue {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use crate::*;
     use rustix::process::Resource;

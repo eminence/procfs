@@ -17,6 +17,7 @@ pub fn set_max_user_watches(val: u64) -> ProcResult<()> {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use super::*;
     use crate::KernelVersion;

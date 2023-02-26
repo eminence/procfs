@@ -10,6 +10,7 @@ fn print(name: &str, indent: usize, mods: &HashMap<&str, Vec<&str>>) {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     let modules = procfs::modules().unwrap();
 
@@ -27,4 +28,9 @@ fn main() {
     for modname in map.keys() {
         print(modname, 0, &map);
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

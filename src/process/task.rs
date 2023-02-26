@@ -3,12 +3,14 @@ use std::path::{Path, PathBuf};
 
 use super::{FileWrapper, Io, Schedstat, Stat, Status};
 use crate::{ProcError, ProcResult};
+#[cfg(not(feature = "parsing_only"))]
 use rustix::fd::{BorrowedFd, OwnedFd};
 
 /// A task (aka Thread) inside of a [`Process`](crate::process::Process)
 ///
 /// Created by [`Process::tasks`](crate::process::Process::tasks), tasks in
 /// general are similar to Processes and should have mostly the same fields.
+#[cfg(not(feature = "parsing_only"))]
 #[derive(Debug)]
 pub struct Task {
     fd: OwnedFd,
@@ -20,6 +22,7 @@ pub struct Task {
     pub(crate) root: PathBuf,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl Task {
     /// Create a new `Task` inside of the process
     ///
@@ -106,6 +109,7 @@ impl Task {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use crate::process::Io;
     use crate::ProcError;

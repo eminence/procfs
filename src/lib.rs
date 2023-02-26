@@ -49,6 +49,7 @@
 use bitflags::bitflags;
 use lazy_static::lazy_static;
 
+#[cfg(not(feature = "parsing_only"))]
 use rustix::fd::AsFd;
 use std::fmt;
 use std::fs::{File, OpenOptions};
@@ -270,7 +271,9 @@ mod cgroups;
 pub use crate::cgroups::*;
 
 pub mod sys;
+#[cfg(not(feature = "parsing_only"))]
 pub use crate::sys::kernel::BuildInfo as KernelBuildInfo;
+#[cfg(not(feature = "parsing_only"))]
 pub use crate::sys::kernel::Type as KernelType;
 pub use crate::sys::kernel::Version as KernelVersion;
 
@@ -291,12 +294,17 @@ pub use uptime::*;
 mod iomem;
 pub use iomem::*;
 
+#[cfg(not(feature = "parsing_only"))]
 mod kpageflags;
+#[cfg(not(feature = "parsing_only"))]
 pub use kpageflags::*;
 
+#[cfg(not(feature = "parsing_only"))]
 mod kpagecount;
+#[cfg(not(feature = "parsing_only"))]
 pub use kpagecount::*;
 
+#[cfg(not(feature = "parsing_only"))]
 lazy_static! {
     /// The number of clock ticks per second.
     ///
@@ -380,6 +388,7 @@ impl FileWrapper {
             path: p.to_owned(),
         })
     }
+    #[cfg(not(feature = "parsing_only"))]
     fn open_at<P, Q, Fd: AsFd>(root: P, dirfd: Fd, path: Q) -> Result<FileWrapper, io::Error>
     where
         P: AsRef<Path>,
@@ -514,13 +523,17 @@ impl From<std::io::Error> for ProcError {
                         ErrorKind::PermissionDenied => ProcError::PermissionDenied(Some(path)),
                         ErrorKind::NotFound => ProcError::NotFound(Some(path)),
                         _other => {
-                            use rustix::io::Errno;
-                            if matches!(wrapper.inner.raw_os_error(), Some(raw) if raw == Errno::SRCH.raw_os_error()) {
-                                // This "No such process" error gets mapped into a NotFound error
-                                ProcError::NotFound(Some(path))
-                            } else {
-                                ProcError::Io(wrapper.inner, Some(path))
+                            #[cfg(not(feature = "parsing_only"))]
+                            {
+                                use rustix::io::Errno;
+                                if matches!(wrapper.inner.raw_os_error(), Some(raw) if raw == Errno::SRCH.raw_os_error()) {
+                                    // This "No such process" error gets mapped into a NotFound error
+                                    return ProcError::NotFound(Some(path))
+                                } else {
+                                    return ProcError::Io(wrapper.inner, Some(path))
+                                }
                             }
+                            ProcError::Io(wrapper.inner, Some(path))
                         }
                     }
                 }
@@ -641,6 +654,7 @@ impl LoadAverage {
 ///
 /// This isn't part of the proc file system, but it's a useful thing to have, since several fields
 /// count in ticks.  This is calculated from `sysconf(_SC_CLK_TCK)`.
+#[cfg(not(feature = "parsing_only"))]
 pub fn ticks_per_second() -> u64 {
     rustix::param::clock_ticks_per_second()
 }
@@ -651,6 +665,7 @@ pub fn ticks_per_second() -> u64 {
 ///
 /// This function requires the "chrono" features to be enabled (which it is by default).
 #[cfg(feature = "chrono")]
+#[cfg(not(feature = "parsing_only"))]
 pub fn boot_time() -> ProcResult<DateTime<Local>> {
     use chrono::TimeZone;
     let secs = boot_time_secs()?;
@@ -672,6 +687,7 @@ pub fn boot_time() -> ProcResult<DateTime<Local>> {
     feature = "chrono",
     doc = "See also [boot_time()] to get the boot time as a `DateTime`"
 )]
+#[cfg(not(feature = "parsing_only"))]
 pub fn boot_time_secs() -> ProcResult<u64> {
     BOOT_TIME.with(|x| {
         let mut btime = x.borrow_mut();
@@ -692,6 +708,7 @@ thread_local! {
 /// Memory page size, in bytes.
 ///
 /// This is calculated from `sysconf(_SC_PAGESIZE)`.
+#[cfg(not(feature = "parsing_only"))]
 pub fn page_size() -> u64 {
     rustix::param::page_size() as u64
 }
@@ -713,6 +730,7 @@ pub enum ConfigSetting {
 /// (which it is by default).
 #[cfg_attr(feature = "flate2", doc = "The flate2 feature is currently enabled")]
 #[cfg_attr(not(feature = "flate2"), doc = "The flate2 feature is NOT currently enabled")]
+#[cfg(not(feature = "parsing_only"))]
 pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
     let reader: Box<dyn BufRead> = if Path::new(PROC_CONFIG_GZ).exists() && cfg!(feature = "flate2") {
         #[cfg(feature = "flate2")]
@@ -823,6 +841,7 @@ pub struct CpuTime {
     /// (Since Linux 2.6.33)
     pub guest_nice: Option<u64>,
 
+    #[cfg(not(feature = "parsing_only"))]
     tps: u64,
 }
 
@@ -832,6 +851,7 @@ impl CpuTime {
 
         // Store this field in the struct so we don't have to attempt to unwrap ticks_per_second() when we convert
         // from ticks into other time units
+        #[cfg(not(feature = "parsing_only"))]
         let tps = crate::ticks_per_second();
 
         s.next();
@@ -858,116 +878,137 @@ impl CpuTime {
             steal,
             guest,
             guest_nice,
+            #[cfg(not(feature = "parsing_only"))]
             tps,
         })
     }
 
     /// Milliseconds spent in user mode
+    #[cfg(not(feature = "parsing_only"))]
     pub fn user_ms(&self) -> u64 {
         let ms_per_tick = 1000 / self.tps;
         self.user * ms_per_tick
     }
 
     /// Time spent in user mode
+    #[cfg(not(feature = "parsing_only"))]
     pub fn user_duration(&self) -> Duration {
         Duration::from_millis(self.user_ms())
     }
 
     /// Milliseconds spent in user mode with low priority (nice)
+    #[cfg(not(feature = "parsing_only"))]
     pub fn nice_ms(&self) -> u64 {
         let ms_per_tick = 1000 / self.tps;
         self.nice * ms_per_tick
     }
 
     /// Time spent in user mode with low priority (nice)
+    #[cfg(not(feature = "parsing_only"))]
     pub fn nice_duration(&self) -> Duration {
         Duration::from_millis(self.nice_ms())
     }
 
     /// Milliseconds spent in system mode
+    #[cfg(not(feature = "parsing_only"))]
     pub fn system_ms(&self) -> u64 {
         let ms_per_tick = 1000 / self.tps;
         self.system * ms_per_tick
     }
 
     /// Time spent in system mode
+    #[cfg(not(feature = "parsing_only"))]
     pub fn system_duration(&self) -> Duration {
         Duration::from_millis(self.system_ms())
     }
 
     /// Milliseconds spent in the idle state
+    #[cfg(not(feature = "parsing_only"))]
     pub fn idle_ms(&self) -> u64 {
         let ms_per_tick = 1000 / self.tps;
         self.idle * ms_per_tick
     }
 
     /// Time spent in the idle state
+    #[cfg(not(feature = "parsing_only"))]
     pub fn idle_duration(&self) -> Duration {
         Duration::from_millis(self.idle_ms())
     }
 
     /// Milliseconds spent waiting for I/O to complete
+    #[cfg(not(feature = "parsing_only"))]
     pub fn iowait_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.iowait.map(|io| io * ms_per_tick)
     }
 
     /// Time spent waiting for I/O to complete
+    #[cfg(not(feature = "parsing_only"))]
     pub fn iowait_duration(&self) -> Option<Duration> {
         self.iowait_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent servicing interrupts
+    #[cfg(not(feature = "parsing_only"))]
     pub fn irq_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.irq.map(|ms| ms * ms_per_tick)
     }
 
     /// Time spent servicing interrupts
+    #[cfg(not(feature = "parsing_only"))]
     pub fn irq_duration(&self) -> Option<Duration> {
         self.irq_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent servicing softirqs
+    #[cfg(not(feature = "parsing_only"))]
     pub fn softirq_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.softirq.map(|ms| ms * ms_per_tick)
     }
 
     /// Time spent servicing softirqs
+    #[cfg(not(feature = "parsing_only"))]
     pub fn softirq_duration(&self) -> Option<Duration> {
         self.softirq_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds of stolen time
+    #[cfg(not(feature = "parsing_only"))]
     pub fn steal_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.steal.map(|ms| ms * ms_per_tick)
     }
 
     /// Amount of stolen time
+    #[cfg(not(feature = "parsing_only"))]
     pub fn steal_duration(&self) -> Option<Duration> {
         self.steal_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent running a virtual CPU for guest operating systems under control of the linux kernel
+    #[cfg(not(feature = "parsing_only"))]
     pub fn guest_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.guest.map(|ms| ms * ms_per_tick)
     }
 
     /// Time spent running a virtual CPU for guest operating systems under control of the linux kernel
+    #[cfg(not(feature = "parsing_only"))]
     pub fn guest_duration(&self) -> Option<Duration> {
         self.guest_ms().map(Duration::from_millis)
     }
 
     /// Milliseconds spent running a niced guest
+    #[cfg(not(feature = "parsing_only"))]
     pub fn guest_nice_ms(&self) -> Option<u64> {
         let ms_per_tick = 1000 / self.tps;
         self.guest_nice.map(|ms| ms * ms_per_tick)
     }
 
     /// Time spent running a niced guest
+    #[cfg(not(feature = "parsing_only"))]
     pub fn guest_nice_duration(&self) -> Option<Duration> {
         self.guest_nice_ms().map(Duration::from_millis)
     }
@@ -1003,6 +1044,7 @@ pub struct KernelStats {
 }
 
 impl KernelStats {
+    #[cfg(not(feature = "parsing_only"))]
     pub fn new() -> ProcResult<KernelStats> {
         KernelStats::from_reader(FileWrapper::open("/proc/stat")?)
     }
@@ -1155,6 +1197,7 @@ pub fn cmdline() -> ProcResult<Vec<String>> {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use super::*;
 
@@ -1239,6 +1282,7 @@ mod tests {
 
     #[test]
     fn test_kernel_config() {
+        
         // TRAVIS
         // we don't have access to the kernel_config on travis, so skip that test there
         match std::env::var("TRAVIS") {

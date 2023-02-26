@@ -1,4 +1,3 @@
-use rustix::fs::{AtFlags, Mode, OFlags};
 use std::{collections::HashMap, ffi::OsString, path::PathBuf};
 
 #[cfg(feature = "serde1")]
@@ -6,13 +5,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::ProcResult;
 
+#[cfg(not(feature = "parsing_only"))]
 use super::Process;
 
+#[cfg(not(feature = "parsing_only"))]
 impl Process {
     /// Describes namespaces to which the process with the corresponding PID belongs.
     /// Doc reference: <https://man7.org/linux/man-pages/man7/namespaces.7.html>
     /// The namespace type is the key for the HashMap, i.e 'net', 'user', etc.
     pub fn namespaces(&self) -> ProcResult<HashMap<OsString, Namespace>> {
+        use rustix::fs::{AtFlags, Mode, OFlags};
         let mut namespaces = HashMap::new();
         let dir_ns = wrap_io_error!(
             self.root.join("ns"),
@@ -82,6 +84,7 @@ impl PartialEq for Namespace {
 impl Eq for Namespace {}
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use crate::process::Process;
 

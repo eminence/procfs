@@ -1,6 +1,6 @@
-use procfs::process::Process;
-
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::process::Process;
     let me = Process::myself().expect("Unable to load myself!");
     println!("PID: {}", me.pid);
 
@@ -53,4 +53,9 @@ fn main() {
             status.rssfile.expect("rssfile") * 1024 + status.rssshmem.expect("rssshmem") * 1024
         );
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

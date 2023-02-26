@@ -1,13 +1,15 @@
-use procfs::process::{all_processes, Stat};
 
-struct ProcessEntry {
-    stat: Stat,
-    cmdline: Option<Vec<String>>,
-}
 
 /// Print all processes as a tree.
 /// The tree reflects the hierarchical relationship between parent and child processes.
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::process::{all_processes, Stat};
+    struct ProcessEntry {
+        stat: Stat,
+        cmdline: Option<Vec<String>>,
+    }
+    
     // Get all processes
     let processes: Vec<ProcessEntry> = match all_processes() {
         Err(err) => {
@@ -39,6 +41,7 @@ fn main() {
 /// It's a depth-first tree exploration.
 ///
 /// depth: The hierarchical depth of the process
+#[cfg(not(feature = "parsing_only"))]
 fn print_process(process: &ProcessEntry, all_processes: &Vec<ProcessEntry>, depth: usize) {
     let cmdline = match &process.cmdline {
         Some(cmdline) => cmdline.join(" "),
@@ -66,9 +69,15 @@ fn print_process(process: &ProcessEntry, all_processes: &Vec<ProcessEntry>, dept
 
 /// Get all children of a specific process, by iterating through all processes and
 /// checking their parent pid.
+#[cfg(not(feature = "parsing_only"))]
 fn get_children(pid: i32, all_processes: &[ProcessEntry]) -> Vec<&ProcessEntry> {
     all_processes
         .iter()
         .filter(|process| process.stat.ppid == pid)
         .collect()
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

@@ -43,6 +43,7 @@ bitflags! {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl super::Process {
     /// Returns the [MountStat] data for this processes mount namespace.
     pub fn mountstats(&self) -> ProcResult<Vec<MountStat>> {
@@ -557,6 +558,7 @@ impl NFSOperationStat {
 pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use crate::process::*;
     use std::time::Duration;

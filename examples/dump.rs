@@ -1,5 +1,6 @@
 extern crate procfs;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     let pid = std::env::args().nth(1).and_then(|s| s.parse::<i32>().ok());
 
@@ -14,4 +15,9 @@ fn main() {
     let stat = prc.stat().unwrap();
     println!("State: {:?}", stat.state());
     println!("RSS:   {} bytes", stat.rss_bytes());
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

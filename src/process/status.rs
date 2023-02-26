@@ -340,6 +340,7 @@ impl Status {
 }
 
 #[cfg(test)]
+#[cfg(not(feature = "parsing_only"))]
 mod tests {
     use crate::process::*;
 

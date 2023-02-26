@@ -1,8 +1,10 @@
-use procfs::process::{FDTarget, Process};
-use rustix::fs::AtFlags;
 use std::path::Path;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::process::{FDTarget, Process};
+    use rustix::fs::AtFlags;
+    
     let myself = Process::myself().unwrap();
     let mountinfo = myself.mountinfo().unwrap();
 
@@ -65,3 +67,9 @@ fn main() {
         println!();
     }
 }
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
+}
+

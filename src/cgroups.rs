@@ -1,5 +1,6 @@
 use crate::ProcResult;
 
+#[cfg(not(feature = "parsing_only"))]
 use super::process::Process;
 
 #[cfg(feature = "serde1")]
@@ -33,6 +34,7 @@ pub struct CGroupController {
 /// (since Linux 2.6.24)
 // This is returning a vector, but if each subsystem name is unique, maybe this can be a hashmap
 // instead
+#[cfg(not(feature = "parsing_only"))]
 pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
@@ -88,6 +90,7 @@ pub struct ProcessCgroup {
     pub pathname: String,
 }
 
+#[cfg(not(feature = "parsing_only"))]
 impl Process {
     /// Describes control groups to which the process with the corresponding PID belongs.
     ///
@@ -125,6 +128,7 @@ impl Process {
     }
 }
 
+#[cfg(not(feature = "parsing_only"))]
 #[cfg(test)]
 mod tests {
     use super::*;

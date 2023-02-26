@@ -1,5 +1,6 @@
 //! For each interface, display the number of bytes sent and received, along with a data rate
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     let delay = std::time::Duration::from_secs(2);
 
@@ -38,4 +39,9 @@ fn main() {
         prev_stats = dev_stats;
         prev_now = now;
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

@@ -2,6 +2,7 @@ extern crate procfs;
 
 /// List processes using posix shared memory segments
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
     let shared_memory_vec = procfs::Shm::new().unwrap();
 
@@ -26,4 +27,9 @@ fn main() {
         }
         println!();
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

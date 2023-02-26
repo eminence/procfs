@@ -16,6 +16,7 @@ pub struct Uptime {
 }
 
 impl Uptime {
+    #[cfg(not(feature = "parsing_only"))]
     pub fn new() -> ProcResult<Uptime> {
         let file = FileWrapper::open("/proc/uptime")?;
         Uptime::from_reader(file)

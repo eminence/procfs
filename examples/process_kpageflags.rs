@@ -13,10 +13,11 @@
 // virt_mem: 0x7ffd2de47000, pfn: 0x107b06, phys_addr: 0x107b06000, flags: UPTODATE | LRU | MMAP | ANON | SWAPBACKED
 //
 
-use procfs::process::Process;
-use procfs::KPageFlags;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use procfs::process::Process;
+    use procfs::KPageFlags;
     if !rustix::process::geteuid().is_root() {
         // KpageFlags::new().unwrap() will panic either way
         panic!("ERROR: Access to /proc/kpageflags requires root, re-run with sudo");
@@ -98,4 +99,9 @@ fn main() {
             }
         }
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

@@ -1,7 +1,8 @@
-use procfs::process::Process;
-use std::collections::HashSet;
 
+#[cfg(not(feature = "parsing_only"))]
 fn main() {
+    use std::collections::HashSet;
+    use procfs::process::Process;
     for mount in Process::myself().unwrap().mountinfo().unwrap() {
         let (a, b): (HashSet<_>, HashSet<_>) = mount
             .mount_options
@@ -25,4 +26,9 @@ fn main() {
             }
         }
     }
+}
+
+#[cfg(feature = "parsing_only")]
+fn main() {
+    println!("This example must be run on linux");
 }

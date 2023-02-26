@@ -15,9 +15,13 @@ rust-version = "1.48"
 [features]
 default = ["chrono", "flate2"]
 serde1 = ["serde"]
+parsing_only = []
+
+# rustix is used only on linux, and only if the "parsing_only" feature isn't selected 
+[target.'cfg(all(unix, not(feature="parsing_only")))'.dependencies]
+rustix = { version = "0.36.0", features = ["fs", "process", "param", "thread"] }
 
 [dependencies]
-rustix = { version = "0.36.0", features = ["fs", "process", "param", "thread"] }
 bitflags = "1.2"
 lazy_static = "1.0.2"
 chrono = {version = "0.4.20", optional = true, features = ["clock"], default-features = false }
@@ -27,9 +31,12 @@ flate2 = { version = "1.0.3", optional = true }
 backtrace = { version = "0.3", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
+
+[target.'cfg(all(unix, not(feature="parsing_only")))'.dev-dependencies]
+procinfo = "0.4.2"
+
 [dev-dependencies]
 criterion = "0.4"
-procinfo = "0.4.2"
 failure = "0.1"
 libc = "0.2.139"
 
