@@ -1,15 +1,11 @@
 use crate::ProcResult;
-
-use super::process::Process;
-
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
+use std::io::{BufRead, BufReader, Read};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 /// Container group controller information.
-///
-/// See also the [cgroups()] method.
 pub struct CGroupController {
     /// The name of the controller.
     pub name: String,
@@ -28,46 +24,40 @@ pub struct CGroupController {
     pub enabled: bool,
 }
 
-/// Information about the cgroup controllers that are compiled into the kernel
-///
-/// (since Linux 2.6.24)
-// This is returning a vector, but if each subsystem name is unique, maybe this can be a hashmap
-// instead
-pub fn cgroups() -> ProcResult<Vec<CGroupController>> {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
+impl CGroupController {
+    /// Parse input into a vector of cgroup controllers.
+    // This is returning a vector, but if each subsystem name is unique, maybe this can be a
+    // hashmap instead
+    pub fn cgroup_controllers_from_reader<R: Read>(reader: R) -> ProcResult<Vec<Self>> {
+        let reader = BufReader::new(reader);
 
-    let file = File::open("/proc/cgroups")?;
-    let reader = BufReader::new(file);
+        let mut vec = Vec::new();
 
-    let mut vec = Vec::new();
+        for line in reader.lines() {
+            let line = line?;
+            if line.starts_with('#') {
+                continue;
+            }
 
-    for line in reader.lines() {
-        let line = line?;
-        if line.starts_with('#') {
-            continue;
+            let mut s = line.split_whitespace();
+            let name = expect!(s.next(), "name").to_owned();
+            let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
+            let num_cgroups = from_str!(u32, expect!(s.next(), "num_cgroups"));
+            let enabled = expect!(s.next(), "enabled") == "1";
+
+            vec.push(CGroupController {
+                name,
+                hierarchy,
+                num_cgroups,
+                enabled,
+            });
         }
 
-        let mut s = line.split_whitespace();
-        let name = expect!(s.next(), "name").to_owned();
-        let hierarchy = from_str!(u32, expect!(s.next(), "hierarchy"));
-        let num_cgroups = from_str!(u32, expect!(s.next(), "num_cgroups"));
-        let enabled = expect!(s.next(), "enabled") == "1";
-
-        vec.push(CGroupController {
-            name,
-            hierarchy,
-            num_cgroups,
-            enabled,
-        });
+        Ok(vec)
     }
-
-    Ok(vec)
 }
 
 /// Information about a process cgroup
-///
-/// See also the [Process::cgroups()] method.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct ProcessCgroup {
@@ -88,15 +78,10 @@ pub struct ProcessCgroup {
     pub pathname: String,
 }
 
-impl Process {
-    /// Describes control groups to which the process with the corresponding PID belongs.
-    ///
-    /// The displayed information differs for cgroupsversion 1 and version 2 hierarchies.
-    pub fn cgroups(&self) -> ProcResult<Vec<ProcessCgroup>> {
-        use std::io::{BufRead, BufReader};
-
-        let file = self.open_relative("cgroup")?;
-        let reader = BufReader::new(file);
+impl ProcessCgroup {
+    /// Parse input into a vector of cgroups.
+    pub fn cgroups_from_reader<R: Read>(reader: R) -> ProcResult<Vec<Self>> {
+        let reader = BufReader::new(reader);
 
         let mut vec = Vec::new();
 
@@ -127,18 +112,5 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn test_cgroups() {
-        let groups = cgroups().unwrap();
-        println!("{:?}", groups);
-    }
-
-    #[test]
-    fn test_process_cgroups() {
-        let myself = Process::myself().unwrap();
-        let groups = myself.cgroups();
-        println!("{:?}", groups);
-    }
+    // TODO
 }
