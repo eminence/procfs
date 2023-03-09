@@ -21,8 +21,8 @@ pub struct Schedstat {
     pub pcount: u64,
 }
 
-impl Schedstat {
-    pub fn from_reader<R: Read>(mut r: R) -> ProcResult<Schedstat> {
+impl crate::FromRead for Schedstat {
+    fn from_read<R: Read>(mut r: R) -> ProcResult<Self> {
         let mut line = String::new();
         r.read_to_string(&mut line)?;
         let mut s = line.split_whitespace();

@@ -3,7 +3,7 @@ use bitflags::bitflags;
 use crate::{from_iter, ProcResult};
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Lines, Read};
+use std::io::{BufRead, Lines};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -40,6 +40,41 @@ bitflags! {
         const NFS_CAP_CLONE = (1 << 23);
         const NFS_CAP_COPY = (1 << 24);
         const NFS_CAP_OFFLOAD_CANCEL = (1 << 25);
+    }
+}
+
+/// Information about a all mounts in a process's mount namespace.
+///
+/// This data is taken from the `/proc/[pid]/mountinfo` file.
+pub struct MountInfos(pub Vec<MountInfo>);
+
+impl crate::FromBufRead for MountInfos {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let lines = r.lines();
+        let mut vec = Vec::new();
+        for line in lines {
+            vec.push(MountInfo::from_line(&line?)?);
+        }
+
+        Ok(MountInfos(vec))
+    }
+}
+
+impl IntoIterator for MountInfos {
+    type IntoIter = std::vec::IntoIter<MountInfo>;
+    type Item = MountInfo;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a MountInfos {
+    type IntoIter = std::slice::Iter<'a, MountInfo>;
+    type Item = &'a MountInfo;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
     }
 }
 
@@ -175,6 +210,21 @@ pub enum MountOptFields {
     Unbindable,
 }
 
+/// A single entry in [MountStats].
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct MountStat {
+    /// The name of the mounted device
+    pub device: Option<String>,
+    /// The mountpoint within the filesystem tree
+    pub mount_point: PathBuf,
+    /// The filesystem type
+    pub fs: String,
+    /// If the mount is NFS, this will contain various NFS statistics
+    pub statistics: Option<MountNFSStatistics>,
+}
+
 /// Mount information from `/proc/<pid>/mountstats`.
 ///
 /// # Example:
@@ -194,22 +244,13 @@ pub enum MountOptFields {
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-pub struct MountStat {
-    /// The name of the mounted device
-    pub device: Option<String>,
-    /// The mountpoint within the filesystem tree
-    pub mount_point: PathBuf,
-    /// The filesystem type
-    pub fs: String,
-    /// If the mount is NFS, this will contain various NFS statistics
-    pub statistics: Option<MountNFSStatistics>,
-}
+pub struct MountStats(pub Vec<MountStat>);
 
-impl MountStat {
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<Vec<MountStat>> {
+impl crate::FromBufRead for MountStats {
+    /// This should correspond to data in `/proc/<pid>/mountstats`.
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
         let mut v = Vec::new();
-        let bufread = BufReader::new(r);
-        let mut lines = bufread.lines();
+        let mut lines = r.lines();
         while let Some(Ok(line)) = lines.next() {
             if line.starts_with("device ") {
                 // line will be of the format:
@@ -235,7 +276,16 @@ impl MountStat {
             }
         }
 
-        Ok(v)
+        Ok(MountStats(v))
+    }
+}
+
+impl IntoIterator for MountStats {
+    type IntoIter = std::vec::IntoIter<MountStat>;
+    type Item = MountStat;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -535,6 +585,7 @@ pub type NFSPerOpStats = HashMap<String, NFSOperationStat>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FromRead;
     use std::time::Duration;
 
     #[test]
@@ -547,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_proc_mountstats() {
-        let simple = MountStat::from_reader(
+        let MountStats(simple) = FromRead::from_read(
             "device /dev/md127 mounted on /boot with fstype ext2 
 device /dev/md124 mounted on /home with fstype ext4 
 device tmpfs mounted on /run/user/0 with fstype tmpfs 
@@ -576,7 +627,7 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
             },
         ];
         assert_eq!(simple, simple_parsed);
-        let mountstats = MountStat::from_reader("device elwe:/space mounted on /srv/elwe/space with fstype nfs4 statvers=1.1 
+        let MountStats(mountstats) = FromRead::from_read("device elwe:/space mounted on /srv/elwe/space with fstype nfs4 statvers=1.1 
        opts:   rw,vers=4.1,rsize=131072,wsize=131072,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=krb5,clientaddr=10.0.1.77,local_lock=none 
        age:    3542 
        impl_id:        name='',domain='',date='0,0' 

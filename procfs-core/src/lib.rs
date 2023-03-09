@@ -48,7 +48,7 @@
 use bitflags::bitflags;
 
 use std::fmt;
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{collections::HashMap, time::Duration};
@@ -56,7 +56,63 @@ use std::{collections::HashMap, time::Duration};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
-trait IntoOption<T> {
+/// Types which can be parsed from a Read implementation.
+pub trait FromRead: Sized {
+    /// Read the type from a Read.
+    fn from_read<R: Read>(r: R) -> ProcResult<Self>;
+
+    /// Read the type from a file.
+    fn from_file<P: AsRef<Path>>(path: P) -> ProcResult<Self> {
+        std::fs::File::open(path.as_ref())
+            .map_err(|e| e.into())
+            .and_then(|f| Self::from_read(f))
+            .map_err(|e| e.error_path(path.as_ref()))
+    }
+}
+
+/// Types which can be parsed from a BufRead implementation.
+pub trait FromBufRead: Sized {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self>;
+}
+
+impl<T: FromBufRead> FromRead for T {
+    fn from_read<R: Read>(r: R) -> ProcResult<Self> {
+        Self::from_buf_read(BufReader::new(r))
+    }
+}
+
+/// Types which can be parsed from a Read implementation and system info.
+pub trait FromReadSI: Sized {
+    /// Parse the type from a Read and system info.
+    fn from_read<R: Read>(r: R, system_info: &SystemInfo) -> ProcResult<Self>;
+
+    /// Parse the type from a file.
+    fn from_file<P: AsRef<Path>>(path: P, system_info: &SystemInfo) -> ProcResult<Self> {
+        std::fs::File::open(path.as_ref())
+            .map_err(|e| e.into())
+            .and_then(|f| Self::from_read(f, system_info))
+            .map_err(|e| e.error_path(path.as_ref()))
+    }
+}
+
+/// Types which can be parsed from a BufRead implementation and system info.
+pub trait FromBufReadSI: Sized {
+    fn from_buf_read<R: BufRead>(r: R, system_info: &SystemInfo) -> ProcResult<Self>;
+}
+
+impl<T: FromBufReadSI> FromReadSI for T {
+    fn from_read<R: Read>(r: R, system_info: &SystemInfo) -> ProcResult<Self> {
+        Self::from_buf_read(BufReader::new(r), system_info)
+    }
+}
+
+/// Extension traits useful for importing wholesale.
+pub mod prelude {
+    pub use super::{FromBufRead, FromBufReadSI, FromRead, FromReadSI};
+}
+
+#[doc(hidden)]
+pub trait IntoOption<T> {
     fn into_option(t: Self) -> Option<T>;
 }
 
@@ -72,10 +128,13 @@ impl<T, R> IntoOption<T> for Result<T, R> {
     }
 }
 
+#[doc(hidden)]
 pub trait IntoResult<T, E> {
     fn into(t: Self) -> Result<T, E>;
 }
 
+#[macro_export]
+#[doc(hidden)]
 macro_rules! build_internal_error {
     ($err: expr) => {
         crate::ProcError::InternalError(crate::InternalError {
@@ -99,7 +158,8 @@ macro_rules! build_internal_error {
 
 // custom NoneError, since std::option::NoneError is nightly-only
 // See https://github.com/rust-lang/rust/issues/42327
-struct NoneError;
+#[doc(hidden)]
+pub struct NoneError;
 
 impl std::fmt::Display for NoneError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -120,6 +180,8 @@ impl<T, E> IntoResult<T, E> for Result<T, E> {
 }
 
 #[allow(unused_macros)]
+#[macro_export]
+#[doc(hidden)]
 macro_rules! proc_panic {
     ($e:expr) => {
         crate::IntoOption::into_option($e).unwrap_or_else(|| {
@@ -140,39 +202,43 @@ macro_rules! proc_panic {
     };
 }
 
+#[macro_export]
+#[doc(hidden)]
 macro_rules! expect {
     ($e:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return Err(build_internal_error!(e)),
+            Err(e) => return Err(crate::build_internal_error!(e)),
         }
     };
     ($e:expr, $msg:expr) => {
         match crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return Err(build_internal_error!(e, $msg)),
+            Err(e) => return Err(crate::build_internal_error!(e, $msg)),
         }
     };
 }
 
+#[macro_export]
+#[doc(hidden)]
 macro_rules! from_str {
     ($t:tt, $e:expr) => {{
         let e = $e;
-        expect!(
+        crate::expect!(
             $t::from_str_radix(e, 10),
             format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t),)
         )
     }};
     ($t:tt, $e:expr, $radix:expr) => {{
         let e = $e;
-        expect!(
+        crate::expect!(
             $t::from_str_radix(e, $radix),
             format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t))
         )
     }};
     ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
         let e = $e;
-        expect!(
+        crate::expect!(
             $t::from_str_radix(e, $radix),
             format!(
                 "Failed to parse {} ({:?}) as a {} (pid {})",
@@ -185,7 +251,66 @@ macro_rules! from_str {
     }};
 }
 
-// TODO temporary, only for procfs
+/// Auxiliary system information interface.
+pub trait SystemInfoInterface {
+    fn boot_time_secs(&self) -> ProcResult<u64>;
+    fn ticks_per_second(&self) -> u64;
+    fn page_size(&self) -> u64;
+
+    #[cfg(feature = "chrono")]
+    fn boot_time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
+        use chrono::TimeZone;
+        let date_time = expect!(chrono::Local.timestamp_opt(self.boot_time_secs()? as i64, 0).single());
+        Ok(date_time)
+    }
+}
+
+/// Auxiliary system information.
+pub type SystemInfo = dyn SystemInfoInterface;
+
+/// A convenience stuct implementing [SystemInfoInterface] with explicitly-specified values.
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct ExplicitSystemInfo {
+    pub boot_time_secs: u64,
+    pub ticks_per_second: u64,
+    pub page_size: u64,
+}
+
+impl SystemInfoInterface for ExplicitSystemInfo {
+    fn boot_time_secs(&self) -> ProcResult<u64> {
+        Ok(self.boot_time_secs)
+    }
+
+    fn ticks_per_second(&self) -> u64 {
+        self.ticks_per_second
+    }
+
+    fn page_size(&self) -> u64 {
+        self.page_size
+    }
+}
+
+/// Values which can provide an output given the [SystemInfo].
+pub trait WithSystemInfo<'a>: 'a {
+    type Output: 'a;
+
+    /// Get the output derived from the given [SystemInfo].
+    fn with_system_info(self, info: &SystemInfo) -> Self::Output;
+}
+
+impl<'a, F: 'a, R: 'a> WithSystemInfo<'a> for F
+where
+    F: FnOnce(&SystemInfo) -> R,
+{
+    type Output = R;
+
+    fn with_system_info(self, info: &SystemInfo) -> Self::Output {
+        self(info)
+    }
+}
+
+#[doc(hidden)]
 pub fn from_iter<'a, I, U>(i: I) -> ProcResult<U>
 where
     I: IntoIterator<Item = &'a str>,
@@ -199,12 +324,30 @@ where
     }
 }
 
+fn from_iter_optional<'a, I, U>(i: I) -> ProcResult<Option<U>>
+where
+    I: IntoIterator<Item = &'a str>,
+    U: FromStr,
+{
+    let mut iter = i.into_iter();
+    let Some(val) = iter.next() else {
+        return Ok(None);
+    };
+    match FromStr::from_str(val) {
+        Ok(u) => Ok(Some(u)),
+        Err(..) => Err(build_internal_error!("Failed to convert")),
+    }
+}
+
 pub mod process;
 
 mod cgroups;
-pub use crate::cgroups::*;
+pub use cgroups::*;
 pub mod sys;
-pub use crate::sys::kernel::Version as KernelVersion;
+pub use sys::kernel::Version as KernelVersion;
+
+mod iomem;
+pub use iomem::*;
 
 // TODO temporary, only for procfs
 pub trait FromStrRadix: Sized {
@@ -231,10 +374,10 @@ fn split_into_num<T: FromStrRadix>(s: &str, sep: char, radix: u32) -> ProcResult
 
 /// This is used to hold both an IO error as well as the path of the file that originated the error
 #[derive(Debug)]
-// TODO only for procfs
+#[doc(hidden)]
 pub struct IoErrorWrapper {
-    path: PathBuf,
-    inner: std::io::Error,
+    pub path: PathBuf,
+    pub inner: std::io::Error,
 }
 
 impl std::error::Error for IoErrorWrapper {}
@@ -277,6 +420,31 @@ pub enum ProcError {
     /// If you ever encounter this error, consider it a bug in the procfs crate and please report
     /// it on github.
     InternalError(InternalError),
+}
+
+/// Extensions for dealing with ProcErrors.
+pub trait ProcErrorExt {
+    /// Add path information to the error.
+    fn error_path(self, path: &Path) -> Self;
+}
+
+impl ProcErrorExt for ProcError {
+    fn error_path(mut self, path: &Path) -> Self {
+        use ProcError::*;
+        match &mut self {
+            PermissionDenied(p) | NotFound(p) | Incomplete(p) | Io(_, p) if p.is_none() => {
+                *p = Some(path.to_owned());
+            }
+            _ => (),
+        }
+        self
+    }
+}
+
+impl<T> ProcErrorExt for ProcResult<T> {
+    fn error_path(self, path: &Path) -> Self {
+        self.map_err(|e| e.error_path(path))
+    }
 }
 
 /// An internal error in the procfs crate
@@ -423,10 +591,8 @@ pub struct LoadAverage {
     pub latest_pid: u32,
 }
 
-impl LoadAverage {
-    /// Get LoadAverage from a Read stream.
-    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<LoadAverage> {
-        let mut reader = BufReader::new(r);
+impl FromRead for LoadAverage {
+    fn from_read<R: Read>(mut reader: R) -> ProcResult<Self> {
         let mut line = String::new();
 
         reader.read_to_string(&mut line)?;
@@ -455,43 +621,48 @@ impl LoadAverage {
 
 /// Possible values for a kernel config option
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum ConfigSetting {
     Yes,
     Module,
     Value(String),
 }
 
-/// Reads the configuration options used to build a kernel.
-pub fn kernel_config_from_read<R: Read>(read: R) -> ProcResult<HashMap<String, ConfigSetting>> {
-    let read = BufReader::new(read);
-    let mut map = HashMap::new();
+/// The kernel configuration.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct KernelConfig(pub HashMap<String, ConfigSetting>);
 
-    for line in read.lines() {
-        let line = line?;
-        if line.starts_with('#') {
-            continue;
+impl FromBufRead for KernelConfig {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let mut map = HashMap::new();
+
+        for line in r.lines() {
+            let line = line?;
+            if line.starts_with('#') {
+                continue;
+            }
+            if line.contains('=') {
+                let mut s = line.splitn(2, '=');
+                let name = expect!(s.next()).to_owned();
+                let value = match expect!(s.next()) {
+                    "y" => ConfigSetting::Yes,
+                    "m" => ConfigSetting::Module,
+                    s => ConfigSetting::Value(s.to_owned()),
+                };
+                map.insert(name, value);
+            }
         }
-        if line.contains('=') {
-            let mut s = line.splitn(2, '=');
-            let name = expect!(s.next()).to_owned();
-            let value = match expect!(s.next()) {
-                "y" => ConfigSetting::Yes,
-                "m" => ConfigSetting::Module,
-                s => ConfigSetting::Value(s.to_owned()),
-            };
-            map.insert(name, value);
-        }
+
+        Ok(KernelConfig(map))
     }
-
-    Ok(map)
 }
 
 /// The amount of time, measured in ticks, the CPU has been in specific states
 ///
 /// These fields are measured in ticks because the underlying data from the kernel is measured in ticks.
-/// The number of ticks per second can be returned by [`ticks_per_second()`](crate::ticks_per_second)
-/// and is generally 100 on most systems.
-
+/// The number of ticks per second is generally 100 on most systems.
+///
 /// To convert this value to seconds, you can divide by the tps.  There are also convenience methods
 /// that you can use too.
 #[derive(Debug, Clone)]
@@ -724,11 +895,9 @@ pub struct KernelStats {
     pub procs_blocked: Option<u32>,
 }
 
-impl KernelStats {
-    /// Get KernelStatus from a Read stream.
-    pub fn from_reader<R: io::Read>(r: R, ticks_per_second: u64) -> ProcResult<KernelStats> {
-        let bufread = BufReader::new(r);
-        let lines = bufread.lines();
+impl FromBufReadSI for KernelStats {
+    fn from_buf_read<R: BufRead>(r: R, system_info: &SystemInfo) -> ProcResult<Self> {
+        let lines = r.lines();
 
         let mut total_cpu = None;
         let mut cpus = Vec::new();
@@ -741,9 +910,9 @@ impl KernelStats {
         for line in lines {
             let line = line?;
             if line.starts_with("cpu ") {
-                total_cpu = Some(CpuTime::from_str(&line, ticks_per_second)?);
+                total_cpu = Some(CpuTime::from_str(&line, system_info.ticks_per_second())?);
             } else if line.starts_with("cpu") {
-                cpus.push(CpuTime::from_str(&line, ticks_per_second)?);
+                cpus.push(CpuTime::from_str(&line, system_info.ticks_per_second())?);
             } else if let Some(stripped) = line.strip_prefix("ctxt ") {
                 ctxt = Some(from_str!(u64, stripped));
             } else if let Some(stripped) = line.strip_prefix("btime ") {
@@ -769,24 +938,28 @@ impl KernelStats {
     }
 }
 
-/// Get various virtual memory statistics
+/// Various virtual memory statistics
 ///
-/// Since the exact set of statistics will vary from kernel to kernel,
-/// and because most of them are not well documented, this function
-/// returns a HashMap instead of a struct.  Consult the kernel source
-/// code for more details of this data.
-pub fn vmstat_from_read<R: Read>(r: R) -> ProcResult<HashMap<String, i64>> {
-    let reader = BufReader::new(r);
-    let mut map = HashMap::new();
-    for line in reader.lines() {
-        let line = line?;
-        let mut split = line.split_whitespace();
-        let name = expect!(split.next());
-        let val = from_str!(i64, expect!(split.next()));
-        map.insert(name.to_owned(), val);
-    }
+/// Since the exact set of statistics will vary from kernel to kernel, and because most of them are
+/// not well documented, this struct contains a HashMap instead of specific members. Consult the
+/// kernel source code for more details of this data.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct VmStat(pub HashMap<String, i64>);
 
-    Ok(map)
+impl FromBufRead for VmStat {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let mut map = HashMap::new();
+        for line in r.lines() {
+            let line = line?;
+            let mut split = line.split_whitespace();
+            let name = expect!(split.next());
+            let val = from_str!(i64, expect!(split.next()));
+            map.insert(name.to_owned(), val);
+        }
+
+        Ok(VmStat(map))
+    }
 }
 
 /// Details about a loaded kernel module
@@ -814,55 +987,65 @@ pub struct KernelModule {
     pub state: String,
 }
 
-/// Get a list of loaded kernel modules
-///
-/// `r` should correspond to the data in `/proc/modules`.
-pub fn modules_from_read<R: Read>(r: R) -> ProcResult<HashMap<String, KernelModule>> {
-    // kernel reference: kernel/module.c m_show()
-    let mut map = HashMap::new();
-    let reader = BufReader::new(r);
-    for line in reader.lines() {
-        let line: String = line?;
-        let mut s = line.split_whitespace();
-        let name = expect!(s.next());
-        let size = from_str!(u32, expect!(s.next()));
-        let refcount = from_str!(i32, expect!(s.next()));
-        let used_by: &str = expect!(s.next());
-        let state = expect!(s.next());
+/// A set of loaded kernel modules
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct KernelModules(pub HashMap<String, KernelModule>);
 
-        map.insert(
-            name.to_string(),
-            KernelModule {
-                name: name.to_string(),
-                size,
-                refcount,
-                used_by: if used_by == "-" {
-                    Vec::new()
-                } else {
-                    used_by
-                        .split(',')
-                        .filter(|s| !s.is_empty())
-                        .map(|s| s.to_string())
-                        .collect()
+impl FromBufRead for KernelModules {
+    /// This should correspond to the data in `/proc/modules`.
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        // kernel reference: kernel/module.c m_show()
+        let mut map = HashMap::new();
+        for line in r.lines() {
+            let line: String = line?;
+            let mut s = line.split_whitespace();
+            let name = expect!(s.next());
+            let size = from_str!(u32, expect!(s.next()));
+            let refcount = from_str!(i32, expect!(s.next()));
+            let used_by: &str = expect!(s.next());
+            let state = expect!(s.next());
+
+            map.insert(
+                name.to_string(),
+                KernelModule {
+                    name: name.to_string(),
+                    size,
+                    refcount,
+                    used_by: if used_by == "-" {
+                        Vec::new()
+                    } else {
+                        used_by
+                            .split(',')
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string())
+                            .collect()
+                    },
+                    state: state.to_string(),
                 },
-                state: state.to_string(),
-            },
-        );
-    }
+            );
+        }
 
-    Ok(map)
+        Ok(KernelModules(map))
+    }
 }
 
-/// Get a list of the arguments passed to the Linux kernel at boot time
-///
-/// `r` should correspond to the data in `/proc/cmdline`
-pub fn cmdline_from_read<R: Read>(mut r: R) -> ProcResult<Vec<String>> {
-    let mut buf = String::new();
-    r.read_to_string(&mut buf)?;
-    Ok(buf
-        .split(' ')
-        .filter_map(|s| if !s.is_empty() { Some(s.to_string()) } else { None })
-        .collect())
+/// A list of the arguments passed to the Linux kernel at boot time.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct KernelCmdline(pub Vec<String>);
+
+impl FromRead for KernelCmdline {
+    /// This should correspond to the data in `/proc/cmdline`.
+    fn from_read<R: Read>(mut r: R) -> ProcResult<Self> {
+        let mut buf = String::new();
+        r.read_to_string(&mut buf)?;
+        Ok(KernelCmdline(
+            buf.split(' ')
+                .filter_map(|s| if !s.is_empty() { Some(s.to_string()) } else { None })
+                .collect(),
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -906,7 +1089,7 @@ mod tests {
 
     #[test]
     fn test_loadavg_from_reader() -> ProcResult<()> {
-        let load_average = LoadAverage::from_reader("2.63 1.00 1.42 3/4280 2496732".as_bytes())?;
+        let load_average = LoadAverage::from_read("2.63 1.00 1.42 3/4280 2496732".as_bytes())?;
 
         assert_eq!(load_average.one, 2.63);
         assert_eq!(load_average.five, 1.00);

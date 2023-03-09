@@ -1,6 +1,6 @@
 //! This modules contains functions for kernel variables related to filesystems
 
-use crate::{read_file, read_value, write_value, ProcResult};
+use crate::{expect, from_str, read_file, read_value, write_value, ProcResult};
 use std::time::Duration;
 
 pub mod binfmt_misc;

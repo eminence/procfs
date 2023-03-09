@@ -1,60 +1,7 @@
 //! Functions and structs related to process information
 //!
 //! The primary source of data for functions in this module is the files in a `/proc/<pid>/`
-//! directory.  If you have a process ID, you can use
-//! [`Process::new(pid)`](struct.Process.html#method.new), otherwise you can get a
-//! list of all running processes using [`all_processes()`](fn.all_processes.html).
-//!
-//! In case you have procfs filesystem mounted to a location other than `/proc`,
-//! use [`Process::new_with_root()`](struct.Process.html#method.new_with_root).
-//!
-//! # Examples
-//!
-//! Here's a small example that prints out all processes that are running on the same tty as the calling
-//! process.  This is very similar to what "ps" does in its default mode.  You can run this example
-//! yourself with:
-//!
-//! > cargo run --example=ps
-//!
-//! ```rust
-//! let me = procfs::process::Process::myself().unwrap();
-//! let me_stat = me.stat().unwrap();
-//! let tps = procfs::ticks_per_second();
-//!
-//! println!("{: >10} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
-//!
-//! let tty = format!("pty/{}", me_stat.tty_nr().1);
-//! for prc in procfs::process::all_processes().unwrap() {
-//!     if let Ok(stat) = prc.unwrap().stat() {
-//!         if stat.tty_nr == me_stat.tty_nr {
-//!             // total_time is in seconds
-//!             let total_time =
-//!                 (stat.utime + stat.stime) as f32 / (tps as f32);
-//!             println!(
-//!                 "{: >10} {: <8} {: >8} {}",
-//!                 stat.pid, tty, total_time, stat.comm
-//!             );
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! Here's a simple example of how you could get the total memory used by the current process.
-//! There are several ways to do this.  For a longer example, see the `examples/self_memory.rs`
-//! file in the git repository.  You can run this example with:
-//!
-//! > cargo run --example=self_memory
-//!
-//! ```rust
-//! # use procfs::process::Process;
-//! let me = Process::myself().unwrap();
-//! let me_stat = me.stat().unwrap();
-//! let page_size = procfs::page_size();
-//!
-//! println!("== Data from /proc/self/stat:");
-//! println!("Total virtual memory used: {} bytes", me_stat.vsize);
-//! println!("Total resident set: {} pages ({} bytes)", me_stat.rss, me_stat.rss as u64 * page_size);
-//! ```
+//! directory.
 
 use super::*;
 use crate::from_iter;
@@ -508,7 +455,7 @@ pub enum MMapPath {
 }
 
 impl MMapPath {
-    fn from(path: &str) -> ProcResult<MMapPath> {
+    pub fn from(path: &str) -> ProcResult<MMapPath> {
         Ok(match path.trim() {
             "" => MMapPath::Anonymous,
             "[heap]" => MMapPath::Heap,
@@ -533,38 +480,21 @@ impl MMapPath {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[non_exhaustive]
-pub struct MemoryMaps {
-    pub memory_maps: Vec<MemoryMap>,
-}
+pub struct MemoryMaps(pub Vec<MemoryMap>);
 
-impl MemoryMaps {
-    /// Read a [MemoryMaps] from the given byte source.
-    ///
+impl crate::FromBufRead for MemoryMaps {
     /// The data should be formatted according to procfs /proc/pid/{maps,smaps,smaps_rollup}.
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<Self> {
-        Self::read(r, None)
-    }
-
-    /// Return an iterator over [MemoryMap].
-    pub fn iter(&self) -> std::slice::Iter<MemoryMap> {
-        self.memory_maps.iter()
-    }
-
-    fn read<R: Read>(r: R, path: Option<&Path>) -> ProcResult<Self> {
-        let reader = BufReader::new(r);
-
+    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
         let mut memory_maps = Vec::new();
 
-        let mut line_iter = reader
-            .lines()
-            .map(|r| r.map_err(|_| ProcError::Incomplete(path.map(ToOwned::to_owned))));
+        let mut line_iter = reader.lines().map(|r| r.map_err(|_| ProcError::Incomplete(None)));
         let mut current_memory_map: Option<MemoryMap> = None;
         while let Some(line) = line_iter.next().transpose()? {
             // Assumes all extension fields (in `/proc/<pid>/smaps`) start with a capital letter,
             // which seems to be the case.
             if line.starts_with(|c: char| c.is_ascii_uppercase()) {
                 match current_memory_map.as_mut() {
-                    None => return Err(ProcError::Incomplete(path.map(ToOwned::to_owned))),
+                    None => return Err(ProcError::Incomplete(None)),
                     Some(mm) => {
                         // This is probably an attribute
                         if line.starts_with("VmFlags") {
@@ -616,7 +546,14 @@ impl MemoryMaps {
             memory_maps.push(mm);
         }
 
-        Ok(MemoryMaps { memory_maps })
+        Ok(MemoryMaps(memory_maps))
+    }
+}
+
+impl MemoryMaps {
+    /// Return an iterator over [MemoryMap].
+    pub fn iter(&self) -> std::slice::Iter<MemoryMap> {
+        self.0.iter()
     }
 }
 
@@ -634,7 +571,7 @@ impl IntoIterator for MemoryMaps {
     type Item = MemoryMap;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.memory_maps.into_iter()
+        self.0.into_iter()
     }
 }
 
@@ -712,10 +649,9 @@ impl MMapExtension {
     }
 }
 
-impl Io {
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<Io> {
+impl crate::FromBufRead for Io {
+    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
         let mut map = HashMap::new();
-        let reader = BufReader::new(r);
 
         for line in reader.lines() {
             let line = line?;
@@ -843,8 +779,8 @@ pub struct StatM {
     pub dt: u64,
 }
 
-impl StatM {
-    pub fn from_reader<R: Read>(mut r: R) -> ProcResult<StatM> {
+impl crate::FromRead for StatM {
+    fn from_read<R: Read>(mut r: R) -> ProcResult<Self> {
         let mut line = String::new();
         r.read_to_string(&mut line)?;
         let mut s = line.split_whitespace();

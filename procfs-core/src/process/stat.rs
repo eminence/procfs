@@ -1,6 +1,6 @@
 use super::ProcState;
 use super::StatFlags;
-use crate::{from_iter, KernelVersion, ProcResult};
+use crate::{from_iter, from_iter_optional, ProcResult};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
@@ -228,9 +228,9 @@ pub struct Stat {
     pub exit_code: Option<i32>,
 }
 
-impl Stat {
+impl crate::FromRead for Stat {
     #[allow(clippy::cognitive_complexity)]
-    pub fn from_reader<R: Read>(kernel_version: Option<KernelVersion>, mut r: R) -> ProcResult<Stat> {
+    fn from_read<R: Read>(mut r: R) -> ProcResult<Self> {
         // read in entire thing, this is only going to be 1 line
         let mut buf = Vec::with_capacity(512);
         r.read_to_end(&mut buf)?;
@@ -285,35 +285,28 @@ impl Stat {
         let nswap = expect!(from_iter(&mut rest));
         let cnswap = expect!(from_iter(&mut rest));
 
-        macro_rules! since_kernel {
-            ($a:tt, $b:tt, $c:tt, $e:expr) => {
-                if let Some(kernel) = &kernel_version {
-                    if kernel >= &KernelVersion::new($a, $b, $c) {
-                        Some($e)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            };
-        }
-
-        let exit_signal = since_kernel!(2, 1, 22, expect!(from_iter(&mut rest)));
-        let processor = since_kernel!(2, 2, 8, expect!(from_iter(&mut rest)));
-        let rt_priority = since_kernel!(2, 5, 19, expect!(from_iter(&mut rest)));
-        let policy = since_kernel!(2, 5, 19, expect!(from_iter(&mut rest)));
-        let delayacct_blkio_ticks = since_kernel!(2, 6, 18, expect!(from_iter(&mut rest)));
-        let guest_time = since_kernel!(2, 6, 24, expect!(from_iter(&mut rest)));
-        let cguest_time = since_kernel!(2, 6, 24, expect!(from_iter(&mut rest)));
-        let start_data = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
-        let end_data = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
-        let start_brk = since_kernel!(3, 3, 0, expect!(from_iter(&mut rest)));
-        let arg_start = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
-        let arg_end = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
-        let env_start = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
-        let env_end = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
-        let exit_code = since_kernel!(3, 5, 0, expect!(from_iter(&mut rest)));
+        // Since 2.1.22
+        let exit_signal = expect!(from_iter_optional(&mut rest));
+        // Since 2.2.8
+        let processor = expect!(from_iter_optional(&mut rest));
+        // Since 2.5.19
+        let rt_priority = expect!(from_iter_optional(&mut rest));
+        let policy = expect!(from_iter_optional(&mut rest));
+        // Since 2.6.18
+        let delayacct_blkio_ticks = expect!(from_iter_optional(&mut rest));
+        // Since 2.6.24
+        let guest_time = expect!(from_iter_optional(&mut rest));
+        let cguest_time = expect!(from_iter_optional(&mut rest));
+        // Since 3.3.0
+        let start_data = expect!(from_iter_optional(&mut rest));
+        let end_data = expect!(from_iter_optional(&mut rest));
+        let start_brk = expect!(from_iter_optional(&mut rest));
+        // Since 3.5.0
+        let arg_start = expect!(from_iter_optional(&mut rest));
+        let arg_end = expect!(from_iter_optional(&mut rest));
+        let env_start = expect!(from_iter_optional(&mut rest));
+        let env_end = expect!(from_iter_optional(&mut rest));
+        let exit_code = expect!(from_iter_optional(&mut rest));
 
         Ok(Stat {
             pid,
@@ -370,7 +363,9 @@ impl Stat {
             exit_code,
         })
     }
+}
 
+impl Stat {
     pub fn state(&self) -> ProcResult<ProcState> {
         ProcState::from_char(self.state)
             .ok_or_else(|| build_internal_error!(format!("{:?} is not a recognized process state", self.state)))
@@ -401,20 +396,18 @@ impl Stat {
     ///
     /// This function requires the "chrono" features to be enabled (which it is by default).
     #[cfg(feature = "chrono")]
-    pub fn starttime(
-        &self,
-        boot_time: chrono::DateTime<chrono::Local>,
-        ticks_per_second: u64,
-    ) -> ProcResult<chrono::DateTime<chrono::Local>> {
-        let seconds_since_boot = self.starttime as f32 / ticks_per_second as f32;
+    pub fn starttime(&self) -> impl crate::WithSystemInfo<Output = ProcResult<chrono::DateTime<chrono::Local>>> {
+        move |si: &crate::SystemInfo| {
+            let seconds_since_boot = self.starttime as f32 / si.ticks_per_second() as f32;
 
-        Ok(boot_time + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
+            Ok(si.boot_time()? + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
+        }
     }
 
     /// Gets the Resident Set Size (in bytes)
     ///
     /// The `rss` field will return the same value in pages
-    pub fn rss_bytes(&self, page_size: u64) -> u64 {
-        self.rss * page_size
+    pub fn rss_bytes(&self) -> impl crate::WithSystemInfo<Output = u64> {
+        move |si: &crate::SystemInfo| self.rss * si.page_size()
     }
 }

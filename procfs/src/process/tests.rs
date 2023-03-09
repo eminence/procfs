@@ -1,4 +1,5 @@
 use super::*;
+use rustix::process::Resource;
 
 fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
@@ -51,7 +52,7 @@ fn test_self_proc() {
     println!("flags: {:?}", myself.flags());
 
     #[cfg(feature = "chrono")]
-    println!("starttime: {:#?}", myself.starttime());
+    println!("starttime: {:#?}", myself.starttime().get());
 
     let kernel = KernelVersion::current().unwrap();
 
@@ -122,9 +123,9 @@ fn test_self_proc() {
 
 #[test]
 fn test_all() {
-    let is_wsl2 = kernel_config()
+    let is_wsl2 = KernelConfig::current()
         .ok()
-        .and_then(|cfg| {
+        .and_then(|KernelConfig(cfg)| {
             cfg.get("CONFIG_LOCALVERSION").and_then(|ver| {
                 if let ConfigSetting::Value(s) = ver {
                     Some(s == "\"-microsoft-standard\"")
@@ -145,7 +146,7 @@ fn test_all() {
         stat.flags().unwrap();
         stat.state().unwrap();
         #[cfg(feature = "chrono")]
-        stat.starttime().unwrap();
+        stat.starttime().get().unwrap();
 
         // if this process is defunct/zombie, don't try to read any of the below data
         // (some might be successful, but not all)
@@ -553,4 +554,172 @@ fn test_network_stuff() {
     let _route = myself.route().unwrap();
     let _dev = myself.dev_status().unwrap();
     let _unix = myself.unix().unwrap();
+}
+
+trait LimitValueAsLimit {
+    fn as_limit(&self) -> Option<u64>;
+}
+
+impl LimitValueAsLimit for LimitValue {
+    fn as_limit(&self) -> Option<u64> {
+        match self {
+            LimitValue::Unlimited => None,
+            LimitValue::Value(v) => Some(*v),
+        }
+    }
+}
+
+#[test]
+fn test_limits() {
+    let me = process::Process::myself().unwrap();
+    let limits = me.limits().unwrap();
+    println!("{:#?}", limits);
+
+    // Max cpu time
+    let lim = rustix::process::getrlimit(Resource::Cpu);
+    assert_eq!(lim.current, limits.max_cpu_time.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_cpu_time.hard_limit.as_limit());
+
+    // Max file size
+    let lim = rustix::process::getrlimit(Resource::Fsize);
+    assert_eq!(lim.current, limits.max_file_size.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_file_size.hard_limit.as_limit());
+
+    // Max data size
+    let lim = rustix::process::getrlimit(Resource::Data);
+    assert_eq!(lim.current, limits.max_data_size.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_data_size.hard_limit.as_limit());
+
+    // Max stack size
+    let lim = rustix::process::getrlimit(Resource::Stack);
+    assert_eq!(lim.current, limits.max_stack_size.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_stack_size.hard_limit.as_limit());
+
+    // Max core file size
+    let lim = rustix::process::getrlimit(Resource::Core);
+    assert_eq!(lim.current, limits.max_core_file_size.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_core_file_size.hard_limit.as_limit());
+
+    // Max resident set
+    let lim = rustix::process::getrlimit(Resource::Rss);
+    assert_eq!(lim.current, limits.max_resident_set.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_resident_set.hard_limit.as_limit());
+
+    // Max processes
+    let lim = rustix::process::getrlimit(Resource::Nproc);
+    assert_eq!(lim.current, limits.max_processes.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_processes.hard_limit.as_limit());
+
+    // Max open files
+    let lim = rustix::process::getrlimit(Resource::Nofile);
+    assert_eq!(lim.current, limits.max_open_files.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_open_files.hard_limit.as_limit());
+
+    // Max locked memory
+    let lim = rustix::process::getrlimit(Resource::Memlock);
+    assert_eq!(lim.current, limits.max_locked_memory.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_locked_memory.hard_limit.as_limit());
+
+    // Max address space
+    let lim = rustix::process::getrlimit(Resource::As);
+    assert_eq!(lim.current, limits.max_address_space.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_address_space.hard_limit.as_limit());
+
+    // Max file locks
+    let lim = rustix::process::getrlimit(Resource::Locks);
+    assert_eq!(lim.current, limits.max_file_locks.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_file_locks.hard_limit.as_limit());
+
+    // Max pending signals
+    let lim = rustix::process::getrlimit(Resource::Sigpending);
+    assert_eq!(lim.current, limits.max_pending_signals.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_pending_signals.hard_limit.as_limit());
+
+    // Max msgqueue size
+    let lim = rustix::process::getrlimit(Resource::Msgqueue);
+    assert_eq!(lim.current, limits.max_msgqueue_size.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_msgqueue_size.hard_limit.as_limit());
+
+    // Max nice priority
+    let lim = rustix::process::getrlimit(Resource::Nice);
+    assert_eq!(lim.current, limits.max_nice_priority.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_nice_priority.hard_limit.as_limit());
+
+    // Max realtime priority
+    let lim = rustix::process::getrlimit(Resource::Rtprio);
+    assert_eq!(lim.current, limits.max_realtime_priority.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_realtime_priority.hard_limit.as_limit());
+
+    // Max realtime timeout
+    let lim = rustix::process::getrlimit(Resource::Rttime);
+    assert_eq!(lim.current, limits.max_realtime_timeout.soft_limit.as_limit());
+    assert_eq!(lim.maximum, limits.max_realtime_timeout.hard_limit.as_limit());
+}
+
+#[test]
+fn test_mountinfo_live() {
+    let me = Process::myself().unwrap();
+    let MountInfos(mounts) = me.mountinfo().unwrap();
+    println!("{:#?}", mounts);
+}
+
+#[test]
+fn test_proc_mountstats_live() {
+    // this tries to parse a live mountstats file
+    // there are no assertions, but we still want to check for parsing errors (which can
+    // cause panics)
+
+    let MountStats(stats) = FromRead::from_file("/proc/self/mountstats").unwrap();
+    for stat in stats {
+        println!("{:#?}", stat);
+        if let Some(nfs) = stat.statistics {
+            println!("  {:?}", nfs.server_caps().unwrap());
+        }
+    }
+}
+
+#[test]
+fn test_proc_status() {
+    let myself = Process::myself().unwrap();
+    let stat = myself.stat().unwrap();
+    let status = myself.status().unwrap();
+    println!("{:?}", status);
+
+    assert_eq!(status.name, stat.comm);
+    assert_eq!(status.pid, stat.pid);
+    assert_eq!(status.ppid, stat.ppid);
+}
+
+#[test]
+fn test_proc_status_for_kthreadd() {
+    // when running in a container, pid2 probably isn't kthreadd, so check
+    let kthreadd = match process::Process::new(2) {
+        Ok(p) => p,
+        Err(ProcError::NotFound(_)) => {
+            return; // ok we can ignore
+        }
+        Err(e) => {
+            panic!("{}", e);
+        }
+    };
+    let status = kthreadd.status().unwrap();
+    println!("{:?}", status);
+
+    assert_eq!(status.pid, 2);
+    assert_eq!(status.vmpeak, None);
+    assert_eq!(status.vmsize, None);
+    assert_eq!(status.vmlck, None);
+    assert_eq!(status.vmpin, None);
+    assert_eq!(status.vmhwm, None);
+    assert_eq!(status.vmrss, None);
+    assert_eq!(status.rssanon, None);
+    assert_eq!(status.rssfile, None);
+    assert_eq!(status.rssshmem, None);
+    assert_eq!(status.vmdata, None);
+    assert_eq!(status.vmstk, None);
+    assert_eq!(status.vmexe, None);
+    assert_eq!(status.vmlib, None);
+    assert_eq!(status.vmpte, None);
+    assert_eq!(status.vmswap, None);
+    assert_eq!(status.hugetlbpages, None);
 }

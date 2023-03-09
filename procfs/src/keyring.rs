@@ -3,7 +3,7 @@
 //! For more details on this facility, see the `keyrings(7)` man page.
 //!
 //! Additional functions can be found in the [kernel::keys](crate::sys::kernel::keys) module.
-use crate::{FileWrapper, ProcResult};
+use crate::{build_internal_error, expect, from_str, FileWrapper, ProcResult};
 use bitflags::bitflags;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};

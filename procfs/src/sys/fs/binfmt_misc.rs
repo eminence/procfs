@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::path::Path;
 
-use crate::{read_value, ProcResult};
+use crate::{build_internal_error, from_str, read_value, ProcResult};
 
 /// Returns true if the miscellaneous Binary Formats system is enabled.
 pub fn enabled() -> ProcResult<bool> {

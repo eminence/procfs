@@ -1,18 +1,14 @@
-use rustix::fs::{AtFlags, Mode, OFlags};
-use std::{collections::HashMap, ffi::OsString, path::PathBuf};
-
-#[cfg(feature = "serde1")]
-use serde::{Deserialize, Serialize};
-
-use crate::ProcResult;
-
 use super::Process;
+use crate::{build_internal_error, ProcResult};
+use procfs_core::process::{Namespace, Namespaces};
+use rustix::fs::{AtFlags, Mode, OFlags};
+use std::{collections::HashMap, ffi::OsString};
 
 impl Process {
     /// Describes namespaces to which the process with the corresponding PID belongs.
     /// Doc reference: <https://man7.org/linux/man-pages/man7/namespaces.7.html>
     /// The namespace type is the key for the HashMap, i.e 'net', 'user', etc.
-    pub fn namespaces(&self) -> ProcResult<HashMap<OsString, Namespace>> {
+    pub fn namespaces(&self) -> ProcResult<Namespaces> {
         let mut namespaces = HashMap::new();
         let dir_ns = wrap_io_error!(
             self.root.join("ns"),
@@ -52,34 +48,9 @@ impl Process {
             }
         }
 
-        Ok(namespaces)
+        Ok(Namespaces(namespaces))
     }
 }
-
-/// Information about a namespace
-///
-/// See also the [Process::namespaces()] method
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-pub struct Namespace {
-    /// Namespace type
-    pub ns_type: OsString,
-    /// Handle to the namespace
-    pub path: PathBuf,
-    /// Namespace identifier (inode number)
-    pub identifier: u64,
-    /// Device id of the namespace
-    pub device_id: u64,
-}
-
-impl PartialEq for Namespace {
-    fn eq(&self, other: &Self) -> bool {
-        // see https://lore.kernel.org/lkml/87poky5ca9.fsf@xmission.com/
-        self.identifier == other.identifier && self.device_id == other.device_id
-    }
-}
-
-impl Eq for Namespace {}
 
 #[cfg(test)]
 mod tests {

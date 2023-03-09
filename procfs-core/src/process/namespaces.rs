@@ -1,11 +1,11 @@
-use std::{ffi::OsString, path::PathBuf};
+use std::collections::HashMap;
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
 /// Information about a namespace
-///
-/// See also the [Process::namespaces()] method
 #[derive(Debug, Clone, Eq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Namespace {
@@ -25,3 +25,8 @@ impl PartialEq for Namespace {
         self.identifier == other.identifier && self.device_id == other.device_id
     }
 }
+
+/// All namespaces of a process.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct Namespaces(pub HashMap<OsString, Namespace>);

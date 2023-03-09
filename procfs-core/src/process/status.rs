@@ -1,6 +1,6 @@
 use crate::{FromStrRadix, ProcResult};
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufRead;
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -178,10 +178,9 @@ pub struct Status {
     pub thp_enabled: Option<bool>,
 }
 
-impl Status {
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<Status> {
+impl crate::FromBufRead for Status {
+    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
         let mut map = HashMap::new();
-        let reader = BufReader::new(r);
 
         for line in reader.lines() {
             let line = line?;
@@ -283,7 +282,9 @@ impl Status {
 
         Ok(status)
     }
+}
 
+impl Status {
     fn parse_with_kb<T: FromStrRadix>(s: Option<String>) -> ProcResult<Option<T>> {
         if let Some(s) = s {
             Ok(Some(from_str!(T, &s.replace(" kB", ""))))
@@ -292,7 +293,8 @@ impl Status {
         }
     }
 
-    pub(crate) fn parse_uid_gid(s: &str, i: usize) -> ProcResult<u32> {
+    #[doc(hidden)]
+    pub fn parse_uid_gid(s: &str, i: usize) -> ProcResult<u32> {
         Ok(from_str!(u32, expect!(s.split_whitespace().nth(i))))
     }
 
@@ -337,9 +339,4 @@ impl Status {
         }
         Ok(ret)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // TODO
 }

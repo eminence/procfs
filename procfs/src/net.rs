@@ -49,8 +49,8 @@
 //!         println!("{:<26} {:<26} {:<15} {:<12} -", local_address, remote_addr, state, entry.inode);
 //!     }
 //! }
-use crate::from_iter;
 use crate::ProcResult;
+use crate::{build_internal_error, expect, from_iter, from_str};
 use std::collections::HashMap;
 
 use crate::FileWrapper;

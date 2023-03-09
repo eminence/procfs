@@ -13,6 +13,8 @@
 // Lots of references to this locations: addr=0x1b575000, pfn=111989, refs=134
 //
 
+use procfs::prelude::*;
+
 fn main() {
     if !rustix::process::geteuid().is_root() {
         panic!("ERROR: Access to /proc/iomem requires root, re-run with sudo");
@@ -33,7 +35,7 @@ fn main() {
 
         // Physical memory is divided into pages of `page_size` bytes (usually 4kiB)
         // Each page is referenced by its Page Fram Number (PFN)
-        let (start_pfn, end_pfn) = map.get_range();
+        let (start_pfn, end_pfn) = map.get_range().get();
 
         let page_references = kpagecount
             .get_count_in_range(start_pfn, end_pfn)

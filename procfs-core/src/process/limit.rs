@@ -1,7 +1,7 @@
 use crate::{ProcError, ProcResult};
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufRead;
 use std::str::FromStr;
 
 #[cfg(feature = "serde1")]
@@ -104,10 +104,9 @@ pub struct Limits {
     pub max_realtime_timeout: Limit,
 }
 
-impl Limits {
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<Limits> {
-        let bufread = BufReader::new(r);
-        let mut lines = bufread.lines();
+impl crate::FromBufRead for Limits {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let mut lines = r.lines();
 
         let mut map = HashMap::new();
 
@@ -186,16 +185,6 @@ pub enum LimitValue {
     Value(u64),
 }
 
-impl LimitValue {
-    #[cfg(test)]
-    pub(crate) fn as_limit(&self) -> Option<u64> {
-        match self {
-            LimitValue::Unlimited => None,
-            LimitValue::Value(v) => Some(*v),
-        }
-    }
-}
-
 impl FromStr for LimitValue {
     type Err = ProcError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -205,11 +194,4 @@ impl FromStr for LimitValue {
             Ok(LimitValue::Value(from_str!(u64, s)))
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    // TODO
 }

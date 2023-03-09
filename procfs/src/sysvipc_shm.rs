@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{FileWrapper, ProcResult};
+use super::{expect, FileWrapper, ProcResult};
 use std::str::FromStr;
 
 #[cfg(feature = "serde1")]

@@ -1,4 +1,4 @@
-use crate::{FileWrapper, ProcResult};
+use crate::{expect, from_str, FileWrapper, ProcResult};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};

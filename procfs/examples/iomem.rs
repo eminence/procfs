@@ -10,7 +10,7 @@ fn main() {
 
     let iomem = procfs::iomem().expect("Can't read /proc/iomem");
 
-    for (indent, map) in iomem.iter() {
+    for (_indent, map) in iomem.iter() {
         if map.name == "System RAM" {
             println!("Found RAM here: 0x{:x}-0x{:x}", map.address.0, map.address.1);
         }

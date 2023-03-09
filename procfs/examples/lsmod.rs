@@ -1,3 +1,4 @@
+use procfs::prelude::*;
 use std::collections::HashMap;
 
 fn print(name: &str, indent: usize, mods: &HashMap<&str, Vec<&str>>) {
@@ -11,7 +12,7 @@ fn print(name: &str, indent: usize, mods: &HashMap<&str, Vec<&str>>) {
 }
 
 fn main() {
-    let modules = procfs::modules().unwrap();
+    let procfs::KernelModules(modules) = Current::current().unwrap();
 
     // each module has a list of what other modules use it.  Let's invert this and create a list of the modules used by each module.
     // This maps a module name to a list of modules that it uses

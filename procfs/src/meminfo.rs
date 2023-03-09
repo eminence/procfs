@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{convert_to_kibibytes, FileWrapper, ProcResult};
+use super::{convert_to_kibibytes, expect, from_str, FileWrapper, ProcResult};
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -411,7 +411,7 @@ impl Meminfo {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{kernel_config, KernelVersion};
+    use crate::{prelude::*, KernelConfig, KernelVersion};
 
     #[allow(clippy::cognitive_complexity)]
     #[allow(clippy::blocks_in_if_conditions)]
@@ -425,7 +425,7 @@ mod test {
         }
 
         let kernel = KernelVersion::current().unwrap();
-        let config = kernel_config().ok();
+        let config = KernelConfig::current().ok();
 
         let meminfo = Meminfo::new().unwrap();
         println!("{:#?}", meminfo);
@@ -453,13 +453,15 @@ mod test {
             && kernel <= KernelVersion::new(2, 6, 30)
             && meminfo.unevictable.is_some()
         {
-            if let Some(ref config) = config {
+            if let Some(KernelConfig(ref config)) = config {
                 assert!(config.get("CONFIG_UNEVICTABLE_LRU").is_some());
             }
         }
 
         if kernel >= KernelVersion::new(2, 6, 19)
-            && config.as_ref().map_or(false, |cfg| cfg.contains_key("CONFIG_HIGHMEM"))
+            && config
+                .as_ref()
+                .map_or(false, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HIGHMEM"))
         {
             assert!(meminfo.high_total.is_some());
             assert!(meminfo.high_free.is_some());
@@ -513,7 +515,7 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 27)
             && config
                 .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_QUICKLIST"))
+                .map_or(false, |KernelConfig(cfg)| cfg.contains_key("CONFIG_QUICKLIST"))
         {
             assert!(meminfo.quicklists.is_some());
         } else {
@@ -533,11 +535,10 @@ mod test {
         }
 
         if kernel >= KernelVersion::new(2, 6, 32)
-            && config
-                .as_ref()
-                .map_or(std::path::Path::new("/proc/kpagecgroup").exists(), |cfg| {
-                    cfg.contains_key("CONFIG_MEMORY_FAILURE")
-                })
+            && config.as_ref().map_or(
+                std::path::Path::new("/proc/kpagecgroup").exists(),
+                |KernelConfig(cfg)| cfg.contains_key("CONFIG_MEMORY_FAILURE"),
+            )
         {
             assert!(meminfo.hardware_corrupted.is_some());
         } else {
@@ -545,9 +546,9 @@ mod test {
         }
 
         if kernel >= KernelVersion::new(2, 6, 38)
-            && config
-                .as_ref()
-                .map_or(false, |cfg| cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE"))
+            && config.as_ref().map_or(false, |KernelConfig(cfg)| {
+                cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+            })
         {
             assert!(meminfo.anon_hugepages.is_some());
         } else {
@@ -556,9 +557,9 @@ mod test {
         }
 
         if kernel >= KernelVersion::new(4, 8, 0)
-            && config
-                .as_ref()
-                .map_or(true, |cfg| cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE"))
+            && config.as_ref().map_or(true, |KernelConfig(cfg)| {
+                cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+            })
         {
             assert!(meminfo.shmem_hugepages.is_some());
             assert!(meminfo.shmem_pmd_mapped.is_some());
@@ -567,7 +568,11 @@ mod test {
             assert!(meminfo.shmem_pmd_mapped.is_none());
         }
 
-        if kernel >= KernelVersion::new(3, 1, 0) && config.as_ref().map_or(true, |cfg| cfg.contains_key("CONFIG_CMA")) {
+        if kernel >= KernelVersion::new(3, 1, 0)
+            && config
+                .as_ref()
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_CMA"))
+        {
             assert!(meminfo.cma_total.is_some());
             assert!(meminfo.cma_free.is_some());
         } else {
@@ -577,7 +582,7 @@ mod test {
 
         if config
             .as_ref()
-            .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+            .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_total.is_some());
             assert!(meminfo.hugepages_free.is_some());
@@ -591,7 +596,7 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 17)
             && config
                 .as_ref()
-                .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_rsvd.is_some());
         } else {
@@ -601,7 +606,7 @@ mod test {
         if kernel >= KernelVersion::new(2, 6, 24)
             && config
                 .as_ref()
-                .map_or(true, |cfg| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
         {
             assert!(meminfo.hugepages_surp.is_some());
         } else {

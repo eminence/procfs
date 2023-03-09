@@ -1,7 +1,7 @@
 use crate::ProcResult;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufRead;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
@@ -24,13 +24,15 @@ pub struct CGroupController {
     pub enabled: bool,
 }
 
-impl CGroupController {
-    /// Parse input into a vector of cgroup controllers.
-    // This is returning a vector, but if each subsystem name is unique, maybe this can be a
-    // hashmap instead
-    pub fn cgroup_controllers_from_reader<R: Read>(reader: R) -> ProcResult<Vec<Self>> {
-        let reader = BufReader::new(reader);
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+/// Container group controller information.
+// This contains a vector, but if each subsystem name is unique, maybe this can be a
+// hashmap instead
+pub struct CGroupControllers(pub Vec<CGroupController>);
 
+impl crate::FromBufRead for CGroupControllers {
+    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
         let mut vec = Vec::new();
 
         for line in reader.lines() {
@@ -53,14 +55,14 @@ impl CGroupController {
             });
         }
 
-        Ok(vec)
+        Ok(CGroupControllers(vec))
     }
 }
 
 /// Information about a process cgroup
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-pub struct ProcessCgroup {
+pub struct ProcessCGroup {
     /// For cgroups version 1 hierarchies, this field contains a  unique  hierarchy  ID  number
     /// that  can  be  matched  to  a  hierarchy  ID  in /proc/cgroups.  For the cgroups version 2
     /// hierarchy, this field contains the value 0.
@@ -78,11 +80,13 @@ pub struct ProcessCgroup {
     pub pathname: String,
 }
 
-impl ProcessCgroup {
-    /// Parse input into a vector of cgroups.
-    pub fn cgroups_from_reader<R: Read>(reader: R) -> ProcResult<Vec<Self>> {
-        let reader = BufReader::new(reader);
+/// Information about process cgroups.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct ProcessCGroups(pub Vec<ProcessCGroup>);
 
+impl crate::FromBufRead for ProcessCGroups {
+    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
         let mut vec = Vec::new();
 
         for line in reader.lines() {
@@ -99,18 +103,13 @@ impl ProcessCgroup {
                 .collect();
             let pathname = expect!(s.next(), "path").to_owned();
 
-            vec.push(ProcessCgroup {
+            vec.push(ProcessCGroup {
                 hierarchy,
                 controllers,
                 pathname,
             });
         }
 
-        Ok(vec)
+        Ok(ProcessCGroups(vec))
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // TODO
 }

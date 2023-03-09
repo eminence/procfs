@@ -1,4 +1,4 @@
-use crate::{FileWrapper, ProcResult};
+use crate::{expect, FileWrapper, ProcResult};
 
 use std::io::Read;
 use std::str::FromStr;

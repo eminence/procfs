@@ -52,106 +52,81 @@ use bitflags::bitflags;
 use lazy_static::lazy_static;
 
 use rustix::fd::AsFd;
+use std::collections::HashMap;
 use std::fmt;
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Read, Seek, Write};
+use std::fs::File;
+use std::io::{self, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::{collections::HashMap, time::Duration};
 
 #[cfg(feature = "chrono")]
-use chrono::{DateTime, Local};
-#[cfg(feature = "serde1")]
-use serde::{Deserialize, Serialize};
+use chrono::DateTime;
 
 const PROC_CONFIG_GZ: &str = "/proc/config.gz";
 const BOOT_CONFIG: &str = "/boot/config";
 
-macro_rules! build_internal_error {
-    ($err: expr) => {
-        crate::ProcError::InternalError(crate::InternalError {
-            msg: format!("Internal Unwrap Error: {}", $err),
-            file: file!(),
-            line: line!(),
-            #[cfg(feature = "backtrace")]
-            backtrace: backtrace::Backtrace::new(),
-        })
-    };
-    ($err: expr, $msg: expr) => {
-        crate::ProcError::InternalError(crate::InternalError {
-            msg: format!("Internal Unwrap Error: {}: {}", $msg, $err),
-            file: file!(),
-            line: line!(),
-            #[cfg(feature = "backtrace")]
-            backtrace: backtrace::Backtrace::new(),
-        })
-    };
+/// Allows associating a specific file to parse.
+pub trait Current: FromRead {
+    const PATH: &'static str;
+
+    /// Parse the current value using the system file.
+    fn current() -> ProcResult<Self> {
+        Self::from_file(Self::PATH)
+    }
 }
 
-#[allow(unused_macros)]
-macro_rules! proc_panic {
-    ($e:expr) => {
-        crate::IntoOption::into_option($e).unwrap_or_else(|| {
-            panic!(
-                "Failed to unwrap {}. Please report this as a procfs bug.",
-                stringify!($e)
-            )
-        })
-    };
-    ($e:expr, $msg:expr) => {
-        crate::IntoOption::into_option($e).unwrap_or_else(|| {
-            panic!(
-                "Failed to unwrap {} ({}). Please report this as a procfs bug.",
-                stringify!($e),
-                $msg
-            )
-        })
-    };
+pub struct LocalSystemInfo;
+
+impl SystemInfoInterface for LocalSystemInfo {
+    fn boot_time_secs(&self) -> ProcResult<u64> {
+        crate::boot_time_secs()
+    }
+
+    fn ticks_per_second(&self) -> u64 {
+        crate::ticks_per_second()
+    }
+
+    fn page_size(&self) -> u64 {
+        crate::page_size()
+    }
 }
 
-macro_rules! expect {
-    ($e:expr) => {
-        match crate::IntoResult::into($e) {
-            Ok(v) => v,
-            Err(e) => return Err(build_internal_error!(e)),
-        }
-    };
-    ($e:expr, $msg:expr) => {
-        match crate::IntoResult::into($e) {
-            Ok(v) => v,
-            Err(e) => return Err(build_internal_error!(e, $msg)),
-        }
-    };
+const LOCAL_SYSTEM_INFO: LocalSystemInfo = LocalSystemInfo;
+
+/// The current [SystemInfo].
+pub fn current_system_info() -> &'static SystemInfo {
+    &LOCAL_SYSTEM_INFO
 }
 
-macro_rules! from_str {
-    ($t:tt, $e:expr) => {{
-        let e = $e;
-        expect!(
-            $t::from_str_radix(e, 10),
-            format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t),)
-        )
-    }};
-    ($t:tt, $e:expr, $radix:expr) => {{
-        let e = $e;
-        expect!(
-            $t::from_str_radix(e, $radix),
-            format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t))
-        )
-    }};
-    ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
-        let e = $e;
-        expect!(
-            $t::from_str_radix(e, $radix),
-            format!(
-                "Failed to parse {} ({:?}) as a {} (pid {})",
-                stringify!($e),
-                e,
-                stringify!($t),
-                $pid
-            )
-        )
-    }};
+/// Allows associating a specific file to parse with system information.
+pub trait CurrentSI: FromReadSI {
+    const PATH: &'static str;
+
+    /// Parse the current value using the system file and the current system info.
+    fn current() -> ProcResult<Self> {
+        Self::current_with_system_info(current_system_info())
+    }
+
+    /// Parse the current value using the system file and the provided system info.
+    fn current_with_system_info(si: &SystemInfo) -> ProcResult<Self> {
+        Self::from_file(Self::PATH, si)
+    }
+}
+
+/// Allows `impl WithSystemInfo` to use the current system info.
+pub trait WithCurrentSystemInfo<'a>: WithSystemInfo<'a> + Sized {
+    /// Get the value using the current system info.
+    fn get(self) -> Self::Output {
+        self.with_system_info(current_system_info())
+    }
+}
+
+impl<'a, T: WithSystemInfo<'a>> WithCurrentSystemInfo<'a> for T {}
+
+/// Extension traits useful for importing wholesale.
+pub mod prelude {
+    pub use super::{Current, CurrentSI, WithCurrentSystemInfo};
+    pub use procfs_core::prelude::*;
 }
 
 macro_rules! wrap_io_error {
@@ -173,16 +148,15 @@ macro_rules! wrap_io_error {
 }
 
 pub(crate) fn read_file<P: AsRef<Path>>(path: P) -> ProcResult<String> {
-    let mut f = FileWrapper::open(path)?;
-    let mut buf = String::new();
-    f.read_to_string(&mut buf)?;
-    Ok(buf)
+    std::fs::read_to_string(path.as_ref())
+        .map_err(|e| e.into())
+        .error_path(path.as_ref())
 }
 
 pub(crate) fn write_file<P: AsRef<Path>, T: AsRef<[u8]>>(path: P, buf: T) -> ProcResult<()> {
-    let mut f = OpenOptions::new().read(false).write(true).open(path)?;
-    f.write_all(buf.as_ref())?;
-    Ok(())
+    std::fs::write(path.as_ref(), buf)
+        .map_err(|e| e.into())
+        .error_path(path.as_ref())
 }
 
 pub(crate) fn read_value<P, T, E>(path: P) -> ProcResult<T>
@@ -191,9 +165,7 @@ where
     T: FromStr<Err = E>,
     ProcError: From<E>,
 {
-    let val = read_file(path)?;
-    Ok(<T as FromStr>::from_str(val.trim())?)
-    //Ok(val.trim().parse()?)
+    read_file(path).and_then(|s| s.trim().parse().map_err(ProcError::from))
 }
 
 pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) -> ProcResult<()> {
@@ -336,17 +308,6 @@ impl Seek for FileWrapper {
     }
 }
 
-pub trait ProcfsLocal: Sized {
-    fn new() -> ProcResult<Self>;
-}
-
-impl ProcfsLocal for LoadAverage {
-    /// Reads load average info from `/proc/loadavg`
-    fn new() -> ProcResult<Self> {
-        LoadAverage::from_reader(FileWrapper::open("/proc/loadavg")?)
-    }
-}
-
 /// Return the number of ticks per second.
 ///
 /// This isn't part of the proc file system, but it's a useful thing to have, since several fields
@@ -361,7 +322,7 @@ pub fn ticks_per_second() -> u64 {
 ///
 /// This function requires the "chrono" features to be enabled (which it is by default).
 #[cfg(feature = "chrono")]
-pub fn boot_time() -> ProcResult<DateTime<Local>> {
+pub fn boot_time() -> ProcResult<DateTime<chrono::Local>> {
     use chrono::TimeZone;
     let secs = boot_time_secs()?;
 
@@ -388,7 +349,9 @@ pub fn boot_time_secs() -> ProcResult<u64> {
         if let Some(btime) = *btime {
             Ok(btime)
         } else {
-            let stat = KernelStats::new()?;
+            // KernelStats doesn't call `boot_time_secs()`, so it's safe to call
+            // KernelStats::current() (which uses the local system info).
+            let stat = KernelStats::current()?;
             *btime = Some(stat.btime);
             Ok(stat.btime)
         }
@@ -406,80 +369,70 @@ pub fn page_size() -> u64 {
     rustix::param::page_size() as u64
 }
 
-/// Returns a configuration options used to build the currently running kernel
-///
-/// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
-/// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
-///
-/// # Notes
-/// Reading the compress `/proc/config.gz` is only supported if the `flate2` feature is enabled
-/// (which it is by default).
-#[cfg_attr(feature = "flate2", doc = "The flate2 feature is currently enabled")]
-#[cfg_attr(not(feature = "flate2"), doc = "The flate2 feature is NOT currently enabled")]
-pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
-    let reader: Box<dyn Read> = if Path::new(PROC_CONFIG_GZ).exists() && cfg!(feature = "flate2") {
-        #[cfg(feature = "flate2")]
-        {
-            let file = FileWrapper::open(PROC_CONFIG_GZ)?;
-            let decoder = flate2::read::GzDecoder::new(file);
-            Box::new(decoder)
-        }
-        #[cfg(not(feature = "flate2"))]
-        {
-            unreachable!("flate2 feature not enabled")
-        }
-    } else {
-        let kernel = rustix::process::uname();
-
-        let filename = format!("{}-{}", BOOT_CONFIG, kernel.release().to_string_lossy());
-
-        match FileWrapper::open(filename) {
-            Ok(file) => Box::new(BufReader::new(file)),
-            Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => {
-                    let file = FileWrapper::open(BOOT_CONFIG)?;
-                    Box::new(file)
-                }
-                _ => return Err(e.into()),
-            },
-        }
-    };
-
-    kernel_config_from_read(reader)
+impl Current for LoadAverage {
+    const PATH: &'static str = "/proc/loadavg";
 }
 
-impl ProcfsLocal for KernelStats {
-    fn new() -> ProcResult<KernelStats> {
-        KernelStats::from_reader(FileWrapper::open("/proc/stat")?, ticks_per_second())
+impl Current for KernelConfig {
+    const PATH: &'static str = PROC_CONFIG_GZ;
+
+    /// Returns a configuration options used to build the currently running kernel
+    ///
+    /// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
+    /// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
+    ///
+    /// # Notes
+    /// Reading the compress `/proc/config.gz` is only supported if the `flate2` feature is enabled
+    /// (which it is by default).
+    #[cfg_attr(feature = "flate2", doc = "The flate2 feature is currently enabled")]
+    #[cfg_attr(not(feature = "flate2"), doc = "The flate2 feature is NOT currently enabled")]
+    fn current() -> ProcResult<Self> {
+        let reader: Box<dyn Read> = if Path::new(PROC_CONFIG_GZ).exists() && cfg!(feature = "flate2") {
+            #[cfg(feature = "flate2")]
+            {
+                let file = FileWrapper::open(PROC_CONFIG_GZ)?;
+                let decoder = flate2::read::GzDecoder::new(file);
+                Box::new(decoder)
+            }
+            #[cfg(not(feature = "flate2"))]
+            {
+                unreachable!("flate2 feature not enabled")
+            }
+        } else {
+            let kernel = rustix::process::uname();
+
+            let filename = format!("{}-{}", BOOT_CONFIG, kernel.release().to_string_lossy());
+
+            match FileWrapper::open(filename) {
+                Ok(file) => Box::new(BufReader::new(file)),
+                Err(e) => match e.kind() {
+                    io::ErrorKind::NotFound => {
+                        let file = FileWrapper::open(BOOT_CONFIG)?;
+                        Box::new(file)
+                    }
+                    _ => return Err(e.into()),
+                },
+            }
+        };
+
+        Self::from_read(reader)
     }
 }
 
-/// Get various virtual memory statistics
-///
-/// Since the exact set of statistics will vary from kernel to kernel,
-/// and because most of them are not well documented, this function
-/// returns a HashMap instead of a struct.  Consult the kernel source
-/// code for more details of this data.
-///
-/// This data is taken from the `/proc/vmstat` file.
-///
-/// (since Linux 2.6.0)
-pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
-    vmstat_from_read(FileWrapper::open("/proc/vmstat")?)
+impl CurrentSI for KernelStats {
+    const PATH: &'static str = "/proc/stat";
 }
 
-/// Get a list of loaded kernel modules
-///
-/// This corresponds to the data in `/proc/modules`.
-pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
-    modules_from_read(FileWrapper::open("/proc/modules")?)
+impl Current for VmStat {
+    const PATH: &'static str = "/proc/vmstat";
 }
 
-/// Get a list of the arguments passed to the Linux kernel at boot time
-///
-/// This corresponds to the data in `/proc/cmdline`
-pub fn cmdline() -> ProcResult<Vec<String>> {
-    cmdline_from_read(FileWrapper::open("/proc/cmdline")?)
+impl Current for KernelModules {
+    const PATH: &'static str = "/proc/modules";
+}
+
+impl Current for KernelCmdline {
+    const PATH: &'static str = "/proc/cmdline";
 }
 
 #[cfg(test)]
@@ -495,7 +448,7 @@ mod tests {
 
     #[test]
     fn test_loadavg() {
-        let load = LoadAverage::new().unwrap();
+        let load = LoadAverage::current().unwrap();
         println!("{:?}", load);
     }
 
@@ -511,7 +464,7 @@ mod tests {
             return;
         }
 
-        let config = kernel_config().unwrap();
+        let config = KernelConfig::current().unwrap();
         println!("{:#?}", config);
     }
 
@@ -546,7 +499,7 @@ mod tests {
 
     #[test]
     fn test_kernel_stat() {
-        let stat = KernelStats::new().unwrap();
+        let stat = KernelStats::current().unwrap();
         println!("{:#?}", stat);
 
         // the boottime from KernelStats should match the boottime from /proc/uptime
@@ -594,13 +547,13 @@ mod tests {
 
     #[test]
     fn test_vmstat() {
-        let stat = vmstat().unwrap();
+        let stat = VmStat::current().unwrap();
         println!("{:?}", stat);
     }
 
     #[test]
     fn test_modules() {
-        let mods = modules().unwrap();
+        let KernelModules(mods) = KernelModules::current().unwrap();
         for module in mods.values() {
             println!("{:?}", module);
         }
@@ -614,7 +567,7 @@ mod tests {
 
     #[test]
     fn test_cmdline() {
-        let cmdline = cmdline().unwrap();
+        let KernelCmdline(cmdline) = KernelCmdline::current().unwrap();
 
         for argument in cmdline {
             println!("{}", argument);
@@ -625,7 +578,7 @@ mod tests {
     #[test]
     fn test_failure() {
         fn inner() -> Result<(), failure::Error> {
-            let _load = crate::LoadAverage::new()?;
+            let _load = crate::LoadAverage::current()?;
             Ok(())
         }
         let _ = inner();

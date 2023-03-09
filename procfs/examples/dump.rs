@@ -1,4 +1,5 @@
 extern crate procfs;
+use procfs::prelude::*;
 
 fn main() {
     let pid = std::env::args().nth(1).and_then(|s| s.parse::<i32>().ok());
@@ -13,5 +14,5 @@ fn main() {
 
     let stat = prc.stat().unwrap();
     println!("State: {:?}", stat.state());
-    println!("RSS:   {} bytes", stat.rss_bytes());
+    println!("RSS:   {} bytes", stat.rss_bytes().get());
 }

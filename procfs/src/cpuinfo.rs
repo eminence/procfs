@@ -1,4 +1,4 @@
-use crate::{FileWrapper, ProcResult};
+use crate::{expect, FileWrapper, ProcResult};
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
