@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 
 /// Status information about the process, based on the `/proc/<pid>/status` file.
 ///
-/// To construct this structure, see [Process::status()](crate::process::Process::status).
-///
 /// Not all fields are available in every kernel.  These fields have `Option<T>` types.
 /// In general, the current kernel version will tell you what fields you can expect, but this
 /// isn't totally reliable, since some kernels might backport certain fields, or fields might

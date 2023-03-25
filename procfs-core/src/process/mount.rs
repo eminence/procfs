@@ -226,21 +226,6 @@ pub struct MountStat {
 }
 
 /// Mount information from `/proc/<pid>/mountstats`.
-///
-/// # Example:
-///
-/// ```
-/// # use procfs::process::Process;
-/// let stats = Process::myself().unwrap().mountstats().unwrap();
-///
-/// for mount in stats {
-///     println!("{} mounted on {} wth type {}",
-///         mount.device.unwrap_or("??".to_owned()),
-///         mount.mount_point.display(),
-///         mount.fs
-///     );
-/// }
-/// ```
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]

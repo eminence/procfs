@@ -31,7 +31,7 @@ impl Version {
     /// # Example
     ///
     /// ```
-    /// # use procfs::KernelVersion;
+    /// # use procfs_core::KernelVersion;
     /// let a = KernelVersion::from_str("3.16.0-6-amd64").unwrap();
     /// let b = KernelVersion::new(3, 16, 0);
     /// assert_eq!(a, b);
@@ -70,7 +70,7 @@ impl FromStr for Version {
     /// # Example
     ///
     /// ```
-    /// # use procfs::KernelVersion;
+    /// # use procfs_core::KernelVersion;
     /// let a: KernelVersion = "3.16.0-6-amd64".parse().unwrap();
     /// let b = KernelVersion::new(3, 16, 0);
     /// assert_eq!(a, b);
@@ -294,8 +294,6 @@ bitflags! {
 }
 
 /// Values controlling functions allowed to be invoked by the SysRq key
-///
-/// To construct this enum, see [sysrq](crate::sys::kernel::sysrq)
 #[derive(Copy, Clone, Debug)]
 pub enum SysRq {
     /// Disable sysrq completely

@@ -576,9 +576,6 @@ impl IntoIterator for MemoryMaps {
 }
 
 /// Represents an entry in a `/proc/<pid>/maps` or `/proc/<pid>/smaps` file.
-///
-/// To construct this structure for the current process, see [Process::maps()] and
-/// [Process::smaps()].
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MemoryMap {
@@ -624,8 +621,6 @@ impl MemoryMap {
 }
 
 /// Represents the information about a specific mapping as presented in /proc/\<pid\>/smaps
-///
-/// To construct this structure, see [Process::smaps()]
 #[derive(Default, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MMapExtension {
@@ -683,8 +678,6 @@ impl crate::FromBufRead for Io {
 }
 
 /// Describes a file descriptor opened by a process.
-///
-/// See also the [Process::fd()] method.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub enum FDTarget {
