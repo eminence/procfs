@@ -25,17 +25,17 @@ jobs:
         toolchain: ${{ matrix.toolchain }}
     
     - name: Build
-      run: cargo +${{ matrix.toolchain }} build --verbose
+      run: cargo +${{ matrix.toolchain }} build --workspace --verbose
     - name: Run tests
-      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
+      run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
-      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- _runsinglethread --test-threads 1
+      run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- _runsinglethread --test-threads 1
 
     - name: Build docs (all features)
-      run: cargo +${{ matrix.toolchain }} doc --all-features
+      run: cargo +${{ matrix.toolchain }} doc --workspace --all-features
 
     - name: Build docs
-      run: cargo +${{ matrix.toolchain }} doc
+      run: cargo +${{ matrix.toolchain }} doc --workspace
 
 
   check:
@@ -59,7 +59,7 @@ jobs:
           target: i686-unknown-linux-gnu
 
       - name: cargo check (aarch64)
-        run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android --all-features
+        run: cargo +${{ matrix.toolchain }} check --workspace --target aarch64-linux-android --all-features
       - name: cargo check (i686)
-        run: cargo +${{ matrix.toolchain }} check --target i686-unknown-linux-gnu --all-features
+        run: cargo +${{ matrix.toolchain }} check --workspace --target i686-unknown-linux-gnu --all-features
 
