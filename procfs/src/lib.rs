@@ -419,6 +419,18 @@ impl Current for KernelConfig {
     }
 }
 
+/// Returns a configuration options used to build the currently running kernel
+///
+/// If CONFIG_KCONFIG_PROC is available, the config is read from `/proc/config.gz`.
+/// Else look in `/boot/config-$(uname -r)` or `/boot/config` (in that order).
+///
+/// # Notes
+/// Reading the compress `/proc/config.gz` is only supported if the `flate2` feature is enabled
+/// (which it is by default).
+pub fn kernel_config() -> ProcResult<HashMap<String, ConfigSetting>> {
+    KernelConfig::current().map(|c| c.0)
+}
+
 impl CurrentSI for KernelStats {
     const PATH: &'static str = "/proc/stat";
 }
@@ -427,12 +439,39 @@ impl Current for VmStat {
     const PATH: &'static str = "/proc/vmstat";
 }
 
+/// Get various virtual memory statistics
+///
+/// Since the exact set of statistics will vary from kernel to kernel, and because most of them are
+/// not well documented, this function returns a HashMap instead of a struct. Consult the kernel
+/// source code for more details of this data.
+///
+/// This data is taken from the /proc/vmstat file.
+///
+/// (since Linux 2.6.0)
+pub fn vmstat() -> ProcResult<HashMap<String, i64>> {
+    VmStat::current().map(|s| s.0)
+}
+
 impl Current for KernelModules {
     const PATH: &'static str = "/proc/modules";
 }
 
+/// Get a list of loaded kernel modules
+///
+/// This corresponds to the data in `/proc/modules`.
+pub fn modules() -> ProcResult<HashMap<String, KernelModule>> {
+    KernelModules::current().map(|m| m.0)
+}
+
 impl Current for KernelCmdline {
     const PATH: &'static str = "/proc/cmdline";
+}
+
+/// Get a list of the arguments passed to the Linux kernel at boot time
+///
+/// This corresponds to the data in `/proc/cmdline`.
+pub fn cmdline() -> ProcResult<Vec<String>> {
+    KernelCmdline::current().map(|c| c.0)
 }
 
 #[cfg(test)]
