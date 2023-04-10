@@ -256,6 +256,8 @@ pub trait SystemInfoInterface {
     fn boot_time_secs(&self) -> ProcResult<u64>;
     fn ticks_per_second(&self) -> u64;
     fn page_size(&self) -> u64;
+    /// Whether the system is little endian (true) or big endian (false).
+    fn is_little_endian(&self) -> bool;
 
     #[cfg(feature = "chrono")]
     fn boot_time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
@@ -275,6 +277,7 @@ pub struct ExplicitSystemInfo {
     pub boot_time_secs: u64,
     pub ticks_per_second: u64,
     pub page_size: u64,
+    pub is_little_endian: bool,
 }
 
 impl SystemInfoInterface for ExplicitSystemInfo {
@@ -288,6 +291,10 @@ impl SystemInfoInterface for ExplicitSystemInfo {
 
     fn page_size(&self) -> u64 {
         self.page_size
+    }
+
+    fn is_little_endian(&self) -> bool {
+        self.is_little_endian
     }
 }
 
@@ -339,15 +346,41 @@ where
     }
 }
 
-pub mod process;
-
 mod cgroups;
 pub use cgroups::*;
-pub mod sys;
-pub use sys::kernel::Version as KernelVersion;
+
+mod cpuinfo;
+pub use cpuinfo::*;
+
+mod diskstats;
+pub use diskstats::*;
 
 mod iomem;
 pub use iomem::*;
+
+pub mod keyring;
+
+mod locks;
+pub use locks::*;
+
+mod meminfo;
+pub use meminfo::*;
+
+pub mod net;
+
+mod pressure;
+pub use pressure::*;
+
+pub mod process;
+
+pub mod sys;
+pub use sys::kernel::Version as KernelVersion;
+
+mod sysvipc_shm;
+pub use sysvipc_shm::*;
+
+mod uptime;
+pub use uptime::*;
 
 // TODO temporary, only for procfs
 pub trait FromStrRadix: Sized {

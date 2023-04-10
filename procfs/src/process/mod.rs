@@ -57,7 +57,7 @@
 //! ```
 
 use super::*;
-use crate::net::{read_tcp_table, read_udp_table, TcpNetEntry, UdpNetEntry};
+use crate::net::{TcpNetEntry, UdpNetEntry};
 
 pub use procfs_core::process::*;
 use rustix::fd::{AsFd, BorrowedFd, OwnedFd, RawFd};
@@ -68,7 +68,6 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::read_link;
 use std::io::{self, Read};
-use std::mem;
 use std::os::unix::ffi::OsStringExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
@@ -436,7 +435,7 @@ impl Process {
     ///     );
     /// }
     /// ```
-    /// 
+    ///
     /// (Since Linux 2.6.26)
     pub fn mountinfo(&self) -> ProcResult<MountInfos> {
         self.read("mountinfo")
@@ -525,8 +524,6 @@ impl Process {
     ///
     /// (since 2.6.0-test7)
     pub fn auxv(&self) -> ProcResult<HashMap<u64, u64>> {
-        use byteorder::{NativeEndian, ReadBytesExt};
-
         let mut file = FileWrapper::open_at(&self.root, &self.fd, "auxv")?;
         let mut map = HashMap::new();
 
@@ -539,9 +536,12 @@ impl Process {
         buf.truncate(bytes_read);
         let mut file = std::io::Cursor::new(buf);
 
+        let mut buf = 0usize.to_ne_bytes();
         loop {
-            let key = file.read_uint::<NativeEndian>(mem::size_of::<usize>())? as u64;
-            let value = file.read_uint::<NativeEndian>(mem::size_of::<usize>())? as u64;
+            file.read_exact(&mut buf)?;
+            let key = usize::from_ne_bytes(buf) as u64;
+            file.read_exact(&mut buf)?;
+            let value = usize::from_ne_bytes(buf) as u64;
             if key == 0 && value == 0 {
                 break;
             }
@@ -750,55 +750,44 @@ impl Process {
 
     /// Reads the tcp socket table from the process net namespace
     pub fn tcp(&self) -> ProcResult<Vec<TcpNetEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/tcp")?;
-        read_tcp_table(BufReader::new(file))
+        self.read_si("net/tcp").map(|net::TcpNetEntries(e)| e)
     }
 
     /// Reads the tcp6 socket table from the process net namespace
     pub fn tcp6(&self) -> ProcResult<Vec<TcpNetEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/tcp6")?;
-        read_tcp_table(BufReader::new(file))
+        self.read_si("net/tcp6").map(|net::TcpNetEntries(e)| e)
     }
 
     /// Reads the udp socket table from the process net namespace
     pub fn udp(&self) -> ProcResult<Vec<UdpNetEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/udp")?;
-        read_udp_table(BufReader::new(file))
+        self.read_si("net/udp").map(|net::UdpNetEntries(e)| e)
     }
 
     /// Reads the udp6 socket table from the process net namespace
     pub fn udp6(&self) -> ProcResult<Vec<UdpNetEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/udp6")?;
-        read_udp_table(BufReader::new(file))
+        self.read_si("net/udp6").map(|net::UdpNetEntries(e)| e)
     }
 
     /// Returns basic network device statistics for all interfaces in the process net namespace
     ///
     /// See also the [dev_status()](crate::net::dev_status()) function.
     pub fn dev_status(&self) -> ProcResult<HashMap<String, net::DeviceStatus>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/dev")?;
-
-        net::dev_status_from_reader(file)
+        self.read("net/dev").map(|net::InterfaceDeviceStatus(e)| e)
     }
 
     /// Reads the unix socket table
     pub fn unix(&self) -> ProcResult<Vec<net::UnixNetEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/unix")?;
-
-        net::unix_from_reader(file)
+        self.read("net/unix").map(|net::UnixNetEntries(e)| e)
     }
 
     /// Reads the ARP table from the process net namespace
     pub fn arp(&self) -> ProcResult<Vec<net::ARPEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/arp")?;
-
-        net::arp_from_reader(file)
+        self.read("net/arp").map(|net::ArpEntries(e)| e)
     }
 
     /// Reads the ipv4 route table from the process net namespace
     pub fn route(&self) -> ProcResult<Vec<net::RouteEntry>> {
-        let file = FileWrapper::open_at(&self.root, &self.fd, "net/route")?;
-        net::route_from_reader(file)
+        self.read("net/route").map(|net::RouteEntries(e)| e)
     }
 
     /// Opens a file to the process's memory (`/proc/<pid>/mem`).
@@ -846,6 +835,14 @@ impl Process {
     /// Parse a file relative to the process proc structure.
     pub fn read<T: FromRead>(&self, path: &str) -> ProcResult<T> {
         FromRead::from_read(FileWrapper::open_at(&self.root, &self.fd, path)?)
+    }
+
+    /// Parse a file relative to the process proc structure.
+    pub fn read_si<T: FromReadSI>(&self, path: &str) -> ProcResult<T> {
+        FromReadSI::from_read(
+            FileWrapper::open_at(&self.root, &self.fd, path)?,
+            crate::current_system_info(),
+        )
     }
 }
 

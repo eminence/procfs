@@ -1,8 +1,8 @@
-use crate::{expect, FileWrapper, ProcResult};
+use crate::{expect, ProcResult};
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, io::Read};
+use std::{collections::HashMap, io::BufRead};
 
 /// Represents the data from `/proc/cpuinfo`.
 ///
@@ -20,20 +20,15 @@ pub struct CpuInfo {
     pub cpus: Vec<HashMap<String, String>>,
 }
 
-impl CpuInfo {
-    /// Get CpuInfo from a custom Read instead of the default `/proc/cpuinfo`.
-    pub fn from_reader<R: Read>(r: R) -> ProcResult<CpuInfo> {
-        use std::io::{BufRead, BufReader};
-
-        let reader = BufReader::new(r);
-
+impl crate::FromBufRead for CpuInfo {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
         let mut list = Vec::new();
         let mut map = Some(HashMap::new());
 
         // the first line of a cpu block must start with "processor"
         let mut found_first = false;
 
-        for line in reader.lines().flatten() {
+        for line in r.lines().flatten() {
             if !line.is_empty() {
                 let mut s = line.split(':');
                 let key = expect!(s.next());
@@ -88,12 +83,9 @@ impl CpuInfo {
             cpus: list,
         })
     }
-    pub fn new() -> ProcResult<CpuInfo> {
-        let file = FileWrapper::open("/proc/cpuinfo")?;
+}
 
-        CpuInfo::from_reader(file)
-    }
-
+impl CpuInfo {
     /// Get the total number of cpu cores.
     ///
     /// This is the number of entries in the `/proc/cpuinfo` file.
@@ -115,6 +107,7 @@ impl CpuInfo {
                 .collect()
         })
     }
+
     /// Get the content of a specific field associated to a CPU
     ///
     /// Returns None if the requested cpu index is not found.
@@ -130,13 +123,16 @@ impl CpuInfo {
     pub fn model_name(&self, cpu_num: usize) -> Option<&str> {
         self.get_field(cpu_num, "model name")
     }
+
     pub fn vendor_id(&self, cpu_num: usize) -> Option<&str> {
         self.get_field(cpu_num, "vendor_id")
     }
+
     /// May not be available on some older 2.6 kernels
     pub fn physical_id(&self, cpu_num: usize) -> Option<u32> {
         self.get_field(cpu_num, "physical id").and_then(|s| s.parse().ok())
     }
+
     pub fn flags(&self, cpu_num: usize) -> Option<Vec<&str>> {
         self.get_field(cpu_num, "flags")
             .map(|flags| flags.split_whitespace().collect())
@@ -146,20 +142,6 @@ impl CpuInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_cpuinfo() {
-        let info = CpuInfo::new().unwrap();
-        println!("{:#?}", info.flags(0));
-        for num in 0..info.num_cores() {
-            info.model_name(num).unwrap();
-            info.vendor_id(num).unwrap();
-            // May not be available on some old kernels:
-            info.physical_id(num);
-        }
-
-        //assert_eq!(info.num_cores(), 8);
-    }
 
     #[test]
     fn test_cpuinfo_rpi() {
@@ -212,7 +194,9 @@ Model           : Raspberry Pi 3 Model B Plus Rev 1.3
 
         let r = std::io::Cursor::new(data.as_bytes());
 
-        let info = CpuInfo::from_reader(r).unwrap();
+        use crate::FromRead;
+
+        let info = CpuInfo::from_read(r).unwrap();
         assert_eq!(info.num_cores(), 4);
         let info = info.get_info(0).unwrap();
         assert!(info.get("model name").is_some());

@@ -20,6 +20,7 @@ serde1 = ["serde"]
 backtrace = { version = "0.3", optional = true }
 bitflags = "1.2"
 chrono = { version = "0.4.20", optional = true, features = ["clock"], default-features = false }
+hex = "0.4"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [package.metadata.docs.rs]

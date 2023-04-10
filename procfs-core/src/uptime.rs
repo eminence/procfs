@@ -1,4 +1,4 @@
-use crate::{expect, FileWrapper, ProcResult};
+use crate::{expect, ProcResult};
 
 use std::io::Read;
 use std::str::FromStr;
@@ -15,13 +15,8 @@ pub struct Uptime {
     pub idle: f64,
 }
 
-impl Uptime {
-    pub fn new() -> ProcResult<Uptime> {
-        let file = FileWrapper::open("/proc/uptime")?;
-        Uptime::from_reader(file)
-    }
-
-    pub fn from_reader<R: Read>(mut r: R) -> ProcResult<Uptime> {
+impl super::FromRead for Uptime {
+    fn from_read<R: Read>(mut r: R) -> ProcResult<Self> {
         let mut buf = Vec::with_capacity(128);
         r.read_to_end(&mut buf)?;
 
@@ -34,7 +29,9 @@ impl Uptime {
 
         Ok(Uptime { uptime, idle })
     }
+}
 
+impl Uptime {
     /// The uptime of the system (including time spent in suspend).
     pub fn uptime_duration(&self) -> Duration {
         let secs = self.uptime.trunc() as u64;
@@ -57,12 +54,13 @@ impl Uptime {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FromRead;
     use std::io::Cursor;
 
     #[test]
     fn test_uptime() {
         let reader = Cursor::new(b"2578790.61 1999230.98\n");
-        let uptime = Uptime::from_reader(reader).unwrap();
+        let uptime = Uptime::from_read(reader).unwrap();
 
         assert_eq!(uptime.uptime_duration(), Duration::new(2578790, 610_000_000));
         assert_eq!(uptime.idle_duration(), Duration::new(1999230, 980_000_000));

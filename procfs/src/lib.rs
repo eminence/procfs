@@ -89,6 +89,10 @@ impl SystemInfoInterface for LocalSystemInfo {
     fn page_size(&self) -> u64 {
         crate::page_size()
     }
+
+    fn is_little_endian(&self) -> bool {
+        u16::from_ne_bytes([0, 1]).to_le_bytes() == [0, 1]
+    }
 }
 
 const LOCAL_SYSTEM_INFO: LocalSystemInfo = LocalSystemInfo;
@@ -172,40 +176,10 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
     write_file(path, value.to_string().as_bytes())
 }
 
-pub mod process;
-
-mod meminfo;
-pub use crate::meminfo::*;
-
-mod sysvipc_shm;
-pub use crate::sysvipc_shm::*;
-
-pub mod net;
-
-mod cpuinfo;
-pub use crate::cpuinfo::*;
-
 mod cgroups;
 pub use crate::cgroups::*;
 
-pub mod sys;
-pub use crate::sys::kernel::BuildInfo as KernelBuildInfo;
-pub use crate::sys::kernel::Type as KernelType;
-pub use crate::sys::kernel::Version as KernelVersion;
-
-mod pressure;
-pub use crate::pressure::*;
-
-mod diskstats;
-pub use diskstats::*;
-
-mod locks;
-pub use locks::*;
-
 pub mod keyring;
-
-mod uptime;
-pub use uptime::*;
 
 mod iomem;
 pub use iomem::*;
@@ -215,6 +189,15 @@ pub use kpageflags::*;
 
 mod kpagecount;
 pub use kpagecount::*;
+
+pub mod net;
+
+pub mod process;
+
+pub mod sys;
+pub use crate::sys::kernel::BuildInfo as KernelBuildInfo;
+pub use crate::sys::kernel::Type as KernelType;
+pub use crate::sys::kernel::Version as KernelVersion;
 
 lazy_static! {
     /// The number of clock ticks per second.
@@ -236,16 +219,6 @@ lazy_static! {
     static ref PAGESIZE: u64 = {
         page_size()
     };
-}
-
-fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
-    match unit {
-        "B" => Ok(num),
-        "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
-        "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
-        "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
-        unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
-    }
 }
 
 /// A wrapper around a `File` that remembers the name of the path
@@ -474,6 +447,56 @@ pub fn cmdline() -> ProcResult<Vec<String>> {
     KernelCmdline::current().map(|c| c.0)
 }
 
+impl Current for CpuInfo {
+    const PATH: &'static str = "/proc/cpuinfo";
+}
+
+impl Current for DiskStats {
+    const PATH: &'static str = "/proc/diskstats";
+}
+
+/// Get disk IO stat info from /proc/diskstats
+pub fn diskstats() -> ProcResult<Vec<DiskStat>> {
+    DiskStats::current().map(|d| d.0)
+}
+
+impl Current for Locks {
+    const PATH: &'static str = "/proc/locks";
+}
+
+/// Get a list of current file locks and leases
+///
+/// Since Linux 4.9, the list of locks is filtered to show just the locks
+/// for the processes in the PID namespace for which the `/proc` filesystem
+/// was mounted.
+pub fn locks() -> ProcResult<Vec<Lock>> {
+    Locks::current().map(|l| l.0)
+}
+
+impl Current for Meminfo {
+    const PATH: &'static str = "/proc/meminfo";
+}
+
+impl Current for CpuPressure {
+    const PATH: &'static str = "/proc/pressure/cpu";
+}
+
+impl Current for MemoryPressure {
+    const PATH: &'static str = "/proc/pressure/memory";
+}
+
+impl Current for IoPressure {
+    const PATH: &'static str = "/proc/pressure/io";
+}
+
+impl Current for SharedMemorySegments {
+    const PATH: &'static str = "/proc/sysvipc/shm";
+}
+
+impl Current for Uptime {
+    const PATH: &'static str = "/proc/uptime";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -547,7 +570,7 @@ mod tests {
         let diff = (boottime as i32 - stat.btime as i32).abs();
         assert!(diff <= 1);
 
-        let cpuinfo = CpuInfo::new().unwrap();
+        let cpuinfo = CpuInfo::current().unwrap();
         assert_eq!(cpuinfo.num_cores(), stat.cpu_time.len());
 
         // the sum of each individual CPU should be equal to the total cpu entry
@@ -647,5 +670,292 @@ mod tests {
         println!("{:?}", e);
 
         assert!(matches!(e, ProcError::NotFound(_)));
+    }
+
+    #[test]
+    fn test_cpuinfo() {
+        let info = CpuInfo::current().unwrap();
+        println!("{:#?}", info.flags(0));
+        for num in 0..info.num_cores() {
+            info.model_name(num).unwrap();
+            info.vendor_id(num).unwrap();
+            // May not be available on some old kernels:
+            info.physical_id(num);
+        }
+
+        //assert_eq!(info.num_cores(), 8);
+    }
+
+    #[test]
+    fn test_diskstats() {
+        for disk in super::diskstats().unwrap() {
+            println!("{:?}", disk);
+        }
+    }
+
+    #[test]
+    fn test_locks() {
+        for lock in locks().unwrap() {
+            println!("{:?}", lock);
+            if let LockType::Other(s) = lock.lock_type {
+                panic!("Found an unknown lock type {:?}", s);
+            }
+            if let LockKind::Other(s) = lock.kind {
+                panic!("Found an unknown lock kind {:?}", s);
+            }
+            if let LockMode::Other(s) = lock.mode {
+                panic!("Found an unknown lock mode {:?}", s);
+            }
+        }
+    }
+
+    #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::blocks_in_if_conditions)]
+    #[test]
+    fn test_meminfo() {
+        // TRAVIS
+        // we don't have access to the kernel_config on travis, so skip that test there
+        match ::std::env::var("TRAVIS") {
+            Ok(ref s) if s == "true" => return,
+            _ => {}
+        }
+
+        let kernel = KernelVersion::current().unwrap();
+        let config = KernelConfig::current().ok();
+
+        let meminfo = Meminfo::current().unwrap();
+        println!("{:#?}", meminfo);
+
+        // for the fields that are only present in some kernel versions, make sure our
+        // actual kernel agrees
+
+        if kernel >= KernelVersion::new(3, 14, 0) {
+            assert!(meminfo.mem_available.is_some());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 28) {
+            assert!(meminfo.active_anon.is_some());
+            assert!(meminfo.inactive_anon.is_some());
+            assert!(meminfo.active_file.is_some());
+            assert!(meminfo.inactive_file.is_some());
+        } else {
+            assert!(meminfo.active_anon.is_none());
+            assert!(meminfo.inactive_anon.is_none());
+            assert!(meminfo.active_file.is_none());
+            assert!(meminfo.inactive_file.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 28)
+            && kernel <= KernelVersion::new(2, 6, 30)
+            && meminfo.unevictable.is_some()
+        {
+            if let Some(KernelConfig(ref config)) = config {
+                assert!(config.get("CONFIG_UNEVICTABLE_LRU").is_some());
+            }
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 19)
+            && config
+                .as_ref()
+                .map_or(false, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HIGHMEM"))
+        {
+            assert!(meminfo.high_total.is_some());
+            assert!(meminfo.high_free.is_some());
+            assert!(meminfo.low_total.is_some());
+            assert!(meminfo.low_free.is_some());
+        } else {
+            assert!(meminfo.high_total.is_none());
+            assert!(meminfo.high_free.is_none());
+            assert!(meminfo.low_total.is_none());
+            assert!(meminfo.low_free.is_none());
+        }
+
+        // Possible bug in procfs documentation:
+        // The man page says that MmapCopy requires CONFIG_MMU, but if you look at the
+        // source, MmapCopy is only included if CONFIG_MMU is *missing*:
+        // https://github.com/torvalds/linux/blob/v4.17/fs/proc/meminfo.c#L80
+        //if kernel >= KernelVersion::new(2, 6, 29) && config.contains_key("CONFIG_MMU") {
+        //    assert!(meminfo.mmap_copy.is_some());
+        //} else {
+        //    assert!(meminfo.mmap_copy.is_none());
+        //}
+
+        if kernel >= KernelVersion::new(2, 6, 18) {
+            assert!(meminfo.anon_pages.is_some());
+            assert!(meminfo.page_tables.is_some());
+            assert!(meminfo.nfs_unstable.is_some());
+            assert!(meminfo.bounce.is_some());
+        } else {
+            assert!(meminfo.anon_pages.is_none());
+            assert!(meminfo.page_tables.is_none());
+            assert!(meminfo.nfs_unstable.is_none());
+            assert!(meminfo.bounce.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 32) {
+            assert!(meminfo.shmem.is_some());
+            assert!(meminfo.kernel_stack.is_some());
+        } else {
+            assert!(meminfo.shmem.is_none());
+            assert!(meminfo.kernel_stack.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 19) {
+            assert!(meminfo.s_reclaimable.is_some());
+            assert!(meminfo.s_unreclaim.is_some());
+        } else {
+            assert!(meminfo.s_reclaimable.is_none());
+            assert!(meminfo.s_unreclaim.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 27)
+            && config
+                .as_ref()
+                .map_or(false, |KernelConfig(cfg)| cfg.contains_key("CONFIG_QUICKLIST"))
+        {
+            assert!(meminfo.quicklists.is_some());
+        } else {
+            assert!(meminfo.quicklists.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 26) {
+            assert!(meminfo.writeback_tmp.is_some());
+        } else {
+            assert!(meminfo.writeback_tmp.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 10) {
+            assert!(meminfo.commit_limit.is_some());
+        } else {
+            assert!(meminfo.commit_limit.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 32)
+            && config.as_ref().map_or(
+                std::path::Path::new("/proc/kpagecgroup").exists(),
+                |KernelConfig(cfg)| cfg.contains_key("CONFIG_MEMORY_FAILURE"),
+            )
+        {
+            assert!(meminfo.hardware_corrupted.is_some());
+        } else {
+            assert!(meminfo.hardware_corrupted.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 38)
+            && config.as_ref().map_or(false, |KernelConfig(cfg)| {
+                cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+            })
+        {
+            assert!(meminfo.anon_hugepages.is_some());
+        } else {
+            // SOme distributions may backport this option into older kernels
+            // assert!(meminfo.anon_hugepages.is_none());
+        }
+
+        if kernel >= KernelVersion::new(4, 8, 0)
+            && config.as_ref().map_or(true, |KernelConfig(cfg)| {
+                cfg.contains_key("CONFIG_TRANSPARENT_HUGEPAGE")
+            })
+        {
+            assert!(meminfo.shmem_hugepages.is_some());
+            assert!(meminfo.shmem_pmd_mapped.is_some());
+        } else {
+            assert!(meminfo.shmem_hugepages.is_none());
+            assert!(meminfo.shmem_pmd_mapped.is_none());
+        }
+
+        if kernel >= KernelVersion::new(3, 1, 0)
+            && config
+                .as_ref()
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_CMA"))
+        {
+            assert!(meminfo.cma_total.is_some());
+            assert!(meminfo.cma_free.is_some());
+        } else {
+            assert!(meminfo.cma_total.is_none());
+            assert!(meminfo.cma_free.is_none());
+        }
+
+        if config
+            .as_ref()
+            .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+        {
+            assert!(meminfo.hugepages_total.is_some());
+            assert!(meminfo.hugepages_free.is_some());
+            assert!(meminfo.hugepagesize.is_some());
+        } else {
+            assert!(meminfo.hugepages_total.is_none());
+            assert!(meminfo.hugepages_free.is_none());
+            assert!(meminfo.hugepagesize.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 17)
+            && config
+                .as_ref()
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+        {
+            assert!(meminfo.hugepages_rsvd.is_some());
+        } else {
+            assert!(meminfo.hugepages_rsvd.is_none());
+        }
+
+        if kernel >= KernelVersion::new(2, 6, 24)
+            && config
+                .as_ref()
+                .map_or(true, |KernelConfig(cfg)| cfg.contains_key("CONFIG_HUGETLB_PAGE"))
+        {
+            assert!(meminfo.hugepages_surp.is_some());
+        } else {
+            assert!(meminfo.hugepages_surp.is_none());
+        }
+    }
+
+    #[allow(clippy::manual_range_contains)]
+    fn valid_percentage(value: f32) -> bool {
+        value >= 0.00 && value < 100.0
+    }
+
+    #[test]
+    fn test_mem_pressure() {
+        if !Path::new("/proc/pressure/memory").exists() {
+            return;
+        }
+
+        let mem_psi = MemoryPressure::current().unwrap();
+        assert!(valid_percentage(mem_psi.some.avg10));
+        assert!(valid_percentage(mem_psi.some.avg60));
+        assert!(valid_percentage(mem_psi.some.avg300));
+
+        assert!(valid_percentage(mem_psi.full.avg10));
+        assert!(valid_percentage(mem_psi.full.avg60));
+        assert!(valid_percentage(mem_psi.full.avg300));
+    }
+
+    #[test]
+    fn test_io_pressure() {
+        if !Path::new("/proc/pressure/io").exists() {
+            return;
+        }
+
+        let io_psi = IoPressure::current().unwrap();
+        assert!(valid_percentage(io_psi.some.avg10));
+        assert!(valid_percentage(io_psi.some.avg60));
+        assert!(valid_percentage(io_psi.some.avg300));
+
+        assert!(valid_percentage(io_psi.full.avg10));
+        assert!(valid_percentage(io_psi.full.avg60));
+        assert!(valid_percentage(io_psi.full.avg300));
+    }
+
+    #[test]
+    fn test_cpu_pressure() {
+        if !Path::new("/proc/pressure/cpu").exists() {
+            return;
+        }
+
+        let cpu_psi = CpuPressure::current().unwrap();
+        assert!(valid_percentage(cpu_psi.some.avg10));
+        assert!(valid_percentage(cpu_psi.some.avg60));
+        assert!(valid_percentage(cpu_psi.some.avg300));
     }
 }

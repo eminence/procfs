@@ -43,17 +43,10 @@ pub struct CpuPressure {
     pub some: PressureRecord,
 }
 
-impl CpuPressure {
-    /// Get CPU pressure information
-    pub fn new() -> ProcResult<CpuPressure> {
-        use std::fs::File;
-        use std::io::{BufRead, BufReader};
-
-        let file = File::open("/proc/pressure/cpu")?;
-        let mut reader = BufReader::new(file);
-
+impl super::FromBufRead for CpuPressure {
+    fn from_buf_read<R: std::io::BufRead>(mut r: R) -> ProcResult<Self> {
         let mut some = String::new();
-        reader.read_line(&mut some)?;
+        r.read_line(&mut some)?;
 
         Ok(CpuPressure {
             some: parse_pressure_record(&some)?,
@@ -72,11 +65,9 @@ pub struct MemoryPressure {
     pub full: PressureRecord,
 }
 
-impl MemoryPressure {
-    /// Get memory pressure information
-    pub fn new() -> ProcResult<MemoryPressure> {
-        let (some, full) = get_pressure("memory")?;
-
+impl super::FromBufRead for MemoryPressure {
+    fn from_buf_read<R: std::io::BufRead>(r: R) -> ProcResult<Self> {
+        let (some, full) = get_pressure(r)?;
         Ok(MemoryPressure { some, full })
     }
 }
@@ -92,11 +83,9 @@ pub struct IoPressure {
     pub full: PressureRecord,
 }
 
-impl IoPressure {
-    /// Get IO pressure information
-    pub fn new() -> ProcResult<IoPressure> {
-        let (some, full) = get_pressure("io")?;
-
+impl super::FromBufRead for IoPressure {
+    fn from_buf_read<R: std::io::BufRead>(r: R) -> ProcResult<Self> {
+        let (some, full) = get_pressure(r)?;
         Ok(IoPressure { some, full })
     }
 }
@@ -140,18 +129,11 @@ fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
     })
 }
 
-fn get_pressure(pressure_file: &str) -> ProcResult<(PressureRecord, PressureRecord)> {
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
-
-    let file = File::open(format!("/proc/pressure/{}", pressure_file))?;
-    let mut reader = BufReader::new(file);
-
+fn get_pressure<R: std::io::BufRead>(mut r: R) -> ProcResult<(PressureRecord, PressureRecord)> {
     let mut some = String::new();
-    reader.read_line(&mut some)?;
+    r.read_line(&mut some)?;
     let mut full = String::new();
-    reader.read_line(&mut full)?;
-
+    r.read_line(&mut full)?;
     Ok((parse_pressure_record(&some)?, parse_pressure_record(&full)?))
 }
 
@@ -159,12 +141,6 @@ fn get_pressure(pressure_file: &str) -> ProcResult<(PressureRecord, PressureReco
 mod test {
     use super::*;
     use std::f32::EPSILON;
-    use std::path::Path;
-
-    #[allow(clippy::manual_range_contains)]
-    fn valid_percentage(value: f32) -> bool {
-        value >= 0.00 && value < 100.0
-    }
 
     #[test]
     fn test_parse_pressure_record() {
@@ -181,49 +157,5 @@ mod test {
         assert!(parse_pressure_record("avg10=2.10 avg60=0.12 avg300=0.00 total=391926").is_err());
         assert!(parse_pressure_record("some avg10=2.10 avg300=0.00 total=391926").is_err());
         assert!(parse_pressure_record("some avg10=2.10 avg60=0.00 avg300=0.00").is_err());
-    }
-
-    #[test]
-    fn test_mem_pressure() {
-        if !Path::new("/proc/pressure/memory").exists() {
-            return;
-        }
-
-        let mem_psi = MemoryPressure::new().unwrap();
-        assert!(valid_percentage(mem_psi.some.avg10));
-        assert!(valid_percentage(mem_psi.some.avg60));
-        assert!(valid_percentage(mem_psi.some.avg300));
-
-        assert!(valid_percentage(mem_psi.full.avg10));
-        assert!(valid_percentage(mem_psi.full.avg60));
-        assert!(valid_percentage(mem_psi.full.avg300));
-    }
-
-    #[test]
-    fn test_io_pressure() {
-        if !Path::new("/proc/pressure/io").exists() {
-            return;
-        }
-
-        let io_psi = IoPressure::new().unwrap();
-        assert!(valid_percentage(io_psi.some.avg10));
-        assert!(valid_percentage(io_psi.some.avg60));
-        assert!(valid_percentage(io_psi.some.avg300));
-
-        assert!(valid_percentage(io_psi.full.avg10));
-        assert!(valid_percentage(io_psi.full.avg60));
-        assert!(valid_percentage(io_psi.full.avg300));
-    }
-
-    #[test]
-    fn test_cpu_pressure() {
-        if !Path::new("/proc/pressure/cpu").exists() {
-            return;
-        }
-
-        let cpu_psi = CpuPressure::new().unwrap();
-        assert!(valid_percentage(cpu_psi.some.avg10));
-        assert!(valid_percentage(cpu_psi.some.avg60));
-        assert!(valid_percentage(cpu_psi.some.avg300));
     }
 }

@@ -1,5 +1,5 @@
-use crate::{expect, from_str, FileWrapper, ProcResult};
-use std::io::{BufRead, BufReader};
+use crate::{expect, from_str, ProcResult};
+use std::io::BufRead;
 
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
@@ -192,43 +192,25 @@ impl Lock {
     }
 }
 
-/// Get a list of current file locks and leases
-///
-/// Since Linux 4.9, the list of locks is filtered to show just the locks
-/// for the processes in the PID namespace for which the `/proc` filesystem
-/// was mounted.
-pub fn locks() -> ProcResult<Vec<Lock>> {
-    let file = FileWrapper::open("/proc/locks")?;
-    let reader = BufReader::new(file);
-    let mut v = Vec::new();
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+/// Details about file locks
+pub struct Locks(pub Vec<Lock>);
 
-    for line in reader.lines() {
-        let line = line?;
-        v.push(Lock::from_line(&line)?);
+impl super::FromBufRead for Locks {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let mut v = Vec::new();
+
+        for line in r.lines() {
+            let line = line?;
+            v.push(Lock::from_line(&line)?);
+        }
+        Ok(Locks(v))
     }
-    Ok(v)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{locks, LockKind, LockMode, LockType};
-
-    #[test]
-    fn live() {
-        for lock in locks().unwrap() {
-            println!("{:?}", lock);
-            if let LockType::Other(s) = lock.lock_type {
-                panic!("Found an unknown lock type {:?}", s);
-            }
-            if let LockKind::Other(s) = lock.kind {
-                panic!("Found an unknown lock kind {:?}", s);
-            }
-            if let LockMode::Other(s) = lock.mode {
-                panic!("Found an unknown lock mode {:?}", s);
-            }
-        }
-    }
-
     #[test]
     fn test_blocked() {
         let data = r#"1: POSIX  ADVISORY  WRITE 723 00:14:16845 0 EOF

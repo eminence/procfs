@@ -1,6 +1,6 @@
 use std::io;
 
-use super::{expect, FileWrapper, ProcResult};
+use super::{expect, ProcResult};
 use std::str::FromStr;
 
 #[cfg(feature = "serde1")]
@@ -46,24 +46,18 @@ pub struct Shm {
     pub swap: u64,
 }
 
-impl Shm {
-    /// Reads and parses the `/proc/sysvipc/shm`, returning an error if there are problems.
-    pub fn new() -> ProcResult<Vec<Shm>> {
-        let f = FileWrapper::open("/proc/sysvipc/shm")?;
+/// A set of shared memory segments parsed from `/proc/sysvipc/shm`
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct SharedMemorySegments(pub Vec<Shm>);
 
-        Shm::from_reader(f)
-    }
-
-    /// Get Meminfo from a custom Read instead of the default `/proc/sysvipc/shm`.
-    pub fn from_reader<R: io::Read>(r: R) -> ProcResult<Vec<Shm>> {
-        use std::io::{BufRead, BufReader};
-
-        let reader = BufReader::new(r);
+impl super::FromBufRead for SharedMemorySegments {
+    fn from_buf_read<R: io::BufRead>(r: R) -> ProcResult<Self> {
         let mut vec = Vec::new();
 
         // See printing code here:
         // https://elixir.bootlin.com/linux/latest/source/ipc/shm.c#L1737
-        for line in reader.lines().skip(1) {
+        for line in r.lines().skip(1) {
             let line = expect!(line);
             let mut s = line.split_whitespace();
 
@@ -106,6 +100,6 @@ impl Shm {
             vec.push(shm);
         }
 
-        Ok(vec)
+        Ok(SharedMemorySegments(vec))
     }
 }

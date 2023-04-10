@@ -1,7 +1,7 @@
-use crate::{expect, from_str, FileWrapper, ProcResult};
+use crate::{expect, from_str, ProcResult};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader};
+use std::io::BufRead;
 
 /// Disk IO stat information
 ///
@@ -88,17 +88,21 @@ pub struct DiskStat {
     pub time_flushing: Option<u64>,
 }
 
-/// Get disk IO stat info from /proc/diskstats
-pub fn diskstats() -> ProcResult<Vec<DiskStat>> {
-    let file = FileWrapper::open("/proc/diskstats")?;
-    let reader = BufReader::new(file);
-    let mut v = Vec::new();
+/// A list of disk stats.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct DiskStats(pub Vec<DiskStat>);
 
-    for line in reader.lines() {
-        let line = line?;
-        v.push(DiskStat::from_line(&line)?);
+impl crate::FromBufRead for DiskStats {
+    fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
+        let mut v = Vec::new();
+
+        for line in r.lines() {
+            let line = line?;
+            v.push(DiskStat::from_line(&line)?);
+        }
+        Ok(DiskStats(v))
     }
-    Ok(v)
 }
 
 impl DiskStat {
@@ -148,15 +152,5 @@ impl DiskStat {
             flushes,
             time_flushing,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn diskstat() {
-        for disk in super::diskstats().unwrap() {
-            println!("{:?}", disk);
-        }
     }
 }
