@@ -1,8 +1,6 @@
 //! Functions related to the in-kernel key management and retention facility
 //!
 //! For more details on this facility, see the `keyrings(7)` man page.
-//!
-//! Additional functions can be found in the [kernel::keys](crate::sys::kernel::keys) module.
 use crate::{build_internal_error, expect, from_str, ProcResult};
 use bitflags::bitflags;
 #[cfg(feature = "serde1")]
