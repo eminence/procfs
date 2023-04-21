@@ -448,7 +448,7 @@ pub enum MMapPath {
     Rollup,
     /// An anonymous mapping as obtained via mmap(2).
     Anonymous,
-    /// Shared memory segment
+    /// Shared memory segment. The i32 value corresponds to [Shm.key](Shm::key), while [MemoryMap.inode](MemoryMap::inode) corresponds to [Shm.shmid](Shm::shmid)
     Vsys(i32),
     /// Some other pseudo-path
     Other(String),

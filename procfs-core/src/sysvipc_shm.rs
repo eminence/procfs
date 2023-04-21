@@ -7,7 +7,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 
 /// A shared memory segment parsed from `/proc/sysvipc/shm`
-/// Relation with `[crate::process::process::MMapPath::Vsys]`
+/// Relation with [crate::process::MMapPath::Vsys]
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 #[allow(non_snake_case)]
