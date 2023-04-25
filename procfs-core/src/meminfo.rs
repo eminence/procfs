@@ -30,6 +30,8 @@ fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
 /// While the file shows kilobytes (kB; 1 kB equals 1000 B),
 /// it is actually kibibytes (KiB; 1 KiB equals 1024 B).
 ///
+/// All sizes are converted to bytes. Unitless values, like `hugepages_total` are not affected.
+///
 /// This imprecision in /proc/meminfo is known,
 /// but is not corrected due to legacy concerns -
 /// programs rely on /proc/meminfo to specify size with the "kB" string.
