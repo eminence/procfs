@@ -957,9 +957,7 @@ impl std::iter::Iterator for ProcessesIter {
             match self.inner.next() {
                 Some(Ok(entry)) => {
                     if let Ok(pid) = i32::from_str(&entry.file_name().to_string_lossy()) {
-                        if let Ok(proc) = Process::new_with_root(self.root.join(pid.to_string())) {
-                            break Some(Ok(proc));
-                        }
+                        break Some(Process::new_with_root(self.root.join(pid.to_string())));
                     }
                 }
                 Some(Err(e)) => break Some(Err(io::Error::from(e).into())),
