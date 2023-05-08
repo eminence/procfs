@@ -12,7 +12,7 @@ See the docs for info on what's supported, or view the [support.md](https://gith
 file in the code repository.
 
 ## Examples
-There are several examples in the docs and in the [examples folder](https://github.com/eminence/procfs/tree/master/examples)
+There are several examples in the docs and in the [examples folder](https://github.com/eminence/procfs/tree/master/procfs/examples)
 of the code repository.
 
 Here's a small example that prints out all processes that are running on the same tty as the calling
@@ -65,7 +65,7 @@ fn main() {
 ```
 
 There are a few ways to get this data, so also checkout the longer
-[self_memory](https://github.com/eminence/procfs/blob/master/examples/self_memory.rs) example for more
+[self_memory](https://github.com/eminence/procfs/blob/master/procfs/examples/self_memory.rs) example for more
 details.
 
 ## Cargo features
