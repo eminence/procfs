@@ -36,6 +36,9 @@ pub use smaps_rollup::*;
 mod pagemap;
 pub use pagemap::*;
 
+mod clear_refs;
+pub use clear_refs::*;
+
 bitflags! {
     /// Kernel flags for a process
     ///

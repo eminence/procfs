@@ -13,7 +13,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/autogroup`
   * [x] `/proc/[pid]/auxv`
   * [x] `/proc/[pid]/cgroup`
-  * [ ] `/proc/[pid]/clear_refs`
+  * [x] `/proc/[pid]/clear_refs`
   * [x] `/proc/[pid]/cmdline`
   * [x] `/proc/[pid]/comm`
   * [x] `/proc/[pid]/coredump_filter`
