@@ -460,6 +460,15 @@ pub fn diskstats() -> ProcResult<Vec<DiskStat>> {
     DiskStats::current().map(|d| d.0)
 }
 
+impl Current for Vec<MountEntry> {
+    const PATH: &'static str = "/proc/mounts";
+}
+
+/// Get a list of mountpoints from `/proc/mounts`
+pub fn mounts() -> ProcResult<Vec<MountEntry>> {
+    Vec::<MountEntry>::current()
+}
+
 impl Current for Locks {
     const PATH: &'static str = "/proc/locks";
 }

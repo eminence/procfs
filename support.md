@@ -98,7 +98,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/malloc`
 * [x] `/proc/meminfo`
 * [x] `/proc/modules`
-* [ ] `/proc/mounts`
+* [x] `/proc/mounts`
 * [ ] `/proc/mtrr`
 * [ ] `/proc/net`
   * [x] `/proc/net/arp`

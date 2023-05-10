@@ -363,6 +363,9 @@ pub mod keyring;
 mod locks;
 pub use locks::*;
 
+mod mounts;
+pub use mounts::*;
+
 mod meminfo;
 pub use meminfo::*;
 
