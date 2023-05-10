@@ -147,8 +147,7 @@ impl FDInfo {
         // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
         let flags = match *crate::KERNEL {
             Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Ok(v) if v >= KernelVersion::new(3, 6, 0) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
-            Ok(_) => unreachable!(),
+            Ok(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
             Err(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
         };
         let file = wrap_io_error!(root, rustix::fs::openat(dirfd, p, flags, Mode::empty()))?;
@@ -218,8 +217,7 @@ impl Process {
         // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
         let flags = match *crate::KERNEL {
             Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::DIRECTORY | OFlags::CLOEXEC,
-            Ok(v) if v >= KernelVersion::new(3, 6, 0) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
-            Ok(_) => unreachable!(),
+            Ok(v) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Err(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
         };
         let file = wrap_io_error!(root, rustix::fs::openat(rustix::fs::cwd(), &root, flags, Mode::empty()))?;
