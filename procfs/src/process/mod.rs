@@ -907,16 +907,35 @@ impl std::iter::Iterator for TasksIter {
 
 /// Return a iterator of all processes
 ///
-/// If a process can't be constructed for some reason, it won't be returned in the iterator.
+/// If a process can't be constructed for some reason, it will be returned as an `Err(ProcError)`
 ///
 /// See also some important docs on the [ProcessesIter] struct.
+///
+/// Error handling example
+/// ```
+/// # use procfs::process::Process;
+/// let all_processes: Vec<Process> = procfs::process::all_processes()
+/// .expect("Can't read /proc")
+/// .filter_map(|p| match p {
+///     Ok(p) => Some(p),                                                // happy path
+///     Err(e) => match e {
+///         procfs::ProcError::NotFound(_) => None,                      // process vanished during iteration, ignore it
+///         procfs::ProcError::Io(e, path) => None,                      // can match on path to decide if we can continue
+///         x => {
+///             println!("Can't read process due to error {x:?}"); // some unknown error
+///             None
+///         }
+///     },
+/// })
+/// .collect();
+/// ```
 pub fn all_processes() -> ProcResult<ProcessesIter> {
     all_processes_with_root("/proc")
 }
 
 /// Return a list of all processes based on a specified `/proc` path
 ///
-/// If a process can't be constructed for some reason, it won't be returned in the list.
+/// See [all_processes] for details and examples
 ///
 /// See also some important docs on the [ProcessesIter] struct.
 pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIter> {
