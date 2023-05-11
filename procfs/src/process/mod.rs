@@ -144,15 +144,13 @@ impl FDInfo {
     ) -> ProcResult<Self> {
         let p = path.as_ref();
         let root = base.as_ref().join(p);
-        let file = wrap_io_error!(
-            root,
-            rustix::fs::openat(
-                dirfd,
-                p,
-                OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
-                Mode::empty()
-            )
-        )?;
+        // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
+        let flags = match *crate::KERNEL {
+            Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Ok(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
+            Err(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
+        };
+        let file = wrap_io_error!(root, rustix::fs::openat(dirfd, p, flags, Mode::empty()))?;
         let link = rustix::fs::readlinkat(&file, "", Vec::new()).map_err(io::Error::from)?;
         let md =
             rustix::fs::statat(&file, "", AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).map_err(io::Error::from)?;
@@ -216,15 +214,13 @@ impl Process {
 
     /// Returns a `Process` based on a specified `/proc/<pid>` path.
     pub fn new_with_root(root: PathBuf) -> ProcResult<Process> {
-        let file = wrap_io_error!(
-            root,
-            rustix::fs::openat(
-                rustix::fs::cwd(),
-                &root,
-                OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
-                Mode::empty()
-            )
-        )?;
+        // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
+        let flags = match *crate::KERNEL {
+            Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Ok(v) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Err(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
+        };
+        let file = wrap_io_error!(root, rustix::fs::openat(rustix::fs::cwd(), &root, flags, Mode::empty()))?;
 
         let pidres = root
             .as_path()
