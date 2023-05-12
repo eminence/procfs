@@ -54,12 +54,16 @@ fn main() {
     let me_stat = me.stat().unwrap();
     println!("PID: {}", me.pid);
 
-    let page_size = procfs::page_size().unwrap() as u64;
+    let page_size = procfs::page_size();
     println!("Memory page size: {}", page_size);
 
     println!("== Data from /proc/self/stat:");
     println!("Total virtual memory used: {} bytes", me_stat.vsize);
-    println!("Total resident set: {} pages ({} bytes)", me_stat.rss, me_stat.rss as u64 * page_size);
+    println!(
+        "Total resident set: {} pages ({} bytes)",
+        me_stat.rss,
+        me_stat.rss * page_size
+    );
 }
 
 ```
@@ -103,4 +107,3 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
-
