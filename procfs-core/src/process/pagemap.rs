@@ -98,7 +98,7 @@ impl fmt::LowerHex for Pfn {
 }
 
 /// Represents a page table entry in `/proc/<pid>/pagemap`.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PageInfo {
     /// Entry referring to a memory page
     MemoryPage(MemoryPageFlags),
