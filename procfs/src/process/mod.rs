@@ -840,6 +840,13 @@ impl Process {
             crate::current_system_info(),
         )
     }
+
+    /// Clear reference bits
+    ///
+    /// See [ClearRefs] and [Process::pagemap()]
+    pub fn clear_refs(&self, clear: ClearRefs) -> ProcResult<()> {
+        write_value(self.root.join("clear_refs"), clear)
+    }
 }
 
 /// The result of [`Process::fd`], iterates over all fds in a process
