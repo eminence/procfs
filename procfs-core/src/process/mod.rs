@@ -558,6 +558,10 @@ impl MemoryMaps {
     pub fn iter(&self) -> std::slice::Iter<MemoryMap> {
         self.0.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<'a> IntoIterator for &'a MemoryMaps {
