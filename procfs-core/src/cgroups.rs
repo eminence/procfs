@@ -113,3 +113,21 @@ impl crate::FromBufRead for ProcessCGroups {
         Ok(ProcessCGroups(vec))
     }
 }
+
+impl IntoIterator for ProcessCGroups {
+    type IntoIter = std::vec::IntoIter<ProcessCGroup>;
+    type Item = ProcessCGroup;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ProcessCGroups {
+    type IntoIter = std::slice::Iter<'a, ProcessCGroup>;
+    type Item = &'a ProcessCGroup;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
