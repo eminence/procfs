@@ -14,7 +14,7 @@ rust-version.workspace = true
 
 [features]
 default = ["chrono", "flate2"]
-serde1 = ["serde"]
+serde1 = ["serde", "procfs-core/serde1"]
 
 [dependencies]
 procfs-core = { path = "../procfs-core" }
