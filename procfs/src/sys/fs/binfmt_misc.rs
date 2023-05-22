@@ -105,6 +105,7 @@ impl BinFmtEntry {
 
 bitflags! {
     /// Various key flags
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct BinFmtFlags: u8 {
             /// Preserve Argv[0]
             ///

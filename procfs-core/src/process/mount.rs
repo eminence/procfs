@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 bitflags! {
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct NFSServerCaps: u32 {
 
         const NFS_CAP_READDIRPLUS = 1;

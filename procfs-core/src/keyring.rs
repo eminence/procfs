@@ -10,6 +10,7 @@ use std::{collections::HashMap, io::BufRead, time::Duration};
 bitflags! {
     /// Various key flags
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct KeyFlags: u32 {
             /// The key has been instantiated
             const INSTANTIATED = 0x01;
@@ -33,6 +34,7 @@ bitflags! {
 bitflags! {
     /// Bitflags that represent the permissions for a key
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct PermissionFlags: u32 {
         /// The attributes of the key may be read
         ///
@@ -56,7 +58,7 @@ bitflags! {
         /// The ownership details and security label of the key may be changed, the key's expiration
         /// time may be set, and the key may be revoked.
         const SETATTR = 0x20;
-        const ALL = Self::VIEW.bits | Self::READ.bits | Self::WRITE.bits | Self::SEARCH.bits | Self::LINK.bits | Self::SETATTR.bits;
+        const ALL = Self::VIEW.bits() | Self::READ.bits() | Self::WRITE.bits() | Self::SEARCH.bits() | Self::LINK.bits() | Self::SETATTR.bits();
     }
 }
 

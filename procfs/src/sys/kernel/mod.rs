@@ -355,6 +355,7 @@ pub fn shmmni() -> ProcResult<u64> {
 
 bitflags! {
     /// Flags representing allowed sysrq functions
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct AllowedFunctions : u16 {
         /// Enable control of console log level
         const ENABLE_CONTROL_LOG_LEVEL = 2;
@@ -393,7 +394,7 @@ impl SysRq {
         match self {
             SysRq::Disable => 0,
             SysRq::Enable => 1,
-            SysRq::AllowedFunctions(allowed) => allowed.bits,
+            SysRq::AllowedFunctions(allowed) => allowed.bits(),
         }
     }
 

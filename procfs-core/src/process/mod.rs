@@ -44,6 +44,7 @@ bitflags! {
     ///
     /// See also the [Stat::flags()] method.
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct StatFlags: u32 {
         /// I am an IDLE thread
         const PF_IDLE = 0x0000_0002;
@@ -114,6 +115,7 @@ bitflags! {
 bitflags! {
     /// See the [coredump_filter()](struct.Process.html#method.coredump_filter) method.
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct CoredumpFlags: u32 {
         const ANONYMOUS_PRIVATE_MAPPINGS = 0x01;
         const ANONYMOUS_SHARED_MAPPINGS = 0x02;
@@ -133,8 +135,8 @@ bitflags! {
     /// Note that the `SHARED` and `PRIVATE` are mutually exclusive, so while you can
     /// use `MMPermissions::all()` to construct an instance that has all bits set,
     /// this particular value would never been seen in procfs.
-    #[derive(Default)]
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord, Default)]
     pub struct MMPermissions: u8 {
         /// No permissions
         const NONE = 0;
@@ -202,8 +204,8 @@ impl FromStr for MMPermissions {
 bitflags! {
     /// Represents the kernel flags associated with the virtual memory area.
     /// The names of these flags are just those you'll find in the man page, but in upper case.
-    #[derive(Default)]
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord, Default)]
     pub struct VmFlags: u32 {
         /// No flags
         const NONE = 0;
