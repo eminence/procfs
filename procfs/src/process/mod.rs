@@ -93,6 +93,7 @@ bitflags! {
     ///
     /// [documented]: https://man7.org/linux/man-pages/man2/chmod.2.html#DESCRIPTION
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct FDPermissions: u16 {
         const READ = Mode::RUSR.bits() as u16;
         const WRITE = Mode::WUSR.bits() as u16;
@@ -217,7 +218,7 @@ impl Process {
         // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
         let flags = match *crate::KERNEL {
             Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::DIRECTORY | OFlags::CLOEXEC,
-            Ok(v) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            Ok(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Err(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
         };
         let file = wrap_io_error!(root, rustix::fs::openat(rustix::fs::cwd(), &root, flags, Mode::empty()))?;

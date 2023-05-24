@@ -19,7 +19,7 @@ serde1 = ["serde", "procfs-core/serde1"]
 [dependencies]
 procfs-core = { path = "../procfs-core" }
 rustix = { version = "0.37.0", features = ["fs", "process", "param", "thread"] }
-bitflags = "1.2"
+bitflags = { version = "2.0", default-features = false }
 lazy_static = "1.0.2"
 chrono = {version = "0.4.20", optional = true, features = ["clock"], default-features = false }
 hex = "0.4"

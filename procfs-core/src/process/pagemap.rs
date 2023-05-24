@@ -16,6 +16,7 @@ const MAX_SWAPFILES_SHIFT: usize = 5;
 bitflags! {
     /// Represents the fields and flags in a page table entry for a swapped page.
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct SwapPageFlags: u64 {
         /// Swap type if swapped
         #[doc(hidden)]
@@ -52,6 +53,7 @@ impl SwapPageFlags {
 bitflags! {
     /// Represents the fields and flags in a page table entry for a memory page.
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct MemoryPageFlags: u64 {
         /// Page frame number if present
         #[doc(hidden)]
@@ -108,10 +110,10 @@ pub enum PageInfo {
 
 impl PageInfo {
     pub fn parse_info(info: u64) -> Self {
-        let flags = MemoryPageFlags::from_bits_truncate(info);
+        let flags = MemoryPageFlags::from_bits_retain(info);
 
         if flags.contains(MemoryPageFlags::SWAP) {
-            Self::SwapPage(SwapPageFlags::from_bits_truncate(info))
+            Self::SwapPage(SwapPageFlags::from_bits_retain(info))
         } else {
             Self::MemoryPage(flags)
         }

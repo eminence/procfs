@@ -368,6 +368,7 @@ bitflags! {
     /// Hardware type for an ARP table entry.
     // source: include/uapi/linux/if_arp.h
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct ARPHardware: u32 {
         /// NET/ROM pseudo
         const NETROM = 0;
@@ -406,6 +407,7 @@ bitflags! {
     /// Flags for ARP entries
     // source: include/uapi/linux/if_arp.h
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct ARPFlags: u32 {
             /// Completed entry
             const COM = 0x02;

@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 bitflags! {
     /// Represents the fields and flags in a page table entry for a memory page.
     #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+    #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd, Ord)]
     pub struct PhysicalPageFlags: u64 {
         /// The page is being locked for exclusive access, e.g. by undergoing read/write IO
         const LOCKED = 1 << 0;
