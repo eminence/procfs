@@ -372,7 +372,7 @@ impl Current for KernelConfig {
                 unreachable!("flate2 feature not enabled")
             }
         } else {
-            let kernel = rustix::process::uname();
+            let kernel = rustix::system::uname();
 
             let filename = format!("{}-{}", BOOT_CONFIG, kernel.release().to_string_lossy());
 

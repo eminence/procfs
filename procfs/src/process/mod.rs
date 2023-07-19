@@ -221,7 +221,7 @@ impl Process {
             Ok(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Err(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
         };
-        let file = wrap_io_error!(root, rustix::fs::openat(rustix::fs::cwd(), &root, flags, Mode::empty()))?;
+        let file = wrap_io_error!(root, rustix::fs::openat(rustix::fs::CWD, &root, flags, Mode::empty()))?;
 
         let pidres = root
             .as_path()
@@ -233,7 +233,7 @@ impl Process {
             })
             .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
             .or_else(|| {
-                rustix::fs::readlinkat(rustix::fs::cwd(), &root, Vec::new())
+                rustix::fs::readlinkat(rustix::fs::CWD, &root, Vec::new())
                     .ok()
                     .and_then(|s| s.to_string_lossy().parse::<i32>().ok())
             });
@@ -947,7 +947,7 @@ pub fn all_processes_with_root(root: impl AsRef<Path>) -> ProcResult<ProcessesIt
     let dir = wrap_io_error!(
         root,
         rustix::fs::openat(
-            rustix::fs::cwd(),
+            rustix::fs::CWD,
             root,
             OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Mode::empty()
