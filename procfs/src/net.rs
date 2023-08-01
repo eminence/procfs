@@ -160,6 +160,21 @@ pub fn snmp() -> ProcResult<Snmp> {
     Snmp::current()
 }
 
+impl super::Current for Snmp6 {
+    const PATH: &'static str = "/proc/net/snmp6";
+}
+
+/// Reads the network management information of IPv6 by Simple Network Management Protocol
+///
+/// This data is from the `/proc/net/snmp6` file and for IPv6 Protocol
+///
+/// Note that this returns information from the networking namespace of the
+/// current process.  If you want information for some other process, see
+/// [Process::snmp6()](crate::process::Process::snmp6())
+pub fn snmp6() -> ProcResult<Snmp6> {
+    Snmp6::current()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -226,5 +241,11 @@ mod tests {
     fn test_snmp() {
         let snmp = snmp().unwrap();
         println!("{:?}", snmp);
+    }
+
+    #[test]
+    fn test_snmp6() {
+        let snmp6 = snmp6().unwrap();
+        println!("{:?}", snmp6);
     }
 }
