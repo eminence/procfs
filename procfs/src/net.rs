@@ -49,6 +49,7 @@
 //!         println!("{:<26} {:<26} {:<15} {:<12} -", local_address, remote_addr, state, entry.inode);
 //!     }
 //! }
+//! ```
 use crate::ProcResult;
 use crate::{current_system_info, Current};
 pub use procfs_core::net::*;
@@ -144,6 +145,21 @@ pub fn route() -> ProcResult<Vec<RouteEntry>> {
     RouteEntries::current().map(|r| r.0)
 }
 
+impl super::Current for Snmp {
+    const PATH: &'static str = "/proc/net/snmp";
+}
+
+/// Reads the network management information by Simple Network Management Protocol
+///
+/// This data is from the `/proc/net/snmp` file and for IPv4 Protocol
+///
+/// Note that this returns information from the networking namespace of the
+/// current process.  If you want information for some other process, see
+/// [Process::snmp()](crate::process::Process::snmp())
+pub fn snmp() -> ProcResult<Snmp> {
+    Snmp::current()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,5 +220,11 @@ mod tests {
         for entry in route().unwrap() {
             println!("{:?}", entry);
         }
+    }
+
+    #[test]
+    fn test_snmp() {
+        let snmp = snmp().unwrap();
+        println!("{:?}", snmp);
     }
 }
