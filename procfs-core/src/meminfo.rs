@@ -3,16 +3,6 @@ use super::{expect, from_str, ProcResult};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io};
 
-fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
-    match unit {
-        "B" => Ok(num),
-        "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
-        "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
-        "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
-        unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
-    }
-}
-
 /// This  struct  reports  statistics about memory usage on the system, based on
 /// the `/proc/meminfo` file.
 ///
@@ -30,7 +20,8 @@ fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
 /// While the file shows kilobytes (kB; 1 kB equals 1000 B),
 /// it is actually kibibytes (KiB; 1 KiB equals 1024 B).
 ///
-/// All sizes are converted to bytes. Unitless values, like `hugepages_total` are not affected.
+/// All sizes are reported as their unmodified values in kilobytes/kibibytes.
+/// Unitless values, like `hugepages_total` are similarly unchanged.
 ///
 /// This imprecision in /proc/meminfo is known,
 /// but is not corrected due to legacy concerns -
@@ -320,11 +311,9 @@ impl super::FromBufRead for Meminfo {
 
             let value = from_str!(u64, value);
 
-            let value = if let Some(unit) = unit {
-                convert_to_kibibytes(value, unit)?
-            } else {
-                value
-            };
+            if let Some(unit) = unit {
+                assert_eq!(unit, "kB", "/proc/meminfo field wasn't in kB.");
+            }
 
             map.insert(field[..field.len() - 1].to_string(), value);
         }
