@@ -109,7 +109,8 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/net/rarp`
   * [ ] `/proc/net/raw`
   * [x] `/proc/net/route`
-  * [ ] `/proc/net/snmp`
+  * [x] `/proc/net/snmp`
+  * [x] `/proc/net/snmp6`
   * [x] `/proc/net/tcp`
   * [x] `/proc/net/udp`
   * [x] `/proc/net/unix`
