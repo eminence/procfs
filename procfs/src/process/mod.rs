@@ -787,6 +787,18 @@ impl Process {
         self.read("net/route").map(|net::RouteEntries(e)| e)
     }
 
+    /// Reads the network management information by Simple Network Management Protocol from the
+    /// process net namespace
+    pub fn snmp(&self) -> ProcResult<net::Snmp> {
+        self.read("net/snmp").map(|net::Snmp(e)| e)
+    }
+
+    /// Reads the network management information of IPv6 by Simple Network Management Protocol from
+    /// the process net namespace
+    pub fn snmp6(&self) -> ProcResult<net::Snmp6> {
+        self.read("net/snmp6").map(|net::Snmp6(e)| e)
+    }
+
     /// Opens a file to the process's memory (`/proc/<pid>/mem`).
     ///
     /// Note: you cannot start reading from the start of the file.  You must first seek to
