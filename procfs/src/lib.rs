@@ -75,6 +75,9 @@ pub trait Current: FromRead {
     }
 }
 
+/// A type for accessing data about the currently running machine
+///
+/// For more details, see the [SystemInfoInterface] trait.
 pub struct LocalSystemInfo;
 
 impl SystemInfoInterface for LocalSystemInfo {
