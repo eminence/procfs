@@ -115,7 +115,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/net/udp`
   * [x] `/proc/net/unix`
   * [ ] `/proc/net/netfilter/nfnetlink_queue`
-* [ ] `/proc/partitions`
+* [x] `/proc/partitions`
 * [ ] `/proc/pci`
 * [x] `/proc/pressure`
   * [x] `/proc/pressure/cpu`

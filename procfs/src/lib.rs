@@ -472,6 +472,15 @@ pub fn mounts() -> ProcResult<Vec<MountEntry>> {
     Vec::<MountEntry>::current()
 }
 
+impl Current for Vec<PartitionEntry> {
+    const PATH: &'static str = "/proc/partitions";
+}
+
+/// Get a list of partitions from `/proc/partitions`
+pub fn partitions() -> ProcResult<Vec<PartitionEntry>> {
+    Vec::<PartitionEntry>::current()
+}
+
 impl Current for Locks {
     const PATH: &'static str = "/proc/locks";
 }
