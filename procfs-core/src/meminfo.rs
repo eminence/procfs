@@ -312,7 +312,12 @@ impl super::FromBufRead for Meminfo {
             let value = from_str!(u64, value);
 
             if let Some(unit) = unit {
-                assert_eq!(unit, "kB", "/proc/meminfo field wasn't in kB.");
+                if unit != "kB" {
+                    return Err(build_internal_error!(format!(
+                        "/proc/meminfo field {} was in {}, not kB",
+                        field, unit
+                    )));
+                }
             }
 
             map.insert(field[..field.len() - 1].to_string(), value);
