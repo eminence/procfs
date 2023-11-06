@@ -75,8 +75,45 @@ pub struct PersonalityStatus {
 pub struct Bitmap {
     pub pages: usize,
     pub missing_pages: usize,
-    pub pages_byes: usize,
+    pub pages_bytes: usize,
     pub chunk_bytes: usize
+}
+
+impl FromStr for Bitmap {
+    type Err=ProcError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+        let bitmap = expect!(parts.next());
+        if bitmap != "bitmap:" {
+            return Err(build_internal_error!(format!("Expecting 'bitmap' got '{}'", bitmap)));
+        }
+
+        let mut pages_parts = expect!(parts.next()).split('/');
+        let present_pages: usize = expect!(pages_parts.next()).parse()?;
+        let pages = expect!(pages_parts.next()).parse()?;
+        let missing_pages = pages - present_pages;
+
+        let pagesstr = expect!(parts.next());
+        if pagesstr != "pages" {
+            return Err(build_internal_error!(format!("Expecting 'pages' got '{}'", pagesstr)));
+        }
+
+        let pkbs: usize = expect!(parts.next()).trim_start_matches('[').trim_end_matches("KB],").parse()?;
+
+        let pages_bytes = pkbs * 1024;
+
+        let cbytes = expect!(parts.next()).trim_end_matches('B');
+
+        let (s, mul) = match cbytes.strip_suffix('K') {
+            Some(s) => (s, 1024),
+            None => (cbytes, 1)
+        };
+
+        let chunk_bytes = s.parse::<usize>()? * mul;
+
+        Ok(Bitmap{pages, missing_pages, pages_bytes, chunk_bytes})
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -85,7 +122,21 @@ pub enum Recovery {
     Reshape,
     Check,
     Resync,
-    Recovery
+    Recover
+}
+
+impl FromStr for Recovery {
+    type Err=ProcError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "recover" | "recovery" => Ok(Recovery::Recover),
+            "reshape" => Ok(Recovery::Reshape),
+            "resync" => Ok(Recovery::Resync),
+            "check" => Ok(Recovery::Check),
+            _ => Err(build_internal_error!(format!("Expecting recovery flag, got '{}'", s)))
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -98,9 +149,55 @@ pub enum Resync {
         recovery: Recovery,
         resync_sectors: u32,
         total_sectors: u32,
-        recovery_percent: f32,
+        recovery_permill: u16,
         estimated_duraion: Duration,
         bps: u64
+    }
+}
+
+impl Resync {
+    fn parse_in_progress<'a>(inp: &mut impl Iterator<Item=&'a str>) -> ProcResult<Self> {
+        let recovery: Recovery = expect!(inp.next()).parse()?;
+        expect!(inp.next());
+        let mut permil_parts = expect!(inp.next()).trim_end_matches('%').split('.');
+        let percent: u16 = expect!(permil_parts.next()).parse()?;
+        let permill: u16 = expect!(permil_parts.next()).parse()?;
+        let recovery_permill = 10 * percent + permill;
+
+        let mut sector_parts = expect!(inp.next()).trim_start_matches('(').trim_end_matches(')').split('/');
+        let resync_sectors = expect!(sector_parts.next()).parse()?;
+        let total_sectors = expect!(sector_parts.next()).parse()?;
+
+        let mut duration_parts = expect!(inp.next()).trim_start_matches("finish=").trim_end_matches("min").split('.');
+        let minutes: u64 = expect!(duration_parts.next()).parse()?;
+        let decimal_minutes: u64 = expect!(duration_parts.next()).parse()?;
+        let estimated_duraion = Duration::from_secs(minutes * 60 + decimal_minutes * 6);
+
+        let kbps: u64 = expect!(inp.next()).trim_start_matches("speed=").trim_end_matches("K/sec").parse()?;
+        let bps = kbps * 1000;
+
+        Ok(Resync::InProgress{recovery, resync_sectors, total_sectors, recovery_permill, estimated_duraion, bps})
+    }
+}
+
+impl FromStr for Resync {
+    type Err=ProcError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split_whitespace();
+        let p = expect!(parts.next(), "Expecting recovery info");
+        match p {
+            _ if p.ends_with("=REMOTE") => {
+                Ok(Resync::Remote(expect!(p.split('=').next()).parse()?))
+            }
+            _ if p.ends_with("=PENDING") => Ok(Resync::Pending),
+            _ if p.ends_with("=DELAYED") => Ok(Resync::Delayed),
+            _ if p.trim_matches(&['[', ']', '=', '>', '.'] as &[_]).is_empty() => {
+                Self::parse_in_progress(&mut parts)
+            }
+            _ => Err(build_internal_error!(format!("Expecting recovery info, got '{}'", p)))
+        }
+
     }
 }
 
@@ -174,7 +271,7 @@ impl Line1Parser {
                         out.3 = Some(tok.to_owned());
                         Line1Parser::Disks.parse(inp, out)
                     },
-                    _ => Err(build_internal_error!(format!("Expected personality name, got {tok}")))
+                    _ => Err(build_internal_error!(format!("Expected personality name, got {}", tok)))
                 }
             },
             Line1Parser::RaidName => {
@@ -388,7 +485,27 @@ impl TryFrom<&[String]> for MdDevice {
             }
         }
 
-        Ok(ret)
+        let l3 = it.next();
+
+        if let Some(l) = l3 {
+            let resync: ProcResult<Resync> = l.trim().parse();
+            match resync {
+                Ok(r) => {
+                    ret.resync = Some(r);
+                    if let Some(l4) = it.next() {
+                        ret.bitmap = Some(l4.parse()?)
+                    }
+                },
+                Err(_) => ret.bitmap = Some(l.trim().parse()?)
+            }
+        }
+
+        if let Some(l) = it.next() {
+            Err(build_internal_error!(format!("Don't know how to parse line: '{}'", l)))
+        } else {
+            Ok(ret)
+        }
+
     }
 }
 
