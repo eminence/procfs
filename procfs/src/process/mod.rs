@@ -607,7 +607,7 @@ impl Process {
         self.task_from_tid(self.pid)
     }
 
-    /// Return a task for the main thread of this process
+    /// Return a task for the thread based on a specified TID
     pub fn task_from_tid(&self, tid: i32) -> ProcResult<Task> {
         let path = PathBuf::from("task").join(tid.to_string());
         Task::from_process_at(&self.root, self.fd.as_fd(), path, self.pid, tid)
