@@ -49,7 +49,7 @@ impl FromBufRead for CryptoTable {
                 let mut split = line.split(":");
                 let name = expect!(split.next());
                 if name.trim() == "name" {
-                    let name = expect!(split.next()).to_string();
+                    let name = expect!(split.next()).trim().to_string();
                     let block = CryptoBlock::from_iter(&mut lines, name.as_str())?;
                     crypto_blocks.insert(name, block);
                 }
