@@ -3,8 +3,10 @@ use crate::{expect, FromBufRead, ProcError, ProcResult};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 use std::{
+    borrow::Borrow,
     collections::HashMap,
     convert::TryFrom,
+    hash::Hash,
     io::BufRead,
     iter::{once, Peekable},
     str::FromStr,
@@ -57,6 +59,13 @@ impl FromBufRead for CryptoTable {
         }
 
         Ok(CryptoTable { crypto_blocks })
+    }
+}
+
+impl CryptoTable {
+    pub fn get<T: AsRef<str>>(&self, target: &T) -> Option<&CryptoBlock>
+    {
+        self.crypto_blocks.get(target.as_ref())
     }
 }
 
