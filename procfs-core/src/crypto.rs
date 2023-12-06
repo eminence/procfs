@@ -289,7 +289,7 @@ pub struct Rng {
 
 impl Rng {
     fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
-        let seed_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
+        let seed_size = from_str!(usize, &parse_line(iter, "seedsize", name)?);
         Ok(Self { seed_size })
     }
 }
