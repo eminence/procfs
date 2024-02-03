@@ -36,7 +36,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/numa_maps`
   * [ ] `/proc/[pid]/oom_adj`
   * [x] `/proc/[pid]/oom_score`
-  * [ ] `/proc/[pid]/oom_score_adj`
+  * [x] `/proc/[pid]/oom_score_adj`
   * [ ] `/proc/[pid]/pagemap`
   * [ ] `/proc/[pid]/personality`
   * [x] `/proc/[pid]/root`

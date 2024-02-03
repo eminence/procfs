@@ -174,6 +174,10 @@ fn test_all() {
         check_unwrap(&prc, prc.mountinfo());
         check_unwrap(&prc, prc.mountstats());
         check_unwrap(&prc, prc.oom_score());
+        if let Some(oom_score_adj) = check_unwrap(&prc, prc.oom_score_adj()) {
+            assert!(oom_score_adj >= -1000 && oom_score_adj <= 1000);
+            check_unwrap(&prc, prc.set_oom_score_adj(oom_score_adj));
+        }
 
         if let Some(tasks) = check_unwrap(&prc, prc.tasks()) {
             for task in tasks {

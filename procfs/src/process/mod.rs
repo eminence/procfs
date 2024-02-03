@@ -587,12 +587,29 @@ impl Process {
     /// A higher score means that the process is more likely to be selected by the OOM-killer.
     /// The basis for this score is the amount of memory used by the process, plus other factors.
     ///
+    /// Values range from 0 (never kill) to 1000 (always kill) inclusive.
+    ///
     /// (Since linux 2.6.11)
-    pub fn oom_score(&self) -> ProcResult<u32> {
+    pub fn oom_score(&self) -> ProcResult<u16> {
         let mut file = FileWrapper::open_at(&self.root, &self.fd, "oom_score")?;
         let mut oom = String::new();
         file.read_to_string(&mut oom)?;
-        Ok(from_str!(u32, oom.trim()))
+        Ok(from_str!(u16, oom.trim()))
+    }
+
+    /// Adjust score value is added to the oom score before choosing processes to kill.
+    ///
+    /// Values range from -1000 (never kill) to 1000 (always kill) inclusive.
+    pub fn oom_score_adj(&self) -> ProcResult<i16> {
+        let mut file = FileWrapper::open_at(&self.root, &self.fd, "oom_score_adj")?;
+        let mut oom = String::new();
+        file.read_to_string(&mut oom)?;
+        Ok(from_str!(i16, oom.trim()))
+    }
+
+    pub fn set_oom_score_adj(&self, new_oom_score_adj: i16) -> ProcResult<()> {
+        let path = self.root.join("oom_score_adj");
+        write_value(path, new_oom_score_adj)
     }
 
     /// Set process memory information
