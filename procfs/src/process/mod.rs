@@ -25,7 +25,15 @@
 //!
 //! let tty = format!("pty/{}", me_stat.tty_nr().1);
 //! for prc in procfs::process::all_processes().unwrap() {
-//!     if let Ok(stat) = prc.unwrap().stat() {
+//!     let Ok(prc) = prc else {
+//!         // process vanished
+//!         continue;
+//!     };
+//!     let Ok(stat) = prc.stat() else {
+//!         // process vanished
+//!         continue;
+//!     };
+//!     if let Ok(stat) = prc.stat() {
 //!         if stat.tty_nr == me_stat.tty_nr {
 //!             // total_time is in seconds
 //!             let total_time =
