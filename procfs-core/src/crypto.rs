@@ -3,10 +3,8 @@ use crate::{expect, FromBufRead, ProcError, ProcResult};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::Borrow,
     collections::HashMap,
     convert::TryFrom,
-    hash::Hash,
     io::BufRead,
     iter::{once, Peekable},
     str::FromStr,
@@ -38,14 +36,10 @@ pub struct CryptoBlock {
 
 impl FromBufRead for CryptoTable {
     fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
-        let mut lines = r.lines().flatten().peekable();
+        let mut lines = r.lines().peekable();
         let mut crypto_blocks = HashMap::new();
-        loop {
-            let line = match lines.next() {
-                Some(line) => line,
-                // We got to the end of the file
-                None => break,
-            };
+        while let Some(line) = lines.next() {
+            let line = line?;
             // Just skip empty lines
             if !line.is_empty() {
                 let mut split = line.split(":");
@@ -63,14 +57,16 @@ impl FromBufRead for CryptoTable {
 }
 
 impl CryptoTable {
-    pub fn get<T: AsRef<str>>(&self, target: &T) -> Option<&CryptoBlock>
-    {
+    pub fn get<T: AsRef<str>>(&self, target: &T) -> Option<&CryptoBlock> {
         self.crypto_blocks.get(target.as_ref())
     }
 }
 
 impl CryptoBlock {
-    fn from_iter<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) -> ProcResult<Self> {
+    fn from_iter<T: Iterator<Item = Result<String, std::io::Error>>>(
+        iter: &mut Peekable<T>,
+        name: &str,
+    ) -> ProcResult<Self> {
         let driver = parse_line(iter, "driver", &name)?;
         let module = parse_line(iter, "module", &name)?;
         let priority = from_str!(isize, &parse_line(iter, "priority", &name)?);
@@ -150,7 +146,10 @@ pub enum Type {
 }
 
 impl Type {
-    fn from_iter<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) -> ProcResult<Self> {
+    fn from_iter<T: Iterator<Item = Result<String, std::io::Error>>>(
+        iter: &mut Peekable<T>,
+        name: &str,
+    ) -> ProcResult<Self> {
         let type_name = parse_line(iter, "type", name)?;
         Ok(match type_name.as_str() {
             "skcipher" => Self::Skcipher(Skcipher::parse(iter, name)?),
@@ -165,7 +164,7 @@ impl Type {
             "rng" => Self::Rng(Rng::parse(iter, name)?),
             "larval" => Self::Larval(Larval::parse(iter, name)?),
             "sig" => Self::Sig,
-            unknown_name => Self::Unknown(Unknown::parse(iter, unknown_name, name)?),
+            unknown_name => Self::Unknown(Unknown::parse(iter, unknown_name)),
         })
     }
 }
@@ -183,7 +182,7 @@ pub struct Skcipher {
 }
 
 impl Skcipher {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let r#async = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let min_key_size = from_str!(usize, &parse_line(iter, "min keysize", name)?);
@@ -212,7 +211,7 @@ pub struct Cipher {
 }
 
 impl Cipher {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let min_key_size = from_str!(usize, &parse_line(iter, "min keysize", name)?);
         let max_key_size = from_str!(usize, &parse_line(iter, "max keysize", name)?);
@@ -232,7 +231,7 @@ pub struct Shash {
 }
 
 impl Shash {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let digest_size = from_str!(usize, &parse_line(iter, "digestsize", name)?);
         Ok(Self {
@@ -251,7 +250,7 @@ pub struct Ahash {
 }
 
 impl Ahash {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let r#async = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let digest_size = from_str!(usize, &parse_line(iter, "digestsize", name)?);
@@ -274,7 +273,10 @@ pub struct Aead {
 }
 
 impl Aead {
-    fn parse<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(
+        iter: &mut Peekable<T>,
+        name: &str,
+    ) -> ProcResult<Self> {
         let r#async = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let iv_size = from_str!(usize, &parse_line(iter, "ivsize", name)?);
@@ -297,7 +299,7 @@ pub struct Rng {
 }
 
 impl Rng {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let seed_size = from_str!(usize, &parse_line(iter, "seedsize", name)?);
         Ok(Self { seed_size })
     }
@@ -310,7 +312,7 @@ pub struct Larval {
 }
 
 impl Larval {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
         let flags = from_str!(u32, &parse_line(iter, "flags", name)?);
         Ok(Self { flags })
     }
@@ -323,9 +325,13 @@ pub struct Unknown {
 }
 
 impl Unknown {
-    fn parse<T: Iterator<Item = String>>(iter: &mut T, unknown_name: &str, _name: &str) -> ProcResult<Self> {
+    fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, unknown_name: &str) -> Self {
         let fields = iter
             .map_while(|line| {
+                let line = match line {
+                    Ok(line) => line,
+                    Err(_) => return None,
+                };
                 (!line.is_empty()).then(|| {
                     line.split_once(":")
                         .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
@@ -334,12 +340,16 @@ impl Unknown {
             .flatten()
             .chain(once((String::from("name"), unknown_name.to_string())))
             .collect();
-        Ok(Self { fields })
+        Self { fields }
     }
 }
 
-fn parse_line<T: Iterator<Item = String>>(iter: &mut T, to_find: &str, name: &str) -> ProcResult<String> {
-    let line = expect!(iter.next());
+fn parse_line<T: Iterator<Item = Result<String, std::io::Error>>>(
+    iter: &mut T,
+    to_find: &str,
+    name: &str,
+) -> ProcResult<String> {
+    let line = expect!(iter.next())?;
     let (key, val) = expect!(line.split_once(":"));
     if key.trim() != to_find {
         return Err(build_internal_error!(format!(
@@ -349,8 +359,15 @@ fn parse_line<T: Iterator<Item = String>>(iter: &mut T, to_find: &str, name: &st
     Ok(val.trim().to_string())
 }
 
-fn parse_fips<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) -> ProcResult<bool> {
-    if iter.peek().map(|line| line.contains("fips")).unwrap_or(false) {
+fn parse_fips<T: Iterator<Item = Result<String, std::io::Error>>>(
+    iter: &mut Peekable<T>,
+    name: &str,
+) -> ProcResult<bool> {
+    if iter
+        .peek()
+        .map(|line| line.as_ref().is_ok_and(|line| line.contains("fips")))
+        .unwrap_or(false)
+    {
         let fips = parse_line(iter, "fips", name)?;
         if fips == "yes" {
             return Ok(true);
@@ -359,7 +376,11 @@ fn parse_fips<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) ->
     Ok(false)
 }
 
-fn parse_bool<T: Iterator<Item = String>>(iter: &mut T, to_find: &str, name: &str) -> ProcResult<bool> {
+fn parse_bool<T: Iterator<Item = Result<String, std::io::Error>>>(
+    iter: &mut T,
+    to_find: &str,
+    name: &str,
+) -> ProcResult<bool> {
     match parse_line(iter, to_find, name)?.as_str() {
         "yes" => Ok(true),
         "no" => Ok(false),
@@ -369,8 +390,15 @@ fn parse_bool<T: Iterator<Item = String>>(iter: &mut T, to_find: &str, name: &st
     }
 }
 
-fn parse_gen_iv<T: Iterator<Item = String>>(iter: &mut Peekable<T>, name: &str) -> ProcResult<Option<usize>> {
-    if iter.peek().map(|line| line.contains("geniv")).unwrap_or(false) {
+fn parse_gen_iv<T: Iterator<Item = Result<String, std::io::Error>>>(
+    iter: &mut Peekable<T>,
+    name: &str,
+) -> ProcResult<Option<usize>> {
+    if iter
+        .peek()
+        .map(|line| line.as_ref().is_ok_and(|line| line.contains("geniv")))
+        .unwrap_or(false)
+    {
         let val = parse_line(iter, "geniv", name)?;
         if val != "<none>" {
             return Ok(Some(expect!(usize::from_str(&val))));
@@ -385,7 +413,7 @@ mod test {
 
     #[test]
     fn parse_line_correct() {
-        let line = "name         : ghash".to_string();
+        let line = Ok("name         : ghash".to_string());
         let mut iter = std::iter::once(line);
         let val = match parse_line(&mut iter, "name", "parse_line_correct") {
             Ok(val) => val,
@@ -396,7 +424,7 @@ mod test {
 
     #[test]
     fn parse_line_incorrect() {
-        let line = "name         : ghash".to_string();
+        let line = Ok("name         : ghash".to_string());
         let mut iter = std::iter::once(line);
         let val = match parse_line(&mut iter, "name", "parse_line_incorrect") {
             Ok(val) => val,
@@ -414,7 +442,7 @@ refcnt       : 2
 selftest     : passed
 internal     : no
 type         : compression"#;
-        let mut iter = block.lines().map(|s| s.to_string()).peekable();
+        let mut iter = block.lines().map(|s| Ok(s.to_string())).peekable();
         let block = CryptoBlock::from_iter(&mut iter, "deflate");
         assert!(block.is_ok());
         let block = block.unwrap();
@@ -437,8 +465,9 @@ refcnt       : 2
 selftest     : passed
 internal     : no
 type         : aead"#;
-        let mut iter = block.lines().map(|s| s.to_string()).peekable();
+        let mut iter = block.lines().map(|s| Ok(s.to_string())).peekable();
         let block = CryptoBlock::from_iter(&mut iter, "deflate");
+        eprintln!("{block:?}");
         assert!(block.is_err());
     }
 
@@ -493,7 +522,7 @@ type         : unknown
 key          : val
 key2         : val2
 "#;
-        let mut iter = block.lines().map(|s| s.to_string()).peekable();
+        let mut iter = block.lines().map(|s| Ok(s.to_string())).peekable();
         let block = CryptoBlock::from_iter(&mut iter, "ccm(aes)");
         assert!(block.is_ok());
         let block = block.unwrap();
