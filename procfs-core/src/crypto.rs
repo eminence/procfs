@@ -172,18 +172,18 @@ impl Type {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Skcipher {
-    r#async: bool,
-    block_size: usize,
-    min_key_size: usize,
-    max_key_size: usize,
-    iv_size: usize,
-    chunk_size: usize,
-    walk_size: usize,
+    pub async_capable : bool,
+    pub block_size: usize,
+    pub min_key_size: usize,
+    pub max_key_size: usize,
+    pub iv_size: usize,
+    pub chunk_size: usize,
+    pub walk_size: usize,
 }
 
 impl Skcipher {
     fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
-        let r#async = parse_bool(iter, "async", name)?;
+        let async_capable = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let min_key_size = from_str!(usize, &parse_line(iter, "min keysize", name)?);
         let max_key_size = from_str!(usize, &parse_line(iter, "max keysize", name)?);
@@ -191,7 +191,7 @@ impl Skcipher {
         let chunk_size = from_str!(usize, &parse_line(iter, "chunksize", name)?);
         let walk_size = from_str!(usize, &parse_line(iter, "walksize", name)?);
         Ok(Self {
-            r#async,
+            async_capable,
             block_size,
             min_key_size,
             max_key_size,
@@ -205,9 +205,9 @@ impl Skcipher {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Cipher {
-    block_size: usize,
-    min_key_size: usize,
-    max_key_size: usize,
+    pub block_size: usize,
+    pub min_key_size: usize,
+    pub max_key_size: usize,
 }
 
 impl Cipher {
@@ -226,8 +226,8 @@ impl Cipher {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Shash {
-    block_size: usize,
-    digest_size: usize,
+    pub block_size: usize,
+    pub digest_size: usize,
 }
 
 impl Shash {
@@ -244,18 +244,18 @@ impl Shash {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Ahash {
-    r#async: bool,
-    block_size: usize,
-    digest_size: usize,
+    pub async_capable: bool,
+    pub block_size: usize,
+    pub digest_size: usize,
 }
 
 impl Ahash {
     fn parse<T: Iterator<Item = Result<String, std::io::Error>>>(iter: &mut T, name: &str) -> ProcResult<Self> {
-        let r#async = parse_bool(iter, "async", name)?;
+        let async_capable = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let digest_size = from_str!(usize, &parse_line(iter, "digestsize", name)?);
         Ok(Self {
-            r#async,
+            async_capable,
             block_size,
             digest_size,
         })
@@ -265,11 +265,11 @@ impl Ahash {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Aead {
-    r#async: bool,
-    block_size: usize,
-    iv_size: usize,
-    max_auth_size: usize,
-    gen_iv: Option<usize>,
+    pub async_capable: bool,
+    pub block_size: usize,
+    pub iv_size: usize,
+    pub max_auth_size: usize,
+    pub gen_iv: Option<usize>,
 }
 
 impl Aead {
@@ -277,13 +277,13 @@ impl Aead {
         iter: &mut Peekable<T>,
         name: &str,
     ) -> ProcResult<Self> {
-        let r#async = parse_bool(iter, "async", name)?;
+        let async_capable = parse_bool(iter, "async", name)?;
         let block_size = from_str!(usize, &parse_line(iter, "blocksize", name)?);
         let iv_size = from_str!(usize, &parse_line(iter, "ivsize", name)?);
         let max_auth_size = from_str!(usize, &parse_line(iter, "maxauthsize", name)?);
         let gen_iv = parse_gen_iv(iter, name)?;
         Ok(Self {
-            r#async,
+            async_capable,
             block_size,
             iv_size,
             max_auth_size,
@@ -295,7 +295,7 @@ impl Aead {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Rng {
-    seed_size: usize,
+    pub seed_size: usize,
 }
 
 impl Rng {
@@ -308,7 +308,7 @@ impl Rng {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Larval {
-    flags: u32,
+    pub flags: u32,
 }
 
 impl Larval {
@@ -321,7 +321,7 @@ impl Larval {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Unknown {
-    fields: HashMap<String, String>,
+    pub fields: HashMap<String, String>,
 }
 
 impl Unknown {
