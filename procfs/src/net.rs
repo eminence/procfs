@@ -23,7 +23,10 @@
 //! // build up a map between socket inodes and process stat info:
 //! let mut map: HashMap<u64, Stat> = HashMap::new();
 //! for p in all_procs {
-//!     let process = p.unwrap();
+//!     let Ok(process) = p else {
+//!         // process vanished
+//!         continue;
+//!     };
 //!     if let (Ok(stat), Ok(fds)) = (process.stat(), process.fd()) {
 //!         for fd in fds {
 //!             if let FDTarget::Socket(inode) = fd.unwrap().target {

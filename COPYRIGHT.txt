@@ -1,6 +1,6 @@
 The source code for the procfs library is copyright by Andrew Chin, 2019, and other contributors.
 
-It is icensed under either of
+It is licensed under either of
 
  * Apache License, Version 2.0, http://www.apache.org/licenses/LICENSE-2.0
  * MIT license, http://opensource.org/licenses/MIT
