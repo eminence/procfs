@@ -42,7 +42,7 @@ impl FromBufRead for CryptoTable {
             let line = line?;
             // Just skip empty lines
             if !line.is_empty() {
-                let mut split = line.split(":");
+                let mut split = line.split(':');
                 let name = expect!(split.next());
                 if name.trim() == "name" {
                     let name = expect!(split.next()).trim().to_string();
@@ -67,11 +67,11 @@ impl CryptoBlock {
         iter: &mut Peekable<T>,
         name: &str,
     ) -> ProcResult<Self> {
-        let driver = parse_line(iter, "driver", &name)?;
-        let module = parse_line(iter, "module", &name)?;
-        let priority = from_str!(isize, &parse_line(iter, "priority", &name)?);
-        let ref_count = from_str!(isize, &parse_line(iter, "refcnt", &name)?);
-        let self_test = SelfTest::try_from(parse_line(iter, "selftest", &name)?.as_str())?;
+        let driver = parse_line(iter, "driver", name)?;
+        let module = parse_line(iter, "module", name)?;
+        let priority = from_str!(isize, &parse_line(iter, "priority", name)?);
+        let ref_count = from_str!(isize, &parse_line(iter, "refcnt", name)?);
+        let self_test = SelfTest::try_from(parse_line(iter, "selftest", name)?.as_str())?;
         let internal = parse_bool(iter, "internal", name)?;
         let fips_enabled = parse_fips(iter, name)?;
         let crypto_type = Type::from_iter(iter, name)?;
@@ -333,7 +333,7 @@ impl Unknown {
                     Err(_) => return None,
                 };
                 (!line.is_empty()).then(|| {
-                    line.split_once(":")
+                    line.split_once(':')
                         .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
                 })
             })
@@ -350,7 +350,7 @@ fn parse_line<T: Iterator<Item = Result<String, std::io::Error>>>(
     name: &str,
 ) -> ProcResult<String> {
     let line = expect!(iter.next())?;
-    let (key, val) = expect!(line.split_once(":"));
+    let (key, val) = expect!(line.split_once(':'));
     if key.trim() != to_find {
         return Err(build_internal_error!(format!(
             "could not locate {to_find} in /proc/crypto, block {name}"
