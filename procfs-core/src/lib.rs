@@ -378,6 +378,9 @@ pub use pressure::*;
 
 pub mod process;
 
+mod kpageflags;
+pub use kpageflags::*;
+
 pub mod sys;
 pub use sys::kernel::Version as KernelVersion;
 
