@@ -20,8 +20,7 @@ mod tests {
     #[test]
     fn read_crypto() {
         let table = crypto();
-        assert!(table.is_ok(), "Couldn't read local /proc/crypto");
-        let table = table.unwrap();
+        let table = table.expect("CrytoTable should have been read");
         assert!(!table.crypto_blocks.is_empty(), "Crypto table was empty");
     }
 }
