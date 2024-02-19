@@ -6,6 +6,7 @@ use std::io::BufRead;
 /// Represents the data from `/proc/net/netstat`.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[non_exhaustive]
 pub struct Netstat {
     // TcpExt
     /// The number of SYN cookies sent

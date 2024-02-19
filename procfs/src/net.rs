@@ -190,7 +190,6 @@ pub fn netstats() -> ProcResult<Netstat> {
     Netstat::current()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
