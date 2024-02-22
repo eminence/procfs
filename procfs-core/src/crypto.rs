@@ -16,7 +16,7 @@ use std::{
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct CryptoTable {
-    pub crypto_blocks: HashMap<String, CryptoBlock>,
+    pub crypto_blocks: HashMap<String, Vec<CryptoBlock>>,
 }
 
 /// Format of a crypto implementation represented in /proc/crypto.
@@ -37,7 +37,7 @@ pub struct CryptoBlock {
 impl FromBufRead for CryptoTable {
     fn from_buf_read<R: BufRead>(r: R) -> ProcResult<Self> {
         let mut lines = r.lines().peekable();
-        let mut crypto_blocks = HashMap::new();
+        let mut crypto_blocks: HashMap<String, Vec<CryptoBlock>> = HashMap::new();
         while let Some(line) = lines.next() {
             let line = line?;
             // Just skip empty lines
@@ -47,7 +47,11 @@ impl FromBufRead for CryptoTable {
                 if name.trim() == "name" {
                     let name = expect!(split.next()).trim().to_string();
                     let block = CryptoBlock::from_iter(&mut lines, name.as_str())?;
-                    crypto_blocks.insert(name, block);
+                    if let Some(v) = crypto_blocks.get_mut(&name) {
+                        v.push(block);
+                    } else {
+                        crypto_blocks.insert(name, vec![block]);
+                    }
                 }
             }
         }
@@ -57,7 +61,7 @@ impl FromBufRead for CryptoTable {
 }
 
 impl CryptoTable {
-    pub fn get<T: AsRef<str>>(&self, target: &T) -> Option<&CryptoBlock> {
+    pub fn get<T: AsRef<str>>(&self, target: T) -> Option<&Vec<CryptoBlock>> {
         self.crypto_blocks.get(target.as_ref())
     }
 }
@@ -172,7 +176,7 @@ impl Type {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Skcipher {
-    pub async_capable : bool,
+    pub async_capable: bool,
     pub block_size: usize,
     pub min_key_size: usize,
     pub max_key_size: usize,
@@ -444,8 +448,7 @@ internal     : no
 type         : compression"#;
         let mut iter = block.lines().map(|s| Ok(s.to_string())).peekable();
         let block = CryptoBlock::from_iter(&mut iter, "deflate");
-        assert!(block.is_ok());
-        let block = block.unwrap();
+        let block = block.expect("Should be have read one block");
         assert_eq!(block.name, "deflate");
         assert_eq!(block.driver, "deflate-generic");
         assert_eq!(block.module, "kernel");
@@ -505,9 +508,38 @@ walksize     : 16
 
 "#;
         let blocks = CryptoTable::from_buf_read(block.as_bytes());
-        assert!(blocks.is_ok());
-        let blocks = blocks.unwrap();
+        let blocks = blocks.expect("Should be have read two blocks");
         assert_eq!(blocks.crypto_blocks.len(), 2);
+    }
+
+    #[test]
+    fn parse_duplicate_name() {
+        let block = r#"name         : deflate
+driver       : deflate-generic
+module       : kernel
+priority     : 0
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : deflate
+driver       : deflate-non-generic
+module       : kernel
+priority     : 0
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : compression
+"#;
+        let blocks = CryptoTable::from_buf_read(block.as_bytes());
+        let blocks = blocks.expect("Should be have read two blocks");
+        assert_eq!(blocks.crypto_blocks.len(), 1);
+        let deflate_vec = blocks
+            .crypto_blocks
+            .get("deflate")
+            .expect("Should have created a vec of deflates");
+        assert_eq!(deflate_vec.len(), 2);
     }
 
     #[test]
@@ -524,8 +556,7 @@ key2         : val2
 "#;
         let mut iter = block.lines().map(|s| Ok(s.to_string())).peekable();
         let block = CryptoBlock::from_iter(&mut iter, "ccm(aes)");
-        assert!(block.is_ok());
-        let block = block.unwrap();
+        let block = block.expect("Should be have read one block");
         let mut compare = HashMap::new();
         compare.insert(String::from("key"), String::from("val"));
         compare.insert(String::from("key2"), String::from("val2"));
@@ -563,8 +594,7 @@ chunksize    : 16
 walksize     : 16
 "#;
         let blocks = CryptoTable::from_buf_read(block.as_bytes());
-        assert!(blocks.is_ok());
-        let blocks = blocks.unwrap();
+        let blocks = blocks.expect("Should be have read one block");
         assert_eq!(blocks.crypto_blocks.len(), 2);
     }
 }
