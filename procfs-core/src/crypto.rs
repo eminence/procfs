@@ -47,11 +47,8 @@ impl FromBufRead for CryptoTable {
                 if name.trim() == "name" {
                     let name = expect!(split.next()).trim().to_string();
                     let block = CryptoBlock::from_iter(&mut lines, name.as_str())?;
-                    if let Some(v) = crypto_blocks.get_mut(&name) {
-                        v.push(block);
-                    } else {
-                        crypto_blocks.insert(name, vec![block]);
-                    }
+                    let blocks = crypto_blocks.entry(name).or_insert(Vec::new());
+                    blocks.push(block);
                 }
             }
         }
