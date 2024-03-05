@@ -182,6 +182,9 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
 mod cgroups;
 pub use crate::cgroups::*;
 
+mod crypto;
+pub use crate::crypto::*;
+
 pub mod keyring;
 
 mod iomem;

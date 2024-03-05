@@ -351,6 +351,9 @@ pub use cgroups::*;
 mod cpuinfo;
 pub use cpuinfo::*;
 
+mod crypto;
+pub use crypto::*;
+
 mod diskstats;
 pub use diskstats::*;
 
