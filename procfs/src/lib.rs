@@ -498,6 +498,10 @@ impl Current for Meminfo {
     const PATH: &'static str = "/proc/meminfo";
 }
 
+impl Current for MdStat {
+    const PATH: &'static str = "/proc/mdstat";
+}
+
 impl Current for CpuPressure {
     const PATH: &'static str = "/proc/pressure/cpu";
 }

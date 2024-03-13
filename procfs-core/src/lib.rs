@@ -362,6 +362,9 @@ pub mod keyring;
 mod locks;
 pub use locks::*;
 
+mod mdstat;
+pub use mdstat::*;
+
 mod mounts;
 pub use mounts::*;
 
