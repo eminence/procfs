@@ -43,7 +43,7 @@
 //! # Examples
 //!
 //! Examples can be found in the various modules shown below, or in the
-//! [examples](https://github.com/eminence/procfs/tree/master/examples) folder of the code repository.
+//! [examples](https://github.com/eminence/procfs/tree/master/procfs/examples) folder of the code repository.
 //!
 
 pub use procfs_core::*;
