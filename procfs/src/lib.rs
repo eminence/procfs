@@ -49,7 +49,6 @@
 pub use procfs_core::*;
 
 use bitflags::bitflags;
-use lazy_static::lazy_static;
 
 use rustix::fd::AsFd;
 use std::collections::HashMap;
@@ -201,28 +200,6 @@ pub mod sys;
 pub use crate::sys::kernel::BuildInfo as KernelBuildInfo;
 pub use crate::sys::kernel::Type as KernelType;
 pub use crate::sys::kernel::Version as KernelVersion;
-
-lazy_static! {
-    /// The number of clock ticks per second.
-    ///
-    /// This is calculated from `sysconf(_SC_CLK_TCK)`.
-    static ref TICKS_PER_SECOND: u64 = {
-        ticks_per_second()
-    };
-    /// The version of the currently running kernel.
-    ///
-    /// This is a lazily constructed static.  You can also get this information via
-    /// [KernelVersion::new()].
-    static ref KERNEL: ProcResult<KernelVersion> = {
-        KernelVersion::current()
-    };
-    /// Memory page size, in bytes.
-    ///
-    /// This is calculated from `sysconf(_SC_PAGESIZE)`.
-    static ref PAGESIZE: u64 = {
-        page_size()
-    };
-}
 
 /// A wrapper around a `File` that remembers the name of the path
 struct FileWrapper {
@@ -524,9 +501,7 @@ mod tests {
 
     #[test]
     fn test_statics() {
-        println!("{:?}", *TICKS_PER_SECOND);
-        println!("{:?}", *KERNEL);
-        println!("{:?}", *PAGESIZE);
+        println!("{:?}", crate::sys::kernel::Version::cached());
     }
 
     #[test]

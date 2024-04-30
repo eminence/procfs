@@ -66,6 +66,7 @@
 
 use super::*;
 use crate::net::{TcpNetEntry, UdpNetEntry};
+use crate::sys::kernel::Version;
 
 pub use procfs_core::process::*;
 use rustix::fd::{AsFd, BorrowedFd, OwnedFd, RawFd};
@@ -154,7 +155,7 @@ impl FDInfo {
         let p = path.as_ref();
         let root = base.as_ref().join(p);
         // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
-        let flags = match *crate::KERNEL {
+        let flags = match Version::cached() {
             Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::NOFOLLOW | OFlags::CLOEXEC,
             Ok(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
             Err(_) => OFlags::NOFOLLOW | OFlags::PATH | OFlags::CLOEXEC,
@@ -224,7 +225,7 @@ impl Process {
     /// Returns a `Process` based on a specified `/proc/<pid>` path.
     pub fn new_with_root(root: PathBuf) -> ProcResult<Process> {
         // for 2.6.39 <= kernel < 3.6 fstat doesn't support O_PATH see https://github.com/eminence/procfs/issues/265
-        let flags = match *crate::KERNEL {
+        let flags = match Version::cached() {
             Ok(v) if v < KernelVersion::new(3, 6, 0) => OFlags::DIRECTORY | OFlags::CLOEXEC,
             Ok(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
             Err(_) => OFlags::PATH | OFlags::DIRECTORY | OFlags::CLOEXEC,
