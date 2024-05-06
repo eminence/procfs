@@ -6,10 +6,11 @@
 use std::cmp;
 use std::collections::HashSet;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use bitflags::bitflags;
 
-use crate::{read_value, write_value, ProcError, ProcResult, KERNEL};
+use crate::{read_value, write_value, ProcError, ProcResult};
 
 pub mod keys;
 pub mod random;
@@ -32,6 +33,41 @@ impl Version {
     /// This is taken from `/proc/sys/kernel/osrelease`;
     pub fn current() -> ProcResult<Self> {
         read_value("/proc/sys/kernel/osrelease")
+    }
+
+    /// Cached version of the kernel version.
+    pub(crate) fn cached() -> ProcResult<Self> {
+        const SENTINEL: u32 = 0;
+        static KERNEL: AtomicU32 = AtomicU32::new(SENTINEL);
+
+        // Try to load the kernel version.
+        let mut kernel = KERNEL.load(Ordering::Relaxed);
+
+        // If we haven't loaded the kernel version yet, try to here.
+        if kernel == SENTINEL {
+            kernel = Self::current()?.to_u32();
+
+            // Try to store it in the cache.
+            KERNEL.store(kernel, Ordering::Release);
+        }
+
+        Ok(Self::from_u32(kernel))
+    }
+
+    /// Convert kernel version to an arbitrary `u32` value.
+    fn to_u32(self) -> u32 {
+        let [lo, hi] = u16::to_ne_bytes(self.patch);
+        u32::from_ne_bytes([self.major, self.minor, lo, hi])
+    }
+
+    /// Convert kernel version from an arbitrary `u32` value.
+    fn from_u32(val: u32) -> Self {
+        let [major, minor, lo, hi] = u32::to_ne_bytes(val);
+        Self {
+            major,
+            minor,
+            patch: u16::from_ne_bytes([lo, hi])
+        }
     }
 
     /// Parses a kernel version string, in major.minor.release syntax.
@@ -447,7 +483,7 @@ pub fn threads_max() -> ProcResult<u32> {
 /// Since Linux 4.1, this value is bounded, and must be in the range [THREADS_MIN]..=[THREADS_MAX].
 /// This function will return an error if that is not the case.
 pub fn set_threads_max(new_limit: u32) -> ProcResult<()> {
-    if let Ok(kernel) = *KERNEL {
+    if let Ok(kernel) = Version::cached() {
         if kernel.major >= 4 && kernel.minor >= 1 && !(THREADS_MIN..=THREADS_MAX).contains(&new_limit) {
             return Err(ProcError::Other(format!(
                 "{} is outside the THREADS_MIN..=THREADS_MAX range",
