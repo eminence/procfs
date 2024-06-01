@@ -71,7 +71,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/config.gz`
 * [ ] `/proc/crypto`
 * [ ] `/proc/cpuinfo`
-* [ ] `/proc/devices`
+* [x] `/proc/devices`
 * [x] `/proc/diskstats`
 * [ ] `/proc/dma`
 * [ ] `/proc/driver`

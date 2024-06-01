@@ -434,6 +434,10 @@ impl Current for CpuInfo {
     const PATH: &'static str = "/proc/cpuinfo";
 }
 
+impl Current for Devices {
+    const PATH: &'static str = "/proc/devices";
+}
+
 impl Current for DiskStats {
     const PATH: &'static str = "/proc/diskstats";
 }
@@ -683,6 +687,12 @@ mod tests {
         }
 
         //assert_eq!(info.num_cores(), 8);
+    }
+
+    #[test]
+    fn test_devices() {
+        let devices = Devices::current().unwrap();
+        println!("{:#?}", devices);
     }
 
     #[test]
