@@ -5,7 +5,8 @@ use std::path::Path;
 fn main() {
     let myself = Process::myself().unwrap();
     let mountinfo = myself.mountinfo().unwrap();
-
+    println!("{:18}{:13}{:13}{:13}{:12} Path", "Process", "PID", "Lock Type", "Mode", "Kind");
+    println!("{}", "=".repeat(74));
     for lock in procfs::locks().unwrap() {
         lock.pid
             .and_then(|pid| Process::new(pid).ok())
@@ -33,7 +34,7 @@ fn main() {
                 for f in fds {
                     let fd = f.unwrap();
                     if let FDTarget::Path(p) = fd.target {
-                        if let Ok(stat) = rustix::fs::statat(&rustix::fs::cwd(), &p, AtFlags::empty()) {
+                        if let Ok(stat) = rustix::fs::statat(&rustix::fs::CWD, &p, AtFlags::empty()) {
                             if stat.st_ino as u64 == lock.inode {
                                 print!("{}", p.display());
                                 found = true;
