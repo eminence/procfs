@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct Devices {
     /// Character devices
     pub char_devices: Vec<CharDeviceEntry>,
-    /// Block devices
+    /// Block devices, which can be empty if the kernel doesn't support block devices (without `CONFIG_BLOCK`)
     pub block_devices: Vec<BlockDeviceEntry>,
 }
 
