@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 /// Device entries under `/proc/devices`
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-#[allow(non_snake_case)]
 pub struct Devices {
     /// Character devices
     pub char_devices: Vec<CharDeviceEntry>,
@@ -20,7 +19,6 @@ pub struct Devices {
 /// A charcter device entry under `/proc/devices`
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-#[allow(non_snake_case)]
 pub struct CharDeviceEntry {
     /// Device major number
     pub major: u32,
@@ -31,7 +29,6 @@ pub struct CharDeviceEntry {
 /// A block device entry under `/proc/devices`
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
-#[allow(non_snake_case)]
 pub struct BlockDeviceEntry {
     /// Device major number
     pub major: i32,
