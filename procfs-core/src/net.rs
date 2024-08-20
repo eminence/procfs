@@ -152,6 +152,7 @@ pub struct UdpNetEntry {
     pub tx_queue: u32,
     pub uid: u32,
     pub inode: u64,
+    pub drops: u64,
 }
 
 /// An entry in the Unix socket table
@@ -295,6 +296,9 @@ impl super::FromBufReadSI for UdpNetEntries {
             let uid = from_str!(u32, expect!(s.next(), "udp::uid"));
             s.next(); // skip timeout
             let inode = expect!(s.next(), "udp::inode");
+            s.next(); // skip ref
+            s.next(); // skip pointer
+            let drops = expect!(s.next(), "udp::drops");
 
             vec.push(UdpNetEntry {
                 local_address: parse_addressport_str(local_address, system_info.is_little_endian())?,
@@ -304,6 +308,7 @@ impl super::FromBufReadSI for UdpNetEntries {
                 state: expect!(UdpState::from_u8(from_str!(u8, state, 16))),
                 uid,
                 inode: from_str!(u64, inode),
+                drops: from_str!(u64, drops),
             });
         }
 
@@ -1727,5 +1732,27 @@ UdpLite: 0 0 0 0 0 0 0 0 0
         use crate::FromRead;
         let res = Snmp::from_read(r).unwrap();
         println!("{res:?}");
+    }
+
+    #[test]
+    fn test_udp_drops_debian_12() {
+        let data = r#"   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops
+  624: 00000000:D77C 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719666 2 000000008fba5196 0
+  824: 00000000:0044 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 14796 2 0000000051381d39 0
+  918: 00000000:00A2 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719670 2 0000000048ae40a7 0
+ 1270: 00000000:0202 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719665 2 00000000357eb7c3 0
+ 1357: 00000000:AA59 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719668 2 000000000ed7b854 0"#;
+        let r = std::io::Cursor::new(data.as_bytes());
+        use crate::FromBufReadSI;
+        let res = UdpNetEntries::from_buf_read(
+            r,
+            &crate::ExplicitSystemInfo {
+                boot_time_secs: 0,
+                ticks_per_second: 0,
+                page_size: 0,
+                is_little_endian: true,
+            },
+        );
+        assert!(res.is_ok())
     }
 }
