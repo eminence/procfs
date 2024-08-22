@@ -181,3 +181,23 @@ Lots of references to this locations: addr=0x81ba3000, pfn=531363, refs=128
 Found RAM here: 0x100000000-0x11fffffff
 Lots of references to this locations: addr=0x1b575000, pfn=111989, refs=134
 ```
+
+
+## Crypto
+
+List available crypto algorithms, along with details. Passing an algorithm as an argument will show only that algorithms
+
+implementations (this can potentially be multiple). Partial arguments (i.e "sha") will return all algorithms that match.
+
+```text
+Type: sha256
+          Name: sha256
+        Driver: sha256-avx2
+        Module: sha256_ssse3
+      Priority: 170
+     Ref Count: 2
+     Self Test: Passed
+      Internal: false
+  fips enabled: false
+  Type Details: Shash(Shash { block_size: 64, digest_size: 32 })
+```
