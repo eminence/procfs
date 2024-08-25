@@ -354,6 +354,9 @@ pub use cpuinfo::*;
 mod crypto;
 pub use crypto::*;
 
+mod devices;
+pub use devices::*;
+
 mod diskstats;
 pub use diskstats::*;
 
