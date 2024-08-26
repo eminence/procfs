@@ -6,11 +6,10 @@
 //!
 //! This module corresponds to the `/proc/net` directory and contains various information about the
 //! networking layer.
-use crate::ProcResult;
 use crate::{build_internal_error, expect, from_iter, from_str};
-use std::collections::HashMap;
-
+use crate::{KernelVersion, ProcResult};
 use bitflags::bitflags;
+use std::collections::HashMap;
 use std::io::BufRead;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::{path::PathBuf, str::FromStr};
@@ -296,9 +295,15 @@ impl super::FromBufReadSI for UdpNetEntries {
             let uid = from_str!(u32, expect!(s.next(), "udp::uid"));
             s.next(); // skip timeout
             let inode = expect!(s.next(), "udp::inode");
-            s.next(); // skip ref
-            s.next(); // skip pointer
-            let drops = expect!(s.next(), "udp::drops");
+
+            let drops = match system_info.kernel_version() {
+                Ok(version) if version >= KernelVersion::new(2, 6, 27) => {
+                    s.next(); // skip ref
+                    s.next(); // skip pointer
+                    expect!(s.next(), "udp::drops")
+                }
+                _ => "0", // Fallback if the kernel version does not support the drops column or the kernel version could not be read
+            };
 
             vec.push(UdpNetEntry {
                 local_address: parse_addressport_str(local_address, system_info.is_little_endian())?,
@@ -1735,24 +1740,51 @@ UdpLite: 0 0 0 0 0 0 0 0 0
     }
 
     #[test]
-    fn test_udp_drops_debian_12() {
-        let data = r#"   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops
-  624: 00000000:D77C 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719666 2 000000008fba5196 0
-  824: 00000000:0044 00000000:0000 07 00000000:00000000 00:00000000 00000000     0        0 14796 2 0000000051381d39 0
-  918: 00000000:00A2 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719670 2 0000000048ae40a7 0
- 1270: 00000000:0202 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719665 2 00000000357eb7c3 0
- 1357: 00000000:AA59 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719668 2 000000000ed7b854 0"#;
+    fn test_udp_drops_debian_kernel_version_greater_2_6_27() {
+        let expected_drops = 42;
+        let data = format!(
+            r#"   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops
+ 1270: 00000000:0202 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719665 2 00000000357eb7c3 {expected_drops}"#
+        );
         let r = std::io::Cursor::new(data.as_bytes());
         use crate::FromBufReadSI;
-        let res = UdpNetEntries::from_buf_read(
+        let entries = UdpNetEntries::from_buf_read(
             r,
             &crate::ExplicitSystemInfo {
                 boot_time_secs: 0,
                 ticks_per_second: 0,
                 page_size: 0,
                 is_little_endian: true,
+                kernel_version: "2.6.27".parse().unwrap(),
             },
+        )
+        .unwrap();
+        let entry = entries.0.first().unwrap();
+
+        assert_eq!(entry.drops, expected_drops)
+    }
+
+    #[test]
+    fn test_udp_drops_debian_kernel_version_smaller_2_6_27() {
+        let data = format!(
+            r#"   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+ 1270: 00000000:0202 00000000:0000 07 00000000:00000000 00:00000000 00000000   104        0 3719665"#
         );
-        assert!(res.is_ok())
+        let r = std::io::Cursor::new(data.as_bytes());
+        use crate::FromBufReadSI;
+        let entries = UdpNetEntries::from_buf_read(
+            r,
+            &crate::ExplicitSystemInfo {
+                boot_time_secs: 0,
+                ticks_per_second: 0,
+                page_size: 0,
+                is_little_endian: true,
+                kernel_version: "2.6.26".parse().unwrap(),
+            },
+        )
+        .unwrap();
+        let entry = entries.0.first().unwrap();
+
+        assert_eq!(entry.drops, 0)
     }
 }
