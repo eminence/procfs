@@ -7,12 +7,16 @@ use std::cmp;
 use std::collections::HashSet;
 use std::str::FromStr;
 
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
+
 use bitflags::bitflags;
 
 use crate::{ProcError, ProcResult};
 
 /// Represents a kernel version, in major.minor.release version.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
