@@ -276,6 +276,7 @@ pub struct ExplicitSystemInfo {
     pub ticks_per_second: u64,
     pub page_size: u64,
     pub is_little_endian: bool,
+    #[cfg_attr(feature = "serde1", serde(skip))]
     pub kernel_version: KernelVersion,
 }
 
