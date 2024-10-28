@@ -3,7 +3,9 @@ use procfs::CpuInfo;
 use procfs::Current;
 
 fn bench_cpuinfo(c: &mut Criterion) {
-    c.bench_function("CpuInfo::current", |b| b.iter(|| black_box(CpuInfo::current().unwrap())));
+    c.bench_function("CpuInfo::current", |b| {
+        b.iter(|| black_box(CpuInfo::current().unwrap()))
+    });
 
     let cpuinfo = black_box(CpuInfo::current().unwrap());
     c.bench_function("CpuInfo::get_info", |b| b.iter(|| black_box(cpuinfo.get_info(0))));
