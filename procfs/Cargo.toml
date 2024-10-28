@@ -39,3 +39,6 @@ rustdoc-args = ["--generate-link-to-definition"]
 [[bench]]
 name = "cpuinfo"
 harness = false
+
+[lints]
+workspace = true
