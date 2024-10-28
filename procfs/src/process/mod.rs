@@ -83,7 +83,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 mod namespaces;
-pub use namespaces::*;
 
 mod task;
 pub use task::*;
