@@ -39,3 +39,6 @@ all-features = true
 [[bench]]
 name = "cpuinfo"
 harness = false
+
+[lints]
+workspace = true
