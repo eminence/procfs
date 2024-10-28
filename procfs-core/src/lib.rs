@@ -245,6 +245,7 @@ macro_rules! from_str {
 ///     ticks_per_second: 100,
 ///     page_size: 4096,
 ///     is_little_endian: true,
+///     kernel_version: "6.11.0".parse().unwrap(),
 /// };
 ///
 /// let rss_bytes = stat.rss_bytes().with_system_info(&system_info);
