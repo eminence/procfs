@@ -35,6 +35,7 @@ libc = "0.2.139"
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--generate-link-to-definition"]
 
 [[bench]]
 name = "cpuinfo"
