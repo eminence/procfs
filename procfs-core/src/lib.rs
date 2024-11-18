@@ -247,6 +247,7 @@ macro_rules! from_str {
 ///     ticks_per_second: 100,
 ///     page_size: 4096,
 ///     is_little_endian: true,
+///     kernel_version: "6.11.0".parse().unwrap(),
 /// };
 ///
 /// let rss_bytes = stat.rss_bytes().with_system_info(&system_info);
@@ -257,6 +258,7 @@ pub trait SystemInfoInterface {
     fn page_size(&self) -> u64;
     /// Whether the system is little endian (true) or big endian (false).
     fn is_little_endian(&self) -> bool;
+    fn kernel_version(&self) -> ProcResult<KernelVersion>;
 
     #[cfg(feature = "chrono")]
     fn boot_time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
@@ -277,6 +279,7 @@ pub struct ExplicitSystemInfo {
     pub ticks_per_second: u64,
     pub page_size: u64,
     pub is_little_endian: bool,
+    pub kernel_version: KernelVersion,
 }
 
 impl SystemInfoInterface for ExplicitSystemInfo {
@@ -294,6 +297,10 @@ impl SystemInfoInterface for ExplicitSystemInfo {
 
     fn is_little_endian(&self) -> bool {
         self.is_little_endian
+    }
+
+    fn kernel_version(&self) -> ProcResult<KernelVersion> {
+        Ok(self.kernel_version)
     }
 }
 
