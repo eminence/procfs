@@ -1,6 +1,4 @@
 #![allow(unknown_lints)]
-// The suggested fix with `str::parse` removes support for Rust 1.48
-#![allow(clippy::from_str_radix_10)]
 #![deny(rustdoc::broken_intra_doc_links, rustdoc::invalid_html_tags)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.

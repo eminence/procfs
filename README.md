@@ -3,7 +3,7 @@ procfs
 
 [![Crate](https://img.shields.io/crates/v/procfs.svg)](https://crates.io/crates/procfs)
 [![Docs](https://docs.rs/procfs/badge.svg)](https://docs.rs/procfs)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.48+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.70+-lightgray.svg)](https://github.com/eminence/procfs#minimum-rust-version)
 
 
 This crate is an interface to the `proc` pseudo-filesystem on linux, which is normally mounted as `/proc`.
@@ -80,7 +80,7 @@ The following cargo features are available:
 * `flate2` -- Default.  Optional.  This feature enables parsing gzip compressed `/proc/config.gz` file via the `procfs::kernel_config` method.
 * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 * `serde1` -- Optional.  This feature allows most structs to be serialized and deserialized using serde 1.0.  Note, this
-feature requires a version of rust newer than 1.48.0 (which is the MSRV for procfs).  The exact version required is not
+feature requires a version of rust newer than 1.70.0 (which is the MSRV for procfs).  The exact version required is not
 specified here, since serde does not not have an MSRV policy.
 
 ## Minimum Rust Version
