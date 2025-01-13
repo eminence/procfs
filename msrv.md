@@ -18,7 +18,8 @@ a given rustc compiler.
 | Rust Version 	| `procfs` version 	| Notes 	|
 |---	| --- 	|--- 	|
 | Latest 	| Latest	| The latest version of procfs always supports the latest rustc compiler 	|
-| 1.48 to 1.67 | 0.15 | [^1] |
+| 1.65 to 1.70 | 0.17 |  |
+| 1.48 to 1.67 | 0.16 | [^1] |
 | 1.34 to 1.54 | 0.13 | [^1] [^2] |
 
 

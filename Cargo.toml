@@ -12,4 +12,4 @@ keywords = ["procfs", "proc", "linux", "process"]
 categories = ["os::unix-apis", "filesystem"]
 license = "MIT OR Apache-2.0"
 edition = "2018"
-rust-version = "1.48"
+rust-version = "1.70"
