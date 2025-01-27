@@ -489,12 +489,24 @@ pub struct MemoryMaps(pub Vec<MemoryMap>);
 
 impl crate::FromBufRead for MemoryMaps {
     /// The data should be formatted according to procfs /proc/pid/{maps,smaps,smaps_rollup}.
-    fn from_buf_read<R: BufRead>(reader: R) -> ProcResult<Self> {
-        let mut memory_maps = Vec::new();
-
-        let mut line_iter = reader.lines().map(|r| r.map_err(|_| ProcError::Incomplete(None)));
+    fn from_buf_read<R: BufRead>(mut reader: R) -> ProcResult<Self> {
+        let mut memory_maps = Vec::with_capacity(10);
         let mut current_memory_map: Option<MemoryMap> = None;
-        while let Some(line) = line_iter.next().transpose()? {
+        let mut line = String::with_capacity(100);
+
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                // End of file.
+                Ok(0) => break,
+                Ok(_) => {},
+                Err(_) => return Err(ProcError::Incomplete(None)),
+            }
+
+            if line.is_empty() {
+                break;
+            }
+
             // Assumes all extension fields (in `/proc/<pid>/smaps`) start with a capital letter,
             // which seems to be the case.
             if line.starts_with(|c: char| c.is_ascii_uppercase()) {
