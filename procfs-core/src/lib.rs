@@ -1,5 +1,5 @@
 #![allow(unknown_lints)]
-#![deny(broken_intra_doc_links, invalid_html_tags)]
+#![deny(rustdoc::broken_intra_doc_links, rustdoc::invalid_html_tags)]
 //! This crate provides to an interface into the linux `procfs` filesystem, usually mounted at
 //! `/proc`.
 //!
