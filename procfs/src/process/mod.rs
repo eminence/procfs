@@ -824,6 +824,11 @@ impl Process {
         self.read("net/snmp6")
     }
 
+    /// Reads the information about basic statistics on all network activities
+    pub fn netstats(&self) -> ProcResult<netstat::Netstat> {
+        self.read("net/netstat")
+    }
+
     /// Opens a file to the process's memory (`/proc/<pid>/mem`).
     ///
     /// Note: you cannot start reading from the start of the file.  You must first seek to
