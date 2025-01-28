@@ -1,5 +1,6 @@
 use super::*;
 use rustix::process::Resource;
+use std::convert::TryInto;
 
 fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
@@ -458,7 +459,7 @@ fn test_proc_auxv() {
         if k != 16 {
             // for reasons i do not understand, getauxval(AT_HWCAP) doesn't return the expected
             // value
-            assert_eq!(v, unsafe { libc::getauxval(k) });
+            assert_eq!(v, unsafe { libc::getauxval(k.try_into().unwrap()).into() });
         }
     }
 }
