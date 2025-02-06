@@ -861,18 +861,29 @@ impl Process {
     }
 
     /// Returns a file which is part of the process proc structure
-    pub fn open_relative(&self, path: &str) -> ProcResult<File> {
+    pub fn open_relative<P>(&self, path: P) -> ProcResult<File>
+    where
+        P: AsRef<Path>,
+    {
         let file = FileWrapper::open_at(&self.root, &self.fd, path)?;
         Ok(file.inner())
     }
 
     /// Parse a file relative to the process proc structure.
-    pub fn read<T: FromRead>(&self, path: &str) -> ProcResult<T> {
+    pub fn read<P, T>(&self, path: P) -> ProcResult<T>
+    where
+        P: AsRef<Path>,
+        T: FromRead,
+    {
         FromRead::from_read(FileWrapper::open_at(&self.root, &self.fd, path)?)
     }
 
     /// Parse a file relative to the process proc structure.
-    pub fn read_si<T: FromReadSI>(&self, path: &str) -> ProcResult<T> {
+    pub fn read_si<P, T>(&self, path: P) -> ProcResult<T>
+    where
+        P: AsRef<Path>,
+        T: FromReadSI,
+    {
         FromReadSI::from_read(
             FileWrapper::open_at(&self.root, &self.fd, path)?,
             crate::current_system_info(),
