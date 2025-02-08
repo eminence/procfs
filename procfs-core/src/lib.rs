@@ -404,6 +404,13 @@ impl FromStrRadix for u64 {
         u64::from_str_radix(s, radix)
     }
 }
+
+impl FromStrRadix for u32 {
+    fn from_str_radix(s: &str, radix: u32) -> Result<u32, std::num::ParseIntError> {
+        u32::from_str_radix(s, radix)
+    }
+}
+
 impl FromStrRadix for i32 {
     fn from_str_radix(s: &str, radix: u32) -> Result<i32, std::num::ParseIntError> {
         i32::from_str_radix(s, radix)

@@ -53,7 +53,7 @@ pub struct Status {
     /// Number of file descriptor slots currently allocated.
     pub fdsize: u32,
     /// Supplementary group list.
-    pub groups: Vec<i32>,
+    pub groups: Vec<u32>,
     /// Thread group ID (i.e., PID) in each of the PID
     /// namespaces of which (pid)[struct.Status.html#structfield.pid] is a member.  The leftmost entry
     /// shows the value with respect to the PID namespace of the
