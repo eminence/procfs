@@ -106,7 +106,11 @@ impl Task {
     }
 
     /// Parse a file relative to the task proc structure.
-    pub fn read<T: FromRead>(&self, path: &str) -> ProcResult<T> {
+    pub fn read<P, T>(&self, path: P) -> ProcResult<T>
+    where
+        P: AsRef<Path>,
+        T: FromRead,
+    {
         FromRead::from_read(FileWrapper::open_at(&self.root, &self.fd, path)?)
     }
 }
