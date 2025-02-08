@@ -104,7 +104,14 @@ fn get_total(map: &HashMap<&str, &str>) -> ProcResult<u64> {
     )
 }
 
-fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
+/// Parse a single `some`/`full` pressure record in the following format:
+///
+/// ```text
+/// full avg10=2.10 avg60=0.12 avg300=0.00 total=391926
+/// ```
+///
+/// See also [`get_pressure`].
+pub fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
     let mut parsed = HashMap::new();
 
     if !line.starts_with("some") && !line.starts_with("full") {
@@ -129,7 +136,16 @@ fn parse_pressure_record(line: &str) -> ProcResult<PressureRecord> {
     })
 }
 
-fn get_pressure<R: std::io::BufRead>(mut r: R) -> ProcResult<(PressureRecord, PressureRecord)> {
+/// Get the pressure records from a reader. The first line should be a `some` record, and the second line a `full` record.
+/// The records are returned in the same order.
+///
+/// ```text
+/// some avg10=4.50 avg60=0.91 avg300=0.00 total=681245
+/// full avg10=2.10 avg60=0.12 avg300=0.00 total=391926
+/// ```
+///
+/// See also [`parse_pressure_record`].
+pub fn get_pressure<R: std::io::BufRead>(mut r: R) -> ProcResult<(PressureRecord, PressureRecord)> {
     let mut some = String::new();
     r.read_line(&mut some)?;
     let mut full = String::new();
