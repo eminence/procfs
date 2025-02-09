@@ -143,6 +143,56 @@ impl CpuInfo {
     }
 }
 
+impl IntoIterator for CpuInfo {
+    type Item = CpuCore;
+    type IntoIter = CpuCoreIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CpuCoreIterator {
+            cpu_info: self,
+            cpu_num: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CpuCore {
+    pub cpu_num: usize,
+    pub model_name: Option<String>,
+    pub vendor_id: Option<String>,
+    pub physical_id: Option<u32>,
+    pub flags: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct CpuCoreIterator {
+    cpu_info: CpuInfo,
+    cpu_num: usize,
+}
+
+impl Iterator for CpuCoreIterator {
+    type Item = CpuCore;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cpu_num < self.cpu_info.num_cores() {
+            let core = CpuCore {
+                cpu_num: self.cpu_num,
+                model_name: self.cpu_info.model_name(self.cpu_num).map(ToString::to_string),
+                vendor_id: self.cpu_info.vendor_id(self.cpu_num).map(ToString::to_string),
+                physical_id: self.cpu_info.physical_id(self.cpu_num),
+                flags: self
+                    .cpu_info
+                    .flags(self.cpu_num)
+                    .map_or_else(Vec::default, |flags| flags.iter().map(ToString::to_string).collect()),
+            };
+            self.cpu_num += 1;
+            Some(core)
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,9 +250,9 @@ Model           : Raspberry Pi 3 Model B Plus Rev 1.3
 
         use crate::FromRead;
 
-        let info = CpuInfo::from_read(r).unwrap();
-        assert_eq!(info.num_cores(), 4);
-        let info = info.get_info(0).unwrap();
+        let cpu_info = CpuInfo::from_read(r).unwrap();
+        assert_eq!(cpu_info.num_cores(), 4);
+        let info = cpu_info.get_info(0).unwrap();
         assert!(info.get("model name").is_some());
         assert!(info.get("BogoMIPS").is_some());
         assert!(info.get("Features").is_some());
@@ -211,5 +261,17 @@ Model           : Raspberry Pi 3 Model B Plus Rev 1.3
         assert!(info.get("CPU variant").is_some());
         assert!(info.get("CPU part").is_some());
         assert!(info.get("CPU revision").is_some());
+
+        (0..cpu_info.num_cores())
+            .zip(cpu_info.clone())
+            .for_each(|(core, view)| {
+                assert_eq!(cpu_info.model_name(core), view.model_name.as_deref());
+                assert_eq!(cpu_info.vendor_id(core), view.vendor_id.as_deref());
+                assert_eq!(cpu_info.physical_id(core), view.physical_id);
+                assert_eq!(
+                    cpu_info.flags(core).unwrap_or_default(),
+                    view.flags.iter().map(String::as_str).collect::<Vec<_>>()
+                );
+            });
     }
 }
