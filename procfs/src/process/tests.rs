@@ -710,6 +710,11 @@ fn test_proc_status_for_kthreadd() {
     let status = kthreadd.status().unwrap();
     println!("{:?}", status);
 
+    // actually check that pid2 is kthreadd
+    if status.name != "kthreadd" {
+        return; // ok we can still ignore
+    }
+
     assert_eq!(status.pid, 2);
     assert_eq!(status.vmpeak, None);
     assert_eq!(status.vmsize, None);
