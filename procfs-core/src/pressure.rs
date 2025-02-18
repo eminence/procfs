@@ -41,16 +41,13 @@ pub struct PressureRecord {
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct CpuPressure {
     pub some: PressureRecord,
+    pub full: PressureRecord,
 }
 
 impl super::FromBufRead for CpuPressure {
     fn from_buf_read<R: std::io::BufRead>(mut r: R) -> ProcResult<Self> {
-        let mut some = String::new();
-        r.read_line(&mut some)?;
-
-        Ok(CpuPressure {
-            some: parse_pressure_record(&some)?,
-        })
+        let (some, full) = get_pressure(r)?;
+        Ok(CpuPressure { some, full })
     }
 }
 
