@@ -40,7 +40,12 @@ pub struct PressureRecord {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct CpuPressure {
+    /// This record indicates the share of time in which at least some tasks are stalled.
     pub some: PressureRecord,
+    /// This record indicates this share of time in which all non-idle tasks are stalled
+    /// simultaneously.
+    ///
+    /// At the system level CPU full is set to zero.
     pub full: PressureRecord,
 }
 
@@ -55,7 +60,7 @@ impl super::FromBufRead for CpuPressure {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct MemoryPressure {
-    /// This record indicates the share of time in which at least some tasks are stalled
+    /// This record indicates the share of time in which at least some tasks are stalled.
     pub some: PressureRecord,
     /// This record indicates this share of time in which all non-idle tasks are stalled
     /// simultaneously.
@@ -73,7 +78,7 @@ impl super::FromBufRead for MemoryPressure {
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct IoPressure {
-    /// This record indicates the share of time in which at least some tasks are stalled
+    /// This record indicates the share of time in which at least some tasks are stalled.
     pub some: PressureRecord,
     /// This record indicates this share of time in which all non-idle tasks are stalled
     /// simultaneously.
