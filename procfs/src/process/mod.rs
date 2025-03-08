@@ -869,6 +869,15 @@ impl Process {
         Ok(file.inner())
     }
 
+    /// Returns a file which is part of the process proc structure
+    pub fn open_relative_flags<P>(&self, path: P, flags: OFlags) -> ProcResult<File>
+    where
+        P: AsRef<Path>,
+    {
+        let file = FileWrapper::open_at_flags(&self.root, &self.fd, path, flags)?;
+        Ok(file.inner())
+    }
+
     /// Parse a file relative to the process proc structure.
     pub fn read<P, T>(&self, path: P) -> ProcResult<T>
     where
