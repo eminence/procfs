@@ -22,7 +22,7 @@ process.  This is very similar to what "ps" does in its default mode:
 fn main() {
     let me = procfs::process::Process::myself().unwrap();
     let me_stat = me.stat().unwrap();
-    let tps = procfs::ticks_per_second().unwrap();
+    let tps = procfs::ticks_per_second();
 
     println!("{: >5} {: <8} {: >8} {}", "PID", "TTY", "TIME", "CMD");
 
