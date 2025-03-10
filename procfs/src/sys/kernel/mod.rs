@@ -66,7 +66,7 @@ impl Version {
         Self {
             major,
             minor,
-            patch: u16::from_ne_bytes([lo, hi])
+            patch: u16::from_ne_bytes([lo, hi]),
         }
     }
 
@@ -142,6 +142,12 @@ impl cmp::Ord for Version {
 impl cmp::PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl From<Version> for procfs_core::KernelVersion {
+    fn from(value: Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
     }
 }
 
