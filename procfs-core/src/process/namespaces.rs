@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 /// Information about a namespace
 #[derive(Debug, Clone, Eq)]
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde1", not(target_family = "wasm")), derive(Serialize, Deserialize))]
 pub struct Namespace {
     /// Namespace type
     pub ns_type: OsString,
@@ -28,5 +28,5 @@ impl PartialEq for Namespace {
 
 /// All namespaces of a process.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+#[cfg_attr(all(feature = "serde1", not(target_family = "wasm")), derive(Serialize, Deserialize))]
 pub struct Namespaces(pub HashMap<OsString, Namespace>);
