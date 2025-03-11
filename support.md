@@ -13,7 +13,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/autogroup`
   * [x] `/proc/[pid]/auxv`
   * [x] `/proc/[pid]/cgroup`
-  * [ ] `/proc/[pid]/clear_refs`
+  * [x] `/proc/[pid]/clear_refs`
   * [x] `/proc/[pid]/cmdline`
   * [x] `/proc/[pid]/comm`
   * [x] `/proc/[pid]/coredump_filter`
@@ -36,7 +36,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/numa_maps`
   * [ ] `/proc/[pid]/oom_adj`
   * [x] `/proc/[pid]/oom_score`
-  * [ ] `/proc/[pid]/oom_score_adj`
+  * [x] `/proc/[pid]/oom_score_adj`
   * [ ] `/proc/[pid]/pagemap`
   * [ ] `/proc/[pid]/personality`
   * [x] `/proc/[pid]/root`
@@ -44,6 +44,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/setgroups`
   * [ ] `/proc/[pid]/sched_autogroup_enabled`
   * [x] `/proc/[pid]/smaps`
+  * [x] `/proc/[pid]/smaps_rollup`
   * [ ] `/proc/[pid]/stack`
   * [x] `/proc/[pid]/stat`
   * [x] `/proc/[pid]/statm`
@@ -70,7 +71,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/config.gz`
 * [ ] `/proc/crypto`
 * [ ] `/proc/cpuinfo`
-* [ ] `/proc/devices`
+* [x] `/proc/devices`
 * [x] `/proc/diskstats`
 * [ ] `/proc/dma`
 * [ ] `/proc/driver`
@@ -80,7 +81,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/fs`
 * [ ] `/proc/ide`
 * [ ] `/proc/interrupts`
-* [ ] `/proc/iomem`
+* [x] `/proc/iomem`
 * [ ] `/proc/ioports`
 * [ ] `/proc/kallsyms`
 * [ ] `/proc/kcore`
@@ -89,15 +90,15 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/kmsg`
 * [ ] `/proc/kpagecgroup`
 * [ ] `/proc/kpagecgroup`
-* [ ] `/proc/kpagecount`
-* [ ] `/proc/kpageflags`
+* [x] `/proc/kpageflags`
+* [x] `/proc/kpagecount`
 * [ ] `/proc/ksyms`
 * [x] `/proc/loadavg`
 * [x] `/proc/locks`
 * [ ] `/proc/malloc`
 * [x] `/proc/meminfo`
 * [x] `/proc/modules`
-* [ ] `/proc/mounts`
+* [x] `/proc/mounts`
 * [ ] `/proc/mtrr`
 * [ ] `/proc/net`
   * [x] `/proc/net/arp`
@@ -108,12 +109,13 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/net/rarp`
   * [ ] `/proc/net/raw`
   * [x] `/proc/net/route`
-  * [ ] `/proc/net/snmp`
+  * [x] `/proc/net/snmp`
+  * [x] `/proc/net/snmp6`
   * [x] `/proc/net/tcp`
   * [x] `/proc/net/udp`
   * [x] `/proc/net/unix`
   * [ ] `/proc/net/netfilter/nfnetlink_queue`
-* [ ] `/proc/partitions`
+* [x] `/proc/partitions`
 * [ ] `/proc/pci`
 * [x] `/proc/pressure`
   * [x] `/proc/pressure/cpu`

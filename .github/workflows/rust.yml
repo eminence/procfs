@@ -1,6 +1,10 @@
 name: Rust
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: 5 16 * * 3
 
 
 
@@ -9,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.48.0", "stable", "beta", "nightly"]
+        toolchain: ["stable", "beta", "nightly"]
     runs-on: ubuntu-latest
 
     steps:
@@ -21,30 +25,24 @@ jobs:
         toolchain: ${{ matrix.toolchain }}
     
     - name: Build
-      run: cargo +${{ matrix.toolchain }} build --verbose
-    - name: Pin plotters
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p plotters --precise 0.3.1
-    - name: Pin serde
-      if: matrix.toolchain == '1.48.0'
-      run: cargo update -p serde --precise 1.0.142
+      run: cargo +${{ matrix.toolchain }} build --workspace --verbose
     - name: Run tests
-      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- --skip _runsinglethread
+      run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- --skip _runsinglethread
     - name: Run tests (single-threaded tests)
-      run: cargo +${{ matrix.toolchain }} test --all-features --verbose -- _runsinglethread --test-threads 1
+      run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- _runsinglethread --test-threads 1
 
     - name: Build docs (all features)
-      run: cargo +${{ matrix.toolchain }} doc --all-features
+      run: cargo +${{ matrix.toolchain }} doc --workspace --all-features
 
     - name: Build docs
-      run: cargo +${{ matrix.toolchain }} doc
+      run: cargo +${{ matrix.toolchain }} doc --workspace
 
 
   check:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: ["1.48.0", "stable", "beta", "nightly"]
+        toolchain: ["stable", "beta", "nightly"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -60,11 +58,8 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           target: i686-unknown-linux-gnu
 
-      - name: Pin serde
-        if: matrix.toolchain == '1.48.0'
-        run: cargo update -p serde --precise 1.0.142
       - name: cargo check (aarch64)
-        run: cargo +${{ matrix.toolchain }} check --target aarch64-linux-android --all-features
+        run: cargo +${{ matrix.toolchain }} check --workspace --target aarch64-linux-android --all-features
       - name: cargo check (i686)
-        run: cargo +${{ matrix.toolchain }} check --target i686-unknown-linux-gnu --all-features
+        run: cargo +${{ matrix.toolchain }} check --workspace --target i686-unknown-linux-gnu --all-features
 
