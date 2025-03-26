@@ -49,6 +49,7 @@ pub use procfs_core::*;
 use bitflags::bitflags;
 
 use rustix::fd::AsFd;
+use rustix::fs::{Mode, OFlags};
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
@@ -217,22 +218,25 @@ impl FileWrapper {
             path: p.to_owned(),
         })
     }
+    fn open_at_flags<P, Q, Fd: AsFd>(root: P, dirfd: Fd, path: Q, flags: OFlags) -> Result<FileWrapper, io::Error>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        let p = root.as_ref().join(path.as_ref());
+        let fd = wrap_io_error!(p, rustix::fs::openat(dirfd, path.as_ref(), flags, Mode::empty()))?;
+        Ok(FileWrapper {
+            inner: File::from(fd),
+            path: p,
+        })
+    }
+
     fn open_at<P, Q, Fd: AsFd>(root: P, dirfd: Fd, path: Q) -> Result<FileWrapper, io::Error>
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        use rustix::fs::{Mode, OFlags};
-
-        let p = root.as_ref().join(path.as_ref());
-        let fd = wrap_io_error!(
-            p,
-            rustix::fs::openat(dirfd, path.as_ref(), OFlags::RDONLY | OFlags::CLOEXEC, Mode::empty())
-        )?;
-        Ok(FileWrapper {
-            inner: File::from(fd),
-            path: p,
-        })
+        Self::open_at_flags(root, dirfd, path, OFlags::RDONLY | OFlags::CLOEXEC)
     }
 
     /// Returns the inner file
