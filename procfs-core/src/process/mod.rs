@@ -499,7 +499,7 @@ impl crate::FromBufRead for MemoryMaps {
             match reader.read_line(&mut line) {
                 // End of file.
                 Ok(0) => break,
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(_) => return Err(ProcError::Incomplete(None)),
             }
 
