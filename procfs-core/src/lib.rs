@@ -376,6 +376,7 @@ mod meminfo;
 pub use meminfo::*;
 
 pub mod net;
+pub mod netstat;
 
 mod pressure;
 pub use pressure::*;
