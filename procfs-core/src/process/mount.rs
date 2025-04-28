@@ -397,7 +397,7 @@ impl MountNFSStatistics {
 #[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct NFSEventCounter {
     pub inode_revalidate: u64,
-    pub deny_try_revalidate: u64,
+    pub dentry_revalidate: u64,
     pub data_invalidate: u64,
     pub attr_invalidate: u64,
     pub vfs_open: u64,
@@ -430,7 +430,7 @@ impl NFSEventCounter {
         let mut s = s.split_whitespace();
         Ok(NFSEventCounter {
             inode_revalidate: from_str!(u64, expect!(s.next())),
-            deny_try_revalidate: from_str!(u64, expect!(s.next())),
+            dentry_revalidate: from_str!(u64, expect!(s.next())),
             data_invalidate: from_str!(u64, expect!(s.next())),
             attr_invalidate: from_str!(u64, expect!(s.next())),
             vfs_open: from_str!(u64, expect!(s.next())),
