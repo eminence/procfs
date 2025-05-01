@@ -24,10 +24,16 @@ jobs:
       with:
         toolchain: ${{ matrix.toolchain }}
     
+    - name: Format
+      # format always on stable, to avoid different toolchains pingponging
+      run: cargo +stable fmt --all --check
+
     - name: Build
       run: cargo +${{ matrix.toolchain }} build --workspace --verbose
+
     - name: Run tests
       run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- --skip _runsinglethread
+
     - name: Run tests (single-threaded tests)
       run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- _runsinglethread --test-threads 1
 
@@ -52,6 +58,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           target: aarch64-linux-android
+
       - name: Install toolchains (i686)
         uses: actions-rs/toolchain@v1
         with:
@@ -60,6 +67,7 @@ jobs:
 
       - name: cargo check (aarch64)
         run: cargo +${{ matrix.toolchain }} check --workspace --target aarch64-linux-android --all-features
+
       - name: cargo check (i686)
         run: cargo +${{ matrix.toolchain }} check --workspace --target i686-unknown-linux-gnu --all-features
 

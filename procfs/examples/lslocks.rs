@@ -5,7 +5,10 @@ use std::path::Path;
 fn main() {
     let myself = Process::myself().unwrap();
     let mountinfo = myself.mountinfo().unwrap();
-    println!("{:18}{:13}{:13}{:13}{:12} Path", "Process", "PID", "Lock Type", "Mode", "Kind");
+    println!(
+        "{:18}{:13}{:13}{:13}{:12} Path",
+        "Process", "PID", "Lock Type", "Mode", "Kind"
+    );
     println!("{}", "=".repeat(74));
     for lock in procfs::locks().unwrap() {
         lock.pid
