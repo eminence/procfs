@@ -94,6 +94,10 @@ impl SystemInfoInterface for LocalSystemInfo {
     fn is_little_endian(&self) -> bool {
         u16::from_ne_bytes([0, 1]).to_le_bytes() == [0, 1]
     }
+
+    fn kernel_version(&self) -> ProcResult<procfs_core::KernelVersion> {
+        KernelVersion::cached().map(Into::into)
+    }
 }
 
 const LOCAL_SYSTEM_INFO: LocalSystemInfo = LocalSystemInfo;
