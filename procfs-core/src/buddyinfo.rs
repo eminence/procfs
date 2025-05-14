@@ -151,7 +151,7 @@ pub struct BuddyInfoItem {
 
 impl BuddyInfoEntry {
     /// Get the total number of free pages across all nodes and zones
-    pub fn total_frees(&self) -> Pages {
+    pub fn total_free(&self) -> Pages {
         self.filtered(|_| true)
     }
 
