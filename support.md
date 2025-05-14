@@ -61,7 +61,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [ ] `/proc/[pid]/gid_map`
   * [x] `/proc/[pid]/wchan`
 * [ ] `/proc/apm`
-* [ ] `/proc/buddyinfo`
+* [x] `/proc/buddyinfo`
 * [ ] `/proc/bus`
   * [ ] `/proc/bus/pccard`
   * [ ] `/proc/bus/pccard/drivers`
