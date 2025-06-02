@@ -49,10 +49,11 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/[pid]/stat`
   * [x] `/proc/[pid]/statm`
   * [x] `/proc/[pid]/status`
-  * [ ] `/proc/[pid]/syscall`
+  * [x] `/proc/[pid]/syscall`
   * [ ] `/proc/[pid]/task`
     * [x] `/proc/[pid]/task/[tid]/stat`
     * [x] `/proc/[pid]/task/[tid]/status`
+	* [x] `/proc/[pid]/task/[tid]/syscall`
     * [x] `/proc/[pid]/task/[tid]/io`
     * [x] `/proc/[pid]/task/[tid]/children`
   * [ ] `/proc/[pid]/timers`
