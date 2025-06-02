@@ -19,7 +19,6 @@ pub enum Syscall {
         /// Note that the rest of the values are still filled in.
         syscall_number: i64,
         /// The argument registers
-        /// e.g. On x86-64 Linux, the first six function arguments are passed in registers %rdi, %rsi, %rdx, %rcx, %r8, and %r9, respectively.
         argument_registers: [u64; 6],
         /// e.g. rsp
         stack_pointer: u64,
