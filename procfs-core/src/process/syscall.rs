@@ -25,7 +25,7 @@ pub enum Syscall {
         stack_pointer: u64,
         /// e.g. rip
         program_counter: u64,
-    }
+    },
 }
 
 impl crate::FromRead for Syscall {
@@ -42,11 +42,11 @@ impl crate::FromRead for Syscall {
         } else {
             let mut values = buf.split(' ');
 
-            let syscall_number: i64 = expect!(from_iter(&mut values), format!("failed to read syscall_number: {}", buf));
+            let syscall_number: i64 = expect!(from_iter(&mut values), "failed to read syscall number");
 
             let mut argument_registers: [u64; 6] = [0; 6];
-            for (reg_idx, arg_reg) in argument_registers.iter_mut().enumerate() {
-                *arg_reg = expect!(from_iter_radix(&mut values, 16), format!("failed to read arg register {}", reg_idx));
+            for arg_reg in argument_registers.iter_mut() {
+                *arg_reg = expect!(from_iter_radix(&mut values, 16), "failed to read argument register");
             }
 
             let stack_pointer: u64 = expect!(from_iter_radix(&mut values, 16), "failed to read stack pointer");

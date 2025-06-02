@@ -352,11 +352,15 @@ where
     let val = expect!(iter.next());
 
     let val = match radix {
-        16 => match (val.strip_prefix("0x"), val.strip_prefix("0X")) {
-            (Some(val), _) => val,
-            (_, Some(val)) => val,
-            _ => val,
-        },
+        16 => {
+            if let Some(val) = val.strip_prefix("0x") {
+                val
+            } else if let Some(val) = val.strip_prefix("0X") {
+                val
+            } else {
+                val
+            }
+        }
         _ => val,
     };
 
