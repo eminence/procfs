@@ -645,6 +645,11 @@ impl Process {
         self.read("schedstat")
     }
 
+    /// Returns the status info from `/proc/[pid]/syscall`.
+    pub fn syscall(&self) -> ProcResult<Syscall> {
+        self.read("syscall")
+    }
+
     /// Iterate over all the [`Task`]s (aka Threads) in this process
     ///
     /// Note that the iterator does not receive a snapshot of tasks, it is a

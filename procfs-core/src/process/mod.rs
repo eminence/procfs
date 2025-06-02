@@ -33,6 +33,9 @@ pub use schedstat::*;
 mod smaps_rollup;
 pub use smaps_rollup::*;
 
+mod syscall;
+pub use syscall::*;
+
 mod pagemap;
 pub use pagemap::*;
 
