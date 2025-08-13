@@ -83,7 +83,7 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 * [ ] `/proc/interrupts`
 * [x] `/proc/iomem`
 * [ ] `/proc/ioports`
-* [ ] `/proc/kallsyms`
+* [x] `/proc/kallsyms`
 * [ ] `/proc/kcore`
 * [x] `/proc/keys`
 * [x] `/proc/key-users`
