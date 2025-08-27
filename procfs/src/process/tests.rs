@@ -2,6 +2,7 @@ use super::*;
 use rustix::process::Resource;
 use std::convert::TryInto;
 
+#[track_caller]
 fn check_unwrap<T>(prc: &Process, val: ProcResult<T>) -> Option<T> {
     match val {
         Ok(t) => Some(t),
