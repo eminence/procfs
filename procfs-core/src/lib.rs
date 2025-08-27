@@ -324,7 +324,7 @@ where
     let val = expect!(iter.next());
     match FromStr::from_str(val) {
         Ok(u) => Ok(u),
-        Err(..) => Err(build_internal_error!("Failed to convert")),
+        Err(..) => Err(build_internal_error!("Failed to convert", val)),
     }
 }
 
@@ -339,7 +339,34 @@ where
     };
     match FromStr::from_str(val) {
         Ok(u) => Ok(Some(u)),
-        Err(..) => Err(build_internal_error!("Failed to convert")),
+        Err(..) => Err(build_internal_error!("Failed to convert (optional)", val)),
+    }
+}
+
+fn from_iter_radix<'a, I, U>(i: I, radix: u32) -> ProcResult<U>
+where
+    I: IntoIterator<Item = &'a str>,
+    U: FromStrRadix,
+{
+    let mut iter = i.into_iter();
+    let val = expect!(iter.next());
+
+    let val = match radix {
+        16 => {
+            if let Some(val) = val.strip_prefix("0x") {
+                val
+            } else if let Some(val) = val.strip_prefix("0X") {
+                val
+            } else {
+                val
+            }
+        }
+        _ => val,
+    };
+
+    match FromStrRadix::from_str_radix(val, radix) {
+        Ok(u) => Ok(u),
+        Err(..) => Err(build_internal_error!("Failed to convert (radix)", val)),
     }
 }
 
