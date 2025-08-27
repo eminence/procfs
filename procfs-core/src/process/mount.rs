@@ -128,7 +128,7 @@ pub struct MountInfo {
 
 impl MountInfo {
     pub fn from_line(line: &str) -> ProcResult<MountInfo> {
-        let mut split = line.split_whitespace();
+        let mut split = line.split(' '); // not using split_whitespace because we might have empty fields
 
         let mnt_id = expect!(from_iter(&mut split));
         let pid = expect!(from_iter(&mut split));
@@ -173,7 +173,7 @@ impl MountInfo {
         }
         let fs_type: String = expect!(from_iter(&mut split));
         let mount_source = match expect!(split.next()) {
-            "none" => None,
+            "none" | "" => None,
             x => Some(x.to_owned()),
         };
         let super_options = {
@@ -248,7 +248,7 @@ impl crate::FromBufRead for MountStats {
             if line.starts_with("device ") {
                 // line will be of the format:
                 // device proc mounted on /proc with fstype proc
-                let mut s = line.split_whitespace();
+                let mut s = line.split(' '); // not splitwhitespace because we can have some empty fields
 
                 let device = Some(expect!(s.nth(1)).to_owned());
                 let mount_point = PathBuf::from(expect!(s.nth(2)));
@@ -590,6 +590,18 @@ mod tests {
     }
 
     #[test]
+    fn test_mountinfo_pasta() {
+        // See https://github.com/eminence/procfs/issues/333
+        let s =
+            "303 98 0:47 / / ro,nosuid,nodev,noexec,relatime - tmpfs  ro,size=0k,nr_inodes=2,uid=1000,gid=1000,inode64";
+
+        let stat = MountInfo::from_line(s).unwrap();
+        assert_eq!(stat.fs_type, "tmpfs");
+        assert_eq!(stat.mount_source, None);
+        assert_eq!(stat.super_options.get("ro"), Some(&None));
+    }
+
+    #[test]
     fn test_proc_mountstats() {
         let MountStats(simple) = FromRead::from_read(
             "device /dev/md127 mounted on /boot with fstype ext2 
@@ -651,5 +663,12 @@ device tmpfs mounted on /run/user/0 with fstype tmpfs
                 panic!("Failed to retrieve nfs statistics");
             }
         }
+
+        // https://github.com/eminence/procfs/issues/333
+        let MountStats(stats) = FromRead::from_read("device  mounted on / with fstype tmpfs".as_bytes()).unwrap();
+        assert_eq!(stats[0].device, Some("".to_string()));
+        assert_eq!(stats[0].mount_point, PathBuf::from("/"));
+        assert_eq!(stats[0].fs, "tmpfs");
+        assert_eq!(stats[0].statistics, None);
     }
 }
