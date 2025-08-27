@@ -31,7 +31,7 @@ impl super::FromBufRead for Vec<MountEntry> {
 
         for line in r.lines() {
             let line = expect!(line);
-            let mut s = line.split_whitespace();
+            let mut s = line.split(' '); // not using split_whitespace because we might have empty fields
 
             let fs_spec = unmangle_octal(expect!(s.next()));
             let fs_file = unmangle_octal(expect!(s.next()));
@@ -104,4 +104,13 @@ Downloads /media/sf_downloads vboxsf rw,nodev,relatime,iocharset=utf8,uid=0,gid=
     let cursor = Cursor::new(s);
     let mounts = Vec::<MountEntry>::from_buf_read(cursor).unwrap();
     assert_eq!(mounts.len(), 4);
+
+    // https://github.com/eminence/procfs/issues/333
+    let s = " / tmpfs ro,nosuid,nodev,noexec,relatime,size=0k,nr_inodes=2,uid=1000,gid=1000,inode64 0 0";
+    let mounts = Vec::<MountEntry>::from_buf_read(Cursor::new(s)).unwrap();
+    assert_eq!(mounts.len(), 1);
+    assert_eq!(mounts[0].fs_spec, "");
+    assert_eq!(mounts[0].fs_file, "/");
+    assert_eq!(mounts[0].fs_vfstype, "tmpfs");
+    assert!(mounts[0].fs_mntops.contains_key("ro"));
 }
