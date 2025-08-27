@@ -535,7 +535,11 @@ fn test_schedstat() {
 
 #[test]
 fn test_fdtarget() {
-    // none of these values are valid, but were found by a fuzzer to crash procfs.  this
+    // https://github.com/eminence/procfs/issues/352
+    let x = FDTarget::from_str("onload:[udp:1:2032]").unwrap();
+    assert!(matches!(x, FDTarget::Unknown(..)));
+
+    // none of these below values are valid, but were found by a fuzzer to crash procfs.  this
     // test ensures that the crashes have been fixed
 
     let _ = FDTarget::from_str(":");
