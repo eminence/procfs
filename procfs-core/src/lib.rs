@@ -103,7 +103,7 @@ pub trait IntoResult<T, E> {
 #[doc(hidden)]
 macro_rules! build_internal_error {
     ($err: expr) => {
-        crate::ProcError::InternalError(crate::InternalError {
+        $crate::ProcError::InternalError($crate::InternalError {
             msg: format!("Internal Unwrap Error: {}", $err),
             file: file!(),
             line: line!(),
@@ -112,7 +112,7 @@ macro_rules! build_internal_error {
         })
     };
     ($err: expr, $msg: expr) => {
-        crate::ProcError::InternalError(crate::InternalError {
+        $crate::ProcError::InternalError($crate::InternalError {
             msg: format!("Internal Unwrap Error: {}: {}", $msg, $err),
             file: file!(),
             line: line!(),
@@ -150,7 +150,7 @@ impl<T, E> IntoResult<T, E> for Result<T, E> {
 #[doc(hidden)]
 macro_rules! proc_panic {
     ($e:expr) => {
-        crate::IntoOption::into_option($e).unwrap_or_else(|| {
+        $crate::IntoOption::into_option($e).unwrap_or_else(|| {
             panic!(
                 "Failed to unwrap {}. Please report this as a procfs bug.",
                 stringify!($e)
@@ -158,7 +158,7 @@ macro_rules! proc_panic {
         })
     };
     ($e:expr, $msg:expr) => {
-        crate::IntoOption::into_option($e).unwrap_or_else(|| {
+        $crate::IntoOption::into_option($e).unwrap_or_else(|| {
             panic!(
                 "Failed to unwrap {} ({}). Please report this as a procfs bug.",
                 stringify!($e),
@@ -172,15 +172,15 @@ macro_rules! proc_panic {
 #[doc(hidden)]
 macro_rules! expect {
     ($e:expr) => {
-        match crate::IntoResult::into($e) {
+        match $crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return Err(crate::build_internal_error!(e)),
+            Err(e) => return Err($crate::build_internal_error!(e)),
         }
     };
     ($e:expr, $msg:expr) => {
-        match crate::IntoResult::into($e) {
+        match $crate::IntoResult::into($e) {
             Ok(v) => v,
-            Err(e) => return Err(crate::build_internal_error!(e, $msg)),
+            Err(e) => return Err($crate::build_internal_error!(e, $msg)),
         }
     };
 }
@@ -190,21 +190,21 @@ macro_rules! expect {
 macro_rules! from_str {
     ($t:tt, $e:expr) => {{
         let e = $e;
-        crate::expect!(
+        $crate::expect!(
             $t::from_str_radix(e, 10),
             format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t),)
         )
     }};
     ($t:tt, $e:expr, $radix:expr) => {{
         let e = $e;
-        crate::expect!(
+        $crate::expect!(
             $t::from_str_radix(e, $radix),
             format!("Failed to parse {} ({:?}) as a {}", stringify!($e), e, stringify!($t))
         )
     }};
     ($t:tt, $e:expr, $radix:expr, pid:$pid:expr) => {{
         let e = $e;
-        crate::expect!(
+        $crate::expect!(
             $t::from_str_radix(e, $radix),
             format!(
                 "Failed to parse {} ({:?}) as a {} (pid {})",
