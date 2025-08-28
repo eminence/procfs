@@ -388,6 +388,9 @@ pub use diskstats::*;
 mod iomem;
 pub use iomem::*;
 
+mod kallsyms;
+pub use kallsyms::*;
+
 pub mod keyring;
 
 mod locks;
