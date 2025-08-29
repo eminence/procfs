@@ -56,6 +56,7 @@
 use crate::ProcResult;
 use crate::{current_system_info, Current};
 pub use procfs_core::net::*;
+pub use procfs_core::netstat::Netstat;
 use procfs_core::FromReadSI;
 use std::collections::HashMap;
 
@@ -178,6 +179,17 @@ pub fn snmp6() -> ProcResult<Snmp6> {
     Snmp6::current()
 }
 
+impl super::Current for Netstat {
+    const PATH: &'static str = "/proc/net/netstat";
+}
+
+/// Reads the information about basic statistics on all network activities
+///
+/// This data is from the `/proc/net/netstat` file and for IPv4 Protocol
+pub fn netstats() -> ProcResult<Netstat> {
+    Netstat::current()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,6 +256,12 @@ mod tests {
     fn test_snmp() {
         let snmp = snmp().unwrap();
         println!("{:?}", snmp);
+    }
+
+    #[test]
+    fn test_netstats() {
+        let netstats = netstats().unwrap();
+        println!("{:?}", netstats);
     }
 
     #[test]
