@@ -177,6 +177,9 @@ pub(crate) fn write_value<P: AsRef<Path>, T: fmt::Display>(path: P, value: T) ->
     write_file(path, value.to_string().as_bytes())
 }
 
+mod buddyinfo;
+pub use crate::buddyinfo::*;
+
 mod cgroups;
 pub use crate::cgroups::*;
 
