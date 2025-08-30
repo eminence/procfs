@@ -105,15 +105,23 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
   * [x] `/proc/net/arp`
   * [x] `/proc/net/dev`
   * [ ] `/proc/net/dev_mcast`
+  * [ ] `/proc/net/icmp`
   * [ ] `/proc/net/igmp`
   * [ ] `/proc/net/ipv6_route`
+  * [ ] `/proc/net/netlink`
+  * [ ] `/proc/net/packet`
   * [ ] `/proc/net/rarp`
   * [ ] `/proc/net/raw`
+  * [ ] `/proc/net/raw6`
   * [x] `/proc/net/route`
   * [x] `/proc/net/snmp`
   * [x] `/proc/net/snmp6`
   * [x] `/proc/net/tcp`
+  * [x] `/proc/net/tcp6`
   * [x] `/proc/net/udp`
+  * [x] `/proc/net/udp6`
+  * [ ] `/proc/net/udplite`
+  * [ ] `/proc/net/udplite6`
   * [x] `/proc/net/unix`
   * [ ] `/proc/net/netfilter/nfnetlink_queue`
 * [x] `/proc/partitions`
