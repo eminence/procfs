@@ -18,7 +18,7 @@ default = ["chrono", "flate2", "procfs-core/default"]
 serde1 = ["serde", "procfs-core/serde1"]
 
 [dependencies]
-procfs-core = { path = "../procfs-core", version = "0.17.0", default-features = false }
+procfs-core = { path = "../procfs-core", version = "0.18.0", default-features = false }
 rustix = { version = "1.0.1", features = ["fs", "process", "param", "system", "thread"] }
 bitflags = { version = "2.0", default-features = false }
 chrono = {version = "0.4.20", optional = true, features = ["clock"], default-features = false }
