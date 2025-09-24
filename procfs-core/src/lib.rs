@@ -370,6 +370,9 @@ where
     }
 }
 
+mod buddyinfo;
+pub use buddyinfo::*;
+
 mod cgroups;
 pub use cgroups::*;
 
@@ -417,6 +420,9 @@ pub use sys::kernel::Version as KernelVersion;
 
 mod sysvipc_shm;
 pub use sysvipc_shm::*;
+
+mod types;
+pub use types::*;
 
 mod uptime;
 pub use uptime::*;
