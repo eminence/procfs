@@ -3,16 +3,20 @@
 //! The files in this directory can be used to tune and monitor miscellaneous
 //! and general things in the operation of the Linux kernel.
 
-use std::cmp;
 use std::collections::HashSet;
 use std::str::FromStr;
+use std::{cmp, fmt::Display};
+
+#[cfg(feature = "serde1")]
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use bitflags::bitflags;
 
 use crate::{ProcError, ProcResult};
 
 /// Represents a kernel version, in major.minor.release version.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
+#[cfg_attr(feature = "serde1", derive(SerializeDisplay, DeserializeFromStr))]
 pub struct Version {
     pub major: u8,
     pub minor: u8,
@@ -96,6 +100,12 @@ impl cmp::Ord for Version {
 impl cmp::PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
@@ -424,5 +434,34 @@ mod tests {
 
         let a = SemaphoreLimits::from_str("1 string 500 3200");
         assert!(a.is_err() && a.err().unwrap() == "Failed to parse SEMMNS");
+    }
+
+    #[cfg(feature = "serde1")]
+    mod serde_kernel_version {
+        #[test]
+        fn should_serialize_kernel_version() {
+            let version = Version {
+                major: 42,
+                minor: 0,
+                patch: 1,
+            };
+            let version = serde_json::to_string(&version).unwrap();
+
+            // NOTE: The double quote is necessary because of the JSON format.
+            assert_eq!(r#""42.0.1""#, &version);
+        }
+
+        #[test]
+        fn should_deserialize_kernel_version() {
+            let expected = Version {
+                major: 21,
+                minor: 0,
+                patch: 2,
+            };
+            // NOTE: The double quote is necessary because of the JSON format.
+            let version: Version = serde_json::from_str(r#""21.0.2""#).unwrap();
+
+            assert_eq!(version, expected);
+        }
     }
 }
