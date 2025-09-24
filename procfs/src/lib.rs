@@ -449,6 +449,15 @@ pub fn diskstats() -> ProcResult<Vec<DiskStat>> {
     DiskStats::current().map(|d| d.0)
 }
 
+impl Current for KAllSyms {
+    const PATH: &'static str = "/proc/kallsyms";
+}
+
+/// Get a list of kernel symbols from `/proc/kallsyms`
+pub fn kallsyms() -> ProcResult<Vec<KAllSymsEntry>> {
+    KAllSyms::current().map(|k| k.symbols)
+}
+
 impl Current for Vec<MountEntry> {
     const PATH: &'static str = "/proc/mounts";
 }
@@ -701,6 +710,13 @@ mod tests {
     fn test_diskstats() {
         for disk in super::diskstats().unwrap() {
             println!("{:?}", disk);
+        }
+    }
+
+    #[test]
+    fn test_kallsyms() {
+        for symbol in kallsyms().unwrap() {
+            println!("{:?}", symbol);
         }
     }
 
