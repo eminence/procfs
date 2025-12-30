@@ -172,8 +172,8 @@ This is an approximate list of all the files under the `/proc` mount, and an ind
 	* [ ] `/proc/sys/kernel/core_uses_pid`
 	* [ ] `/proc/sys/kernel/ctrl-alt-del`
 	* [ ] `/proc/sys/kernel/dmesg_restrict`
-	* [ ] `/proc/sys/kernel/domainname`
-	* [ ] `/proc/sys/kernel/hostname`
+	* [x] `/proc/sys/kernel/domainname`
+	* [x] `/proc/sys/kernel/hostname`
 	* [ ] `/proc/sys/kernel/hotplug`
 	* [ ] `/proc/sys/kernel/htab-reclaim`
 	* [x] `/proc/sys/kernel/keys/\*`

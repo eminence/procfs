@@ -3,6 +3,7 @@
 //! The files in this directory can be used to tune and monitor miscellaneous
 //! and general things in the operation of the Linux kernel.
 
+use std::borrow::Cow;
 use std::cmp;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -289,6 +290,48 @@ impl FromStr for BuildInfo {
     }
 }
 
+/// Returns domainname
+///
+/// See also [set_domainname](crate::sys::kernel::set_domainname)
+///
+/// This is taken from `/proc/sys/kernel/set_domainname`
+pub fn domainname() -> ProcResult<String> {
+    read_value("/proc/sys/kernel/domainname")
+}
+
+/// Set the NIS/YP domainname.
+///
+/// See also [domainname](crate::sys::kernel::domainname)
+pub fn set_domainname(new_value: &str) -> ProcResult<()> {
+    let value = match new_value.ends_with('\n') {
+        true => Cow::Borrowed(new_value),
+        false => Cow::Owned(format!("{}\n", new_value)),
+    };
+
+    write_value("/proc/sys/kernel/domainname", value)
+}
+
+/// Returns hostname
+///
+/// See also [set_hostname](crate::sys::kernel::set_hostname)
+///
+/// This is taken from `/proc/sys/kernel/hostname`
+pub fn hostname() -> ProcResult<String> {
+    read_value("/proc/sys/kernel/hostname")
+}
+
+/// Set the NIS/YP hostname.
+///
+/// See also [hostname](crate::sys::kernel::hostname)
+pub fn set_hostname(new_value: &str) -> ProcResult<()> {
+    let value = match new_value.ends_with('\n') {
+        true => Cow::Borrowed(new_value),
+        false => Cow::Owned(format!("{}\n", new_value)),
+    };
+
+    write_value("/proc/sys/kernel/hostname", value)
+}
+
 /// Returns the maximum process ID number.
 ///
 /// This is taken from `/proc/sys/kernel/pid_max`.
@@ -568,6 +611,28 @@ mod tests {
         let _ = Version::current().unwrap();
         let _ = Type::current().unwrap();
         let _ = BuildInfo::current().unwrap();
+    }
+
+    #[test]
+    fn test_set_and_get_domainname() {
+        let current_domain = domainname().unwrap();
+        let test_domain = String::from("test-host");
+
+        let test_domain = "test.local".to_string();
+        set_domainname(&test_domain).unwrap();
+        assert_eq!(domainname().unwrap(), test_domain);
+        set_domainname(&current_domain).unwrap();
+    }
+
+    #[test]
+    fn test_set_and_get_hostname() {
+        let current_hostname = hostname().unwrap();
+        let test_hostname = String::from("test-host");
+
+        set_hostname(&test_hostname).unwrap();
+        assert_eq!(hostname().unwrap(), test_hostname);
+
+        set_hostname(&current_hostname).unwrap();
     }
 
     #[test]
