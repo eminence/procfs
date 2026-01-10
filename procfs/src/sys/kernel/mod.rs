@@ -614,17 +614,18 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "test-modifies-system")]
     fn test_set_and_get_domainname() {
         let current_domain = domainname().unwrap();
         let test_domain = String::from("test-host");
 
-        let test_domain = "test.local".to_string();
         set_domainname(&test_domain).unwrap();
         assert_eq!(domainname().unwrap(), test_domain);
         set_domainname(&current_domain).unwrap();
     }
 
     #[test]
+    #[cfg(feature = "test-modifies-system")]
     fn test_set_and_get_hostname() {
         let current_hostname = hostname().unwrap();
         let test_hostname = String::from("test-host");

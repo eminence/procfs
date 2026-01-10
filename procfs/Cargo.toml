@@ -16,6 +16,7 @@ rust-version.workspace = true
 backtrace = ["dep:backtrace", "procfs-core/backtrace"]
 default = ["chrono", "flate2", "procfs-core/default"]
 serde1 = ["serde", "procfs-core/serde1"]
+test-modifies-system = []
 
 [dependencies]
 procfs-core = { path = "../procfs-core", version = "0.18.0", default-features = false }
