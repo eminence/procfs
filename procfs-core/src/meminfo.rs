@@ -3,12 +3,12 @@ use super::{expect, from_str, ProcResult};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io};
 
-fn convert_to_kibibytes(num: u64, unit: &str) -> ProcResult<u64> {
+fn convert_to_bytes(num: u64, unit: &str) -> ProcResult<u64> {
     match unit {
         "B" => Ok(num),
-        "KiB" | "kiB" | "kB" | "KB" => Ok(num * 1024),
-        "MiB" | "miB" | "MB" | "mB" => Ok(num * 1024 * 1024),
-        "GiB" | "giB" | "GB" | "gB" => Ok(num * 1024 * 1024 * 1024),
+        "KiB" | "kiB" | "kB" | "KB" => Ok(num.saturating_mul(1024)),
+        "MiB" | "miB" | "MB" | "mB" => Ok(num.saturating_mul(1024 * 1024)),
+        "GiB" | "giB" | "GB" | "gB" => Ok(num.saturating_mul(1024 * 1024 * 1024)),
         unknown => Err(build_internal_error!(format!("Unknown unit type {}", unknown))),
     }
 }
@@ -321,7 +321,7 @@ impl super::FromBufRead for Meminfo {
             let value = from_str!(u64, value);
 
             let value = if let Some(unit) = unit {
-                convert_to_kibibytes(value, unit)?
+                convert_to_bytes(value, unit)?
             } else {
                 value
             };
