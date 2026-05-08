@@ -291,6 +291,11 @@ impl Process {
         }
     }
 
+    /// What group owns this process?
+    pub fn gid(&self) -> ProcResult<u32> {
+        Ok(self.metadata()?.st_gid)
+    }
+
     /// What user owns this process?
     pub fn uid(&self) -> ProcResult<u32> {
         Ok(self.metadata()?.st_uid)
