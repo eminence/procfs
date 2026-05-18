@@ -66,7 +66,7 @@ impl Version {
         Self {
             major,
             minor,
-            patch: u16::from_ne_bytes([lo, hi])
+            patch: u16::from_ne_bytes([lo, hi]),
         }
     }
 
