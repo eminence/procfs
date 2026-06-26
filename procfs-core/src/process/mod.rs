@@ -125,7 +125,7 @@ bitflags! {
         const FILEBACKED_PRIVATE_MAPPINGS = 0x04;
         const FILEBACKED_SHARED_MAPPINGS = 0x08;
         const ELF_HEADERS = 0x10;
-        const PROVATE_HUGEPAGES = 0x20;
+        const PRIVATE_HUGEPAGES = 0x20;
         const SHARED_HUGEPAGES = 0x40;
         const PRIVATE_DAX_PAGES = 0x80;
         const SHARED_DAX_PAGES = 0x100;
