@@ -496,6 +496,10 @@ impl Current for IoPressure {
     const PATH: &'static str = "/proc/pressure/io";
 }
 
+impl Current for IrqPressure {
+    const PATH: &'static str = "/proc/pressure/irq";
+}
+
 impl Current for SharedMemorySegments {
     const PATH: &'static str = "/proc/sysvipc/shm";
 }

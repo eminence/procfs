@@ -11,7 +11,7 @@ use std::collections::HashMap;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
-/// Pressure stall information for either CPU, memory, or IO.
+/// Pressure stall information for either CPU, memory, IRQ or IO.
 ///
 /// See also: <https://www.kernel.org/doc/Documentation/accounting/psi.txt>
 #[derive(Debug, Clone)]
@@ -89,6 +89,26 @@ impl super::FromBufRead for IoPressure {
     fn from_buf_read<R: std::io::BufRead>(r: R) -> ProcResult<Self> {
         let (some, full) = get_pressure(r)?;
         Ok(IoPressure { some, full })
+    }
+}
+
+/// IRQ pressure information, only available if the kernel was compiled with CONFIG_IRQ_TIME_ACCOUNTING=y
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
+pub struct IrqPressure {
+    /// This record indicates this share of time in which all non-idle tasks are stalled
+    /// simultaneously.
+    pub full: PressureRecord,
+}
+
+impl super::FromBufRead for IrqPressure {
+    fn from_buf_read<R: std::io::BufRead>(r: R) -> ProcResult<Self> {
+        let mut full = String::new();
+        let mut reader = r;
+        reader.read_line(&mut full)?;
+        Ok(IrqPressure {
+            full: parse_pressure_record(&full)?,
+        })
     }
 }
 

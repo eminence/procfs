@@ -1,4 +1,4 @@
-use procfs::{prelude::*, CpuPressure, IoPressure, MemoryPressure, PressureRecord};
+use procfs::{prelude::*, CpuPressure, IoPressure, IrqPressure, MemoryPressure, PressureRecord};
 
 /// A basic example of /proc/pressure/ usage.
 fn main() {
@@ -13,11 +13,17 @@ fn main() {
         println!("CPU Pressure:");
         print_pressure(pressure.some, 20);
     }
+
     if let Ok(pressure) = IoPressure::current() {
         println!("IO Pressure:");
         println!("{:>10}:", "Some");
         print_pressure(pressure.some, 20);
         println!("{:>10}:", "Full");
+        print_pressure(pressure.full, 20);
+    }
+
+    if let Ok(pressure) = IrqPressure::current() {
+        println!("IRQ Pressure:");
         print_pressure(pressure.full, 20);
     }
 }
