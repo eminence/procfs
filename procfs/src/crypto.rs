@@ -1,6 +1,5 @@
-
-use procfs_core::ProcResult;
 pub use procfs_core::CryptoTable;
+use procfs_core::ProcResult;
 
 use crate::Current;
 
@@ -11,7 +10,6 @@ impl Current for CryptoTable {
 pub fn crypto() -> ProcResult<CryptoTable> {
     CryptoTable::current()
 }
-
 
 #[cfg(test)]
 mod tests {

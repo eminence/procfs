@@ -1,10 +1,13 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use procfs::CpuInfo;
+use procfs::Current;
 
 fn bench_cpuinfo(c: &mut Criterion) {
-    c.bench_function("CpuInfo::new", |b| b.iter(|| black_box(CpuInfo::new().unwrap())));
+    c.bench_function("CpuInfo::current", |b| {
+        b.iter(|| black_box(CpuInfo::current().unwrap()))
+    });
 
-    let cpuinfo = black_box(CpuInfo::new().unwrap());
+    let cpuinfo = black_box(CpuInfo::current().unwrap());
     c.bench_function("CpuInfo::get_info", |b| b.iter(|| black_box(cpuinfo.get_info(0))));
     c.bench_function("CpuInfo::model_name", |b| b.iter(|| cpuinfo.model_name(0)));
     c.bench_function("CpuInfo::vendor_id", |b| b.iter(|| cpuinfo.vendor_id(0)));

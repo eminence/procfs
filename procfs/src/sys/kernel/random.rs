@@ -5,7 +5,7 @@
 use crate::{read_value, write_value, ProcError, ProcResult};
 use std::path::Path;
 
-const RANDOM_ROOT: &str = "/proc/sys/kernel/random"; 
+const RANDOM_ROOT: &str = "/proc/sys/kernel/random";
 
 /// This read-only file gives the available entropy, in bits. This will be a number in the range
 /// 0 to 4096
