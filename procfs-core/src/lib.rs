@@ -799,6 +799,34 @@ pub struct CpuTime {
 }
 
 impl CpuTime {
+    pub fn from_values(
+        user: u64,
+        nice: u64,
+        system: u64,
+        idle: u64,
+        iowait: Option<u64>,
+        irq: Option<u64>,
+        softirq: Option<u64>,
+        steal: Option<u64>,
+        guest: Option<u64>,
+        guest_nice: Option<u64>,
+        tps: u64,
+    ) -> CpuTime {
+        CpuTime {
+            user,
+            nice,
+            system,
+            idle,
+            iowait,
+            irq,
+            softirq,
+            steal,
+            guest,
+            guest_nice,
+            tps,
+        }
+    }
+
     fn from_str(s: &str, ticks_per_second: u64) -> ProcResult<CpuTime> {
         let mut s = s.split_whitespace();
 
@@ -819,19 +847,9 @@ impl CpuTime {
         let guest = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
         let guest_nice = s.next().map(|s| Ok(from_str!(u64, s))).transpose()?;
 
-        Ok(CpuTime {
-            user,
-            nice,
-            system,
-            idle,
-            iowait,
-            irq,
-            softirq,
-            steal,
-            guest,
-            guest_nice,
-            tps,
-        })
+        Ok(CpuTime::from_values(
+            user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice, tps,
+        ))
     }
 
     /// Milliseconds spent in user mode
