@@ -373,6 +373,9 @@ where
 mod cgroups;
 pub use cgroups::*;
 
+pub mod consoles;
+pub use consoles::*;
+
 mod cpuinfo;
 pub use cpuinfo::*;
 
