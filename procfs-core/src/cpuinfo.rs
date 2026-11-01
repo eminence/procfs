@@ -28,7 +28,8 @@ impl crate::FromBufRead for CpuInfo {
         // the first line of a cpu block must start with "processor"
         let mut found_first = false;
 
-        for line in r.lines().flatten() {
+        for line in r.lines() {
+            let line = line?;
             if !line.is_empty() {
                 let mut s = line.split(':');
                 let key = expect!(s.next());
@@ -146,6 +147,32 @@ impl CpuInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_cpuinfo_read_error() {
+        use crate::FromBufRead;
+        use std::io::{self, BufReader, Cursor, Read};
+
+        struct ErrorOnce(bool);
+
+        impl Read for ErrorOnce {
+            fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+                if self.0 {
+                    Ok(0)
+                } else {
+                    self.0 = true;
+                    Err(io::ErrorKind::UnexpectedEof.into())
+                }
+            }
+        }
+
+        // A complete first entry must not hide an error reading later CPUs.
+        let prefix = Cursor::new(b"processor : 0\nmodel name : fixture\n\n");
+        let reader = BufReader::new(prefix.chain(ErrorOnce(false)));
+        let result = CpuInfo::from_buf_read(reader);
+        assert!(matches!(result, Err(crate::ProcError::Io(error, None))
+            if error.kind() == io::ErrorKind::UnexpectedEof));
+    }
 
     #[test]
     fn test_cpuinfo_rpi() {
