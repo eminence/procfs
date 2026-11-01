@@ -478,7 +478,16 @@ impl MMapPath {
                 MMapPath::TStack(tid)
             }
             x if x.starts_with('[') && x.ends_with(']') => MMapPath::Other(x[1..x.len() - 1].to_string()),
-            x if x.starts_with("/SYSV") => MMapPath::Vsys(u32::from_str_radix(&x[5..13], 16)? as i32), // 32bits signed hex. /SYSVaabbccdd (deleted)
+            x if x.starts_with("/SYSV") => {
+                let key = x.strip_prefix("/SYSV").unwrap();
+                let key = key.strip_suffix(" (deleted)").unwrap_or(key);
+                if key.len() == 8 && key.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    // The kernel formats SysV keys as 32-bit signed hex.
+                    MMapPath::Vsys(u32::from_str_radix(key, 16)? as i32)
+                } else {
+                    MMapPath::Path(PathBuf::from(x))
+                }
+            }
             x => MMapPath::Path(PathBuf::from(x)),
         })
     }
@@ -837,6 +846,47 @@ impl crate::FromRead for StatM {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_sysv_mmap_keys() {
+        for (path, key) in [
+            ("/SYSV00000000 (deleted)", 0),
+            ("/SYSVba5bd51c (deleted)", 0xba5bd51cu32 as i32),
+            ("/SYSVffffffff", -1),
+        ] {
+            assert_eq!(MMapPath::from(path).unwrap(), MMapPath::Vsys(key));
+        }
+    }
+
+    #[test]
+    fn parse_sysv_prefix_file_paths() {
+        for path in [
+            "/SYSV",
+            "/SYSVabc",
+            "/SYSVxxxxxxxx",
+            "/SYSV00000000-not-shm",
+            "/SYSV00000000/child",
+            "/SYSV000000000",
+        ] {
+            assert_eq!(MMapPath::from(path).unwrap(), MMapPath::Path(PathBuf::from(path)));
+        }
+    }
+
+    #[test]
+    fn parse_sysv_unicode_file_paths() {
+        for path in ["/SYSVééééé", "/SYSVaaaaaaaé"] {
+            assert_eq!(MMapPath::from(path).unwrap(), MMapPath::Path(PathBuf::from(path)));
+        }
+    }
+
+    #[test]
+    fn parse_memory_maps_with_sysv_prefix_path() {
+        use crate::FromBufRead;
+        let maps =
+            MemoryMaps::from_buf_read(b"7ff8ac138000-7ff8ac1b8000 rw-s 00000000 00:01 4 /SYSV\n".as_slice()).unwrap();
+        assert_eq!(maps.0.len(), 1);
+        assert_eq!(maps.0[0].pathname, MMapPath::Path(PathBuf::from("/SYSV")));
+    }
 
     #[test]
     fn parse_memory_map_permissions() {
