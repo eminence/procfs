@@ -113,8 +113,12 @@ pub struct Stat {
         doc = "See also the [Stat::starttime()] method to get the starttime as a `DateTime` object"
     )]
     #[cfg_attr(
-        not(feature = "chrono"),
-        doc = "If you compile with the optional `chrono` feature, you can use the `starttime()` method to get the starttime as a `DateTime` object"
+        all(feature = "jiff", not(feature = "chrono")),
+        doc = "See also the [Stat::starttime()] method to get the starttime as a `jiff::ZonedDateTime`"
+    )]
+    #[cfg_attr(
+        not(any(feature = "chrono", feature = "jiff")),
+        doc = "If you compile with the optional `chrono` or `jiff` feature, you can use the `starttime()` method to get the starttime as a date-time object"
     )]
     pub starttime: u64,
     /// Virtual memory size in bytes.
@@ -392,7 +396,8 @@ impl Stat {
     ///
     /// See also the [`starttime`](struct.Stat.html#structfield.starttime) field.
     ///
-    /// This function requires the "chrono" features to be enabled (which it is by default).
+    /// This version is returned when the "chrono" feature is enabled (which it is by default).
+    /// With the "jiff" feature and without "chrono", a `jiff::ZonedDateTime` is returned instead.
     ///
     /// Since computing the absolute start time requires knowing the current boot time, this function returns
     /// a type that needs info about the current machine.
@@ -412,6 +417,33 @@ impl Stat {
             let seconds_since_boot = self.starttime as f32 / si.ticks_per_second() as f32;
 
             Ok(si.boot_time()? + chrono::Duration::milliseconds((seconds_since_boot * 1000.0) as i64))
+        }
+    }
+
+    /// Get the starttime of the process as a `jiff::ZonedDateTime` in the system time zone.
+    ///
+    /// This version is only available with the "jiff" feature and without the "chrono" feature
+    /// (if both are enabled, "chrono" wins and `starttime()` returns a `chrono::DateTime<chrono::Local>`).
+    ///
+    /// Since computing the absolute start time requires knowing the current boot time, this function returns
+    /// a type that needs info about the current machine.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use procfs::WithCurrentSystemInfo;
+    ///
+    /// let me = procfs::process::Process::myself().unwrap();
+    /// let stat = me.stat().unwrap();
+    /// let start = stat.starttime().get().unwrap();
+    /// ```
+    #[cfg(all(feature = "jiff", not(feature = "chrono")))]
+    pub fn starttime(&self) -> impl crate::WithSystemInfo<Output = ProcResult<jiff::ZonedDateTime>> {
+        move |si: &crate::SystemInfo| {
+            let seconds_since_boot = self.starttime as f32 / si.ticks_per_second() as f32;
+
+            let offset = jiff::SignedDuration::from_millis((seconds_since_boot * 1000.0) as i64);
+            Ok(expect!(si.boot_time()?.checked_add(offset)))
         }
     }
 

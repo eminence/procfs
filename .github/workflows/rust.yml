@@ -31,8 +31,14 @@ jobs:
     - name: Run tests (single-threaded tests)
       run: cargo +${{ matrix.toolchain }} test --workspace --all-features --verbose -- _runsinglethread --test-threads 1
 
+    - name: Run tests (jiff instead of chrono)
+      run: cargo +${{ matrix.toolchain }} test --workspace --no-default-features --features jiff --verbose -- --skip _runsinglethread
+
     - name: Build docs (all features)
       run: cargo +${{ matrix.toolchain }} doc --workspace --all-features
+
+    - name: Build docs (jiff instead of chrono)
+      run: cargo +${{ matrix.toolchain }} doc --workspace --no-default-features --features jiff
 
     - name: Build docs
       run: cargo +${{ matrix.toolchain }} doc --workspace
