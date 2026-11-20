@@ -77,6 +77,7 @@ details.
 The following cargo features are available:
 
 * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
+* `jiff` -- Optional.  This feature makes the methods that `chrono` enables (such as `boot_time`) return `jiff::ZonedDateTime` (in the system time zone) instead of `chrono::DateTime<Local>`.  It only takes effect with `chrono` disabled (`default-features = false`): when both are enabled, e.g. through Cargo feature unification with another crate in the build, `chrono` wins and the methods keep their chrono types.  jiff 1.x needs Rust 1.85 or newer.
 * `flate2` -- Default.  Optional.  This feature enables parsing gzip compressed `/proc/config.gz` file via the `procfs::kernel_config` method.
 * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 * `serde1` -- Optional.  This feature allows most structs to be serialized and deserialized using serde 1.0.  Note, this

@@ -55,6 +55,8 @@ fn test_self_proc() {
 
     #[cfg(feature = "chrono")]
     println!("starttime: {:#?}", myself.starttime().get());
+    #[cfg(all(feature = "jiff", not(feature = "chrono")))]
+    println!("starttime (jiff): {:#?}", myself.starttime().get());
 
     let kernel = KernelVersion::current().unwrap();
 
@@ -148,6 +150,8 @@ fn test_all() {
         stat.flags().unwrap();
         stat.state().unwrap();
         #[cfg(feature = "chrono")]
+        stat.starttime().get().unwrap();
+        #[cfg(all(feature = "jiff", not(feature = "chrono")))]
         stat.starttime().get().unwrap();
 
         // if this process is defunct/zombie, don't try to read any of the below data

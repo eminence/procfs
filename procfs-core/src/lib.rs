@@ -256,11 +256,24 @@ pub trait SystemInfoInterface {
     /// Whether the system is little endian (true) or big endian (false).
     fn is_little_endian(&self) -> bool;
 
+    /// The boot time of the system, as a `chrono::DateTime<chrono::Local>`.
+    ///
+    /// With the `jiff` feature and without `chrono`, this returns a `jiff::ZonedDateTime` instead.
     #[cfg(feature = "chrono")]
     fn boot_time(&self) -> ProcResult<chrono::DateTime<chrono::Local>> {
         use chrono::TimeZone;
         let date_time = expect!(chrono::Local.timestamp_opt(self.boot_time_secs()? as i64, 0).single());
         Ok(date_time)
+    }
+
+    /// The boot time of the system, as a `jiff::ZonedDateTime` in the system time zone.
+    ///
+    /// Only available with the `jiff` feature and without the `chrono` feature (if both are
+    /// enabled, `chrono` wins and this method returns a `chrono::DateTime<chrono::Local>`).
+    #[cfg(all(feature = "jiff", not(feature = "chrono")))]
+    fn boot_time(&self) -> ProcResult<jiff::ZonedDateTime> {
+        let ts = expect!(jiff::Timestamp::from_second(self.boot_time_secs()? as i64));
+        Ok(ts.to_zoned_datetime(jiff::tz::TimeZone::system()))
     }
 }
 

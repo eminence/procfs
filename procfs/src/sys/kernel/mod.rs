@@ -183,7 +183,7 @@ pub struct BuildInfo {
     pub flags: HashSet<String>,
     /// This field contains any extra data from the /proc/sys/kernel/version file. It generally contains the build date of the kernel, but the format of the date can vary.
     ///
-    /// A method named `extra_date` is provided which would try to parse some date formats. When the date format is not supported, an error will be returned. It depends on chrono feature.
+    /// A method named `extra_date` is provided which would try to parse some date formats. When the date format is not supported, an error will be returned. It depends on chrono feature. With the jiff feature and without chrono, it returns a `jiff::ZonedDateTime` instead.
     pub extra: String,
 }
 
@@ -247,6 +247,25 @@ impl BuildInfo {
         }
         if let Ok(dt) = chrono::DateTime::parse_from_str(&self.extra, "%a, %d %b %Y %H:%M:%S %z") {
             return Ok(dt.with_timezone(&chrono::Local));
+        }
+        Err(ProcError::Other("Failed to parse extra field to date".to_string()))
+    }
+
+    /// Parse extra field to a `jiff::ZonedDateTime` in the system time zone
+    ///
+    /// This version is only available with the "jiff" feature and without the "chrono" feature
+    /// (if both are enabled, "chrono" wins and `extra_date()` returns a `chrono::DateTime<chrono::Local>`).
+    /// This function may fail as TIMESTAMP can be various formats.
+    #[cfg(all(feature = "jiff", not(feature = "chrono")))]
+    pub fn extra_date(&self) -> ProcResult<jiff::ZonedDateTime> {
+        use jiff::fmt::strtime;
+        if let Ok(ts) = strtime::parse("%a %b %d %H:%M:%S UTC %Y %z", format!("{} +0000", &self.extra))
+            .and_then(|tm| tm.to_timestamp())
+        {
+            return Ok(ts.to_zoned_datetime(jiff::tz::TimeZone::system()));
+        }
+        if let Ok(ts) = strtime::parse("%a, %d %b %Y %H:%M:%S %z", &self.extra).and_then(|tm| tm.to_timestamp()) {
+            return Ok(ts.to_zoned_datetime(jiff::tz::TimeZone::system()));
         }
         Err(ProcError::Other("Failed to parse extra field to date".to_string()))
     }
@@ -536,6 +555,8 @@ mod tests {
         assert_eq!(a.extra, "Thu Sep 30 15:29:01 UTC 2021");
         #[cfg(feature = "chrono")]
         let _ = a.extra_date().unwrap();
+        #[cfg(all(feature = "jiff", not(feature = "chrono")))]
+        let _ = a.extra_date().unwrap();
 
         // For Arch and others:
         let b = BuildInfo::from_str("#1 SMP PREEMPT Fri, 12 Nov 2021 19:22:10 +0000").unwrap();
@@ -547,6 +568,8 @@ mod tests {
         assert!(b.preempt());
         assert!(!b.preemptrt());
         #[cfg(feature = "chrono")]
+        let _ = b.extra_date().unwrap();
+        #[cfg(all(feature = "jiff", not(feature = "chrono")))]
         let _ = b.extra_date().unwrap();
 
         // For Debian and others:

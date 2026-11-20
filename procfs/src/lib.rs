@@ -35,6 +35,7 @@
 //! The following cargo features are available:
 //!
 //! * `chrono` -- Default.  Optional.  This feature enables a few methods that return values as `DateTime` objects.
+//! * `jiff` -- Optional.  This feature makes the methods that `chrono` enables (such as `boot_time`) return `jiff::ZonedDateTime` (in the system time zone) instead of `chrono::DateTime<Local>`.  It only takes effect with `chrono` disabled (`default-features = false`): when both are enabled, e.g. through Cargo feature unification with another crate in the build, `chrono` wins and the methods keep their chrono types.  jiff 1.x needs Rust 1.85 or newer.
 //! * `flate2` -- Default.  Optional.  This feature enables parsing gzip compressed `/proc/config.gz` file via the `procfs::kernel_config` method.
 //! * `backtrace` -- Optional.  This feature lets you get a stack trace whenever an `InternalError` is raised.
 //!
@@ -278,7 +279,8 @@ pub fn ticks_per_second() -> u64 {
 ///
 /// This is calculated from `/proc/stat`.
 ///
-/// This function requires the "chrono" features to be enabled (which it is by default).
+/// This version is returned when the "chrono" feature is enabled (which it is by default).
+/// With the "jiff" feature and without "chrono", a `jiff::ZonedDateTime` is returned instead.
 #[cfg(feature = "chrono")]
 pub fn boot_time() -> ProcResult<DateTime<chrono::Local>> {
     use chrono::TimeZone;
@@ -289,17 +291,36 @@ pub fn boot_time() -> ProcResult<DateTime<chrono::Local>> {
     Ok(date_time)
 }
 
+/// The boot time of the system, as a `jiff::ZonedDateTime` in the system time zone.
+///
+/// This is calculated from `/proc/stat`.
+///
+/// This version is only available with the "jiff" feature and without the "chrono" feature (if both
+/// are enabled, "chrono" wins and `boot_time()` returns a `chrono::DateTime<chrono::Local>`).
+#[cfg(all(feature = "jiff", not(feature = "chrono")))]
+pub fn boot_time() -> ProcResult<jiff::ZonedDateTime> {
+    let secs = boot_time_secs()?;
+
+    let ts = expect!(jiff::Timestamp::from_second(secs as i64));
+
+    Ok(ts.to_zoned_datetime(jiff::tz::TimeZone::system()))
+}
+
 /// The boottime of the system, in seconds since the epoch
 ///
 /// This is calculated from `/proc/stat`.
 ///
 #[cfg_attr(
-    not(feature = "chrono"),
-    doc = "If you compile with the optional `chrono` feature, you can use the `boot_time()` method to get the boot time as a `DateTime` object."
+    not(any(feature = "chrono", feature = "jiff")),
+    doc = "If you compile with the optional `chrono` or `jiff` feature, you can use the `boot_time()` method to get the boot time as a date-time object."
 )]
 #[cfg_attr(
     feature = "chrono",
     doc = "See also [boot_time()] to get the boot time as a `DateTime`"
+)]
+#[cfg_attr(
+    all(feature = "jiff", not(feature = "chrono")),
+    doc = "See also [boot_time()] to get the boot time as a `jiff::ZonedDateTime`"
 )]
 pub fn boot_time_secs() -> ProcResult<u64> {
     BOOT_TIME.with(|x| {
